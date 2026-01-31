@@ -1,6 +1,4 @@
-# 电影百年/宋金战争 网页版
-
-用[boardgame.io](https://boardgame.io)框架实现的桌游网页版
+# 电影百年（线下版本） 网页版
 
 ## 启动
 
@@ -19,6 +17,6 @@ yarn start
 yarn serve
 ```
 
-## 结构
+## 作者的话
 
-主要逻辑在 src/game/util.ts
+新增作者自制，有开关，可自选添加
