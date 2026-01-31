@@ -49,7 +49,7 @@ const DenseTable = () => {
                             <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
                             <TableCell align="right">{c.vp}/{c.industry}/{c.aesthetics}</TableCell>
                             <TableCell align="left"><CardEffect cid={c.cardId}/></TableCell>
-                            <TableCell align="left">
+                            <TableCell align="left" style={{ whiteSpace: 'pre-line' }}>
                                 {getEffectTextById(c.cardId)}
                             </TableCell>
                         </TableRow>
@@ -78,7 +78,7 @@ const DenseTable = () => {
                             </TableCell>
                             <TableCell align="right">{c.cost.res}/{c.cost.industry}/{c.cost.aesthetics}</TableCell>
                             <TableCell align="right">{c.vp}/{c.industry}/{c.aesthetics}</TableCell>
-                            <TableCell align="left">
+                            <TableCell align="left" style={{ whiteSpace: 'pre-line' }}>
                                 {getEffectTextById(c.cardId)}
                             </TableCell>
                         </TableRow>

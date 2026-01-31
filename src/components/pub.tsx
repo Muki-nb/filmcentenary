@@ -242,7 +242,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
         </Grid>
         <Grid item sm={3}>
             <CardList
-                title={`${i18n.pub.discard}${i.discard.length}`}
+                title={`${i18n.pub.discard}(${i.discard.length})`}
                 cards={i.discard}
                 label={
                     <Typography className={classes.iconAlign}><DiscardDeckIcon/>{i.discard.length}</Typography>

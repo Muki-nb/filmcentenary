@@ -1,6 +1,7 @@
 import {
     AvantGradeAP,
     B04,
+	B05,
     BasicCardID,
     BuildingType,
     CardCategory,
@@ -125,6 +126,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
         case "industryAndAestheticsBreakthrough":
         case "industryOrAestheticsBreakthrough":
         case "industryOrAestheticsLevelUp":
+        case "industryOrAestheticsLevelDown":
         case "peek":
         case "everyOtherCompany":
         case "everyPlayer":
@@ -159,6 +161,32 @@ export const playerLoseShare = (G: IG, r: ValidRegion, p: PlayerID, num: number)
     const log = [`playerLoseShare|p${p}|region${r}|num:${num}`];
     const playerIdNum = parseInt(p);
     const shareCount = G.pub[playerIdNum].shares[r];
+    /*
+    DEBUG 斯皮 + 作者
+    debug|D3YSaUSqEJQ|chooseRegioncanUndo{"r":1,"idx":1,"p":"2"}{"e":"loseAnyRegionShare","a":1,"target":"2"}
+    C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\build\src\game\util.js:111
+        const shareCount = G.pub[playerIdNum].shares[r];
+                                            ^
+
+    TypeError: Cannot read properties of undefined (reading 'shares')
+        at playerLoseShare (C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\build\src\game\util.js:111:43)
+        at move (C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\build\src\game\moves.js:705:21)
+        at C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\boardgame.io\dist\cjs\server.js    
+        at Immer.produce (C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\immer\dist\immer
+    .cjs.development.js:805:20)
+        at C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\boardgame.io\dist\cjs\server.js
+    :41:22
+        at C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\boardgame.io\dist\cjs\server.js
+    :575:24
+        at C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\boardgame.io\dist\cjs\server.js
+    :510:13
+        at Object.processMove (C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\boardgame.i
+    o\dist\cjs\server.js:1950:24)
+        at C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\boardgame.io\dist\cjs\server.js
+    :3212:32
+        at dispatch (C:\Users\Administrator\Desktop\muki-new\filmcentenary-master\node_modules\redux\lib\redux.js:29
+    6:22)
+    */
     const boardShareCount = G.regions[r].share;
     log.push(`|region${r}share${shareCount}`);
     log.push(`|beforeLose|p${p}|${G.pub[playerIdNum].shares[r]}|board|${G.regions[r].share}`);
@@ -345,6 +373,25 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 log.push(`|LV10CannotUpgrade`);
             }
             break;
+        case "aestheticsLevelDown":
+            if (pub.aesthetics > 0) {
+                log.push(`|${pub.aesthetics}`);
+                pub.aesthetics--;
+                log.push(`|${pub.aesthetics}`);
+            } else {
+                log.push(`|LV0CannotDowngrade`);
+            }
+            break
+        case "industryLevelDown":
+            if (pub.industry > 0) {
+                log.push(`|${pub.industry}`);
+                pub.industry--;
+                if(pub.competitionPower > pub.industry) pub.competitionPower = pub.industry;
+                log.push(`|${pub.industry}`);
+            } else {
+                log.push(`|LV0CannotDowngrade`);
+            }
+            break;
         case "industryAward":
             for (let i = 0; i < eff.a; i++) {
                 industryAward(G, ctx, p);
@@ -477,6 +524,12 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         if (pub.school == SchoolCardID.S4004) {
             addVp(G, ctx, p, 2);
         }
+		if (pub.school == SchoolCardID.S5004) {
+			if(card.cost.industry > pub.industry || card.cost.aesthetics > pub.aesthetics){
+				pub.deposit += 1;
+				addVp(G, ctx, p, 1);
+			}
+		}
     } else {
         let slot: ICardSlot | null;
         if (ctx.numPlayers === SimpleRuleNumPlayers) {
@@ -494,7 +547,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 slot.comment = null;
             }
             const region = card.region;
-            if (region !== Region.NONE && region !== Region.EXTENSION) {
+            if ([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(region)) {
                 let share = 0;
                 if (ctx.numPlayers > SimpleRuleNumPlayers) {
                     log.push(`|notSimpleRule`);
@@ -508,15 +561,35 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     share++;
                 }
                 log.push(`|share${share}`);
+                // @ts-ignore
                 if (G.regions[region].share > share) {
+                    // @ts-ignore
                     G.regions[region].share -= share;
+                    // @ts-ignore
                     pub.shares[region] += share;
                 } else {
+                    // @ts-ignore
                     pub.shares[region] += G.regions[region].share;
+                    // @ts-ignore
                     G.regions[region].share = 0;
                 }
             }
         }
+		if (card.type === CardType.F) {
+			if (pub.school == SchoolCardID.S5004) {
+				if(card.cost.industry > pub.industry || card.cost.aesthetics > pub.aesthetics){
+					pub.deposit += 1;
+					addVp(G, ctx, p, 1);
+				}
+			}
+		}
+        if (card.type === CardType.P) {
+			if (pub.school == SchoolCardID.S6004) {
+                pub.action += 1;
+                pub.deposit += 1;
+                addVp(G, ctx, p, 1);
+			}
+		}
         if (card.type === CardType.S) {
             log.push(`|buySchool`);
             let school = pub.school;
@@ -555,9 +628,25 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                         pub.aesthetics++;
                     }
                 }
+
+			    //Muki - Slient Film
+                if (school === SchoolCardID.S5001) {
+					log.push(`|Slient`);
+					doBuy(G, ctx, B05, p);
+                }
+
+                if (school == SchoolCardID.S5004) {
+                    if(card.region === Region.EE){
+                        if(pub.industry < 10) pub.industry++;
+                        pub.deposit += 1;
+                        addVp(G, ctx, p, 1);
+                    }
+                }
+
                 log.push(`|archive|${school}`);
                 pub.archive.push(school);
             }
+			
             // if (pub.LES_CHAIERS_DU_CINEMA) {
             //     pub.LES_CHAIERS_DU_CINEMA = false
             // }
@@ -575,6 +664,16 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 case SchoolCardID.S4006:
                 case SchoolCardID.S4007:
                 case SchoolCardID.S4008:
+
+                case SchoolCardID.S5001:
+                case SchoolCardID.S5002:
+                case SchoolCardID.S5003:
+                case SchoolCardID.S5004:
+
+                case SchoolCardID.S6001:
+                case SchoolCardID.S6002:
+                case SchoolCardID.S6003:
+                case SchoolCardID.S6004:
                     pub.bought_extension = true;
             }
         } else {
@@ -622,7 +721,19 @@ export const studioPlayers = (G: IG, ctx: Ctx, r: Region, p = ctx.currentPlayer)
         return [];
     } else {
         const pos = posOfPlayer(G, ctx, p);
-        return seqFromPos(G, ctx, pos).filter(pid => studioInRegion(G, ctx, r, pid));
+        const playerList : PlayerID[] = [];
+        const seq = seqFromPos(G, ctx, pos);
+        for(let pid of seq){
+            if(studioInRegion(G, ctx, r, pid)){
+                playerList.push(pid);
+                let deltaLv = G.pub[parseInt(pid)].aesthetics - G.pub[parseInt(pid)].industry;
+                if(deltaLv < 0) deltaLv = -deltaLv;
+                if(G.pub[parseInt(pid)].school === SchoolCardID.S6003 && deltaLv <=2){
+                    playerList.push(pid);
+                }
+            }
+        }
+        return playerList;
     }
 }
 
@@ -1368,11 +1479,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 break;
             } else {
                 if (G.e.regions.length === 1) {
-                    const targetRegion = G.e.regions[0];
-                    if (targetRegion === Region.NONE || targetRegion === Region.EXTENSION) {
+                    const targetRegion = G.e.regions[Region.NA];
+                    if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(targetRegion))) {
                         log.push(`|Region|NONE|exit`)
                         break;
                     }
+                    // @ts-ignore
                     playerLoseShare(G, targetRegion, p, eff.a);
                     loseCompetitionPower(G, ctx, p, 1);
                     G.e.regions = [];
@@ -1486,9 +1598,12 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
 
             if (newEffect.a.filter.e === "choice" && newEffect.a.filter.a > drawnCard) {
                 log.push(`|noEnoughCardToChoose`);
-                newEffect.a.filter.a = drawnCard;
+                //newEffect.a.filter.a = drawnCard;
+                //newEffect.a.filter = {...newEffect.a.filter, a: drawnCard};
+                newEffect.a = {...newEffect.a, filter: {...newEffect.a.filter, a: drawnCard}};
                 log.push(`|${JSON.stringify(newEffect)}`);
             }
+
             G.e.stack.push(newEffect)
             logger.debug(`${G.matchID}|${log.join('')}`);
             changePlayerStage(G, ctx, "peek", p);
@@ -1564,6 +1679,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
         case "noStudio":
+            if(pub.school === SchoolCardID.S6004){
+                players = noStudioPlayers(G, ctx, region);
+                if(players.includes(p)) players.splice(players.indexOf(p), 1);
+                pushPlayersEffects(G, players, eff.a);
+                checkNextEffect(G, ctx);
+                return;
+            }
             players = noStudioPlayers(G, ctx, region);
             log.push(`|region:${region}|noStudioPlayers|${JSON.stringify(players)}`);
             if (players.length === 0) {
@@ -1819,6 +1941,47 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
                 break;
             }
+        case "industryOrAestheticsLevelDown":
+            if (eff.hasOwnProperty("target") && eff.target !== p) {
+                log.push(`|otherPlayerVPAward`);
+                targetPlayer = eff.target
+                pub = G.pub[parseInt(targetPlayer)];
+            }
+            log.push(`|i${pub.industry}a${pub.aesthetics}`);
+            if (pub.industry > 0 && pub.aesthetics > 0) {
+                log.push(`|${JSON.stringify(G.e.choices)}|addChoice`);
+                G.e.choices.push({e: "industryLevelDown", a: 1});
+                G.e.choices.push({e: "aestheticsLevelDown", a: 1});
+                if (eff.a > 1) {
+                    log.push(`|moreThanOne|pushBack`);
+                    eff.a--;
+                    G.e.stack.push(eff);
+                }
+                log.push(`|${JSON.stringify(G.e)}|chooseEffect`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                changePlayerStage(G, ctx, "chooseEffect", targetPlayer);
+                return;
+            } else {
+                if (pub.industry > 0) {
+                    log.push(`|aesthetics10AddIndustry`);
+                    pub.industry--;
+                    if(pub.competitionPower > pub.industry) pub.competitionPower = pub.industry;
+                    log.push(`|i${pub.industry}`);
+                } else {
+                    if (pub.aesthetics > 0) {
+                        log.push(`|Industry10AddAesthetics`);
+                        pub.aesthetics--;
+                        log.push(`|i${pub.aesthetics}`);
+                    } else {
+                        log.push("|bothLV10|skip");
+                    }
+                }
+                if (eff.a > 1) {
+                    eff.a--;
+                    G.e.stack.push(eff);
+                }
+                break;
+            }
         case "archiveToEEBuildingVP":
             G.e.stack.push(eff);
             log.push(`|chooseHand`);
@@ -1895,7 +2058,12 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const log = [`aesAwardEndTurn|p${p}|${pub.aesthetics}`];
     if (pub.aesthetics > 1) {
         log.push(`|>1`);
-        addVp(G, ctx, p, 1);
+		
+		if (pub.school === SchoolCardID.S5003) {
+            addRes(G, ctx, p, 1);
+		}else{
+			addVp(G, ctx, p, 1);
+		}
     }
     if (pub.aesthetics > 4) {
         log.push(`|>4`);
@@ -1907,8 +2075,30 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
     if (pub.aesthetics > 7) {
         log.push(`|>7`);
-        addVp(G, ctx, p, 2);
+        if(pub.school === SchoolCardID.S6002){
+            //addRes(G, ctx, p, 1);
+        }else{
+            addVp(G, ctx, p, 2);
+        }
     }
+
+    let deltaLv = pub.aesthetics - pub.industry;
+    if(deltaLv < 0) deltaLv = -deltaLv;
+    if (pub.school === SchoolCardID.S6002 && deltaLv <= 2) {
+        if (pub.aesthetics > 1) {
+            log.push(`|>1`);
+            addVp(G, ctx, p, 1);
+        }
+        if (pub.aesthetics > 4) {
+            log.push(`|>4`);
+            addVp(G, ctx, p, 2);
+        }
+        if (pub.aesthetics > 7) {
+            log.push(`|>7`);
+            //addRes(G, ctx, p, 1);
+        }
+    }
+
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -1930,8 +2120,27 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
         drawCardForPlayer(G, ctx, p);
     }
     if (pub.industry > 7) {
-        drawCardForPlayer(G, ctx, p);
-        addCompetitionPower(G, ctx, p, 1);
+        if(pub.school === SchoolCardID.S6002){
+            //addVp(G, ctx, p, 1);
+        }else{
+            drawCardForPlayer(G, ctx, p);
+            addCompetitionPower(G, ctx, p, 1);
+        }
+    }
+    let deltaLv = pub.aesthetics - pub.industry;
+    if(deltaLv < 0) deltaLv = -deltaLv;
+    if (pub.school === SchoolCardID.S6002 && deltaLv <= 2) {
+        if (pub.industry > 1) {
+            log.push(`|before|${pub.resource}`);
+            addRes(G, ctx, p, 1);
+            log.push(`|after|${pub.resource}`);
+        }
+        if (pub.industry > 4) {
+            drawCardForPlayer(G, ctx, p);
+        }
+        if (pub.industry > 7) {
+            //addVp(G, ctx, p, 1);
+        }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -1969,6 +2178,16 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S4007:
         case SchoolCardID.S4008:
             r = G.regions[Region.EXTENSION];
+			break;
+        case SchoolCardID.S5001:
+        case SchoolCardID.S5002:
+        case SchoolCardID.S5003:
+        case SchoolCardID.S5004:
+        case SchoolCardID.S6001:
+        case SchoolCardID.S6002:
+        case SchoolCardID.S6003:
+        case SchoolCardID.S6004:
+            r = G.regions[Region.EXTENSION1];
             break;
         default:
             break;
@@ -1985,7 +2204,7 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
             return null;
         }
     } else {
-        if (r !== G.regions[Region.EXTENSION]) {
+        if (r !== G.regions[Region.EXTENSION] && r !== G.regions[Region.EXTENSION1]) {
             for (let slot of r.normal) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {
@@ -1993,7 +2212,7 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
                     }
                 }
             }
-        } else {
+        } else if(r == G.regions[Region.EXTENSION]){
             for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {
@@ -2001,7 +2220,15 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
                     }
                 }
             }
-        }
+        } else if(r == G.regions[Region.EXTENSION1]){
+			for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
+                if (slot.card !== null) {
+                    if (slot.card === card.cardId) {
+                        return slot;
+                    }
+                }
+            }
+		}
         return null;
     }
 }
@@ -2085,18 +2312,18 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
     //流派扩购买
     switch (arg.target) {
         case SchoolCardID.S4001:
-            if (pub.school !== null || G.regions[1].era !== IEra.TWO || pub.bought_extension) {
+            if (pub.school !== null || G.regions[Region.WE].era !== IEra.TWO || pub.bought_extension) {
                 resRequired = 1000;
             }
             break;
         case SchoolCardID.S4002:
-            if (G.regions[3].era !== IEra.TWO || pub.bought_extension) {
+            if (G.regions[Region.ASIA].era !== IEra.TWO || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.champions.length * 2;
             break;
         case SchoolCardID.S4003:
-            if (G.regions[0].era !== IEra.TWO || (pub.building.cinemaBuilt && pub.building.studioBuilt) || pub.bought_extension) {
+            if (G.regions[Region.NA].era !== IEra.TWO || (pub.building.cinemaBuilt && pub.building.studioBuilt) || pub.bought_extension) {
                 resRequired = 1000;
             } else {
                 if (pub.building.cinemaBuilt || pub.building.studioBuilt) {
@@ -2105,7 +2332,7 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             }
             break;
         case SchoolCardID.S4004:
-            if (G.regions[2].era !== IEra.TWO || pub.bought_extension) {
+            if (G.regions[Region.EE].era !== IEra.TWO || pub.bought_extension) {
                 resRequired = 1000;
             }
             if (pub.industry >= pub.aesthetics) {
@@ -2115,14 +2342,14 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             }
             break;
         case SchoolCardID.S4005:
-            if (G.regions[1].era !== IEra.THREE || pub.bought_extension) {
+            if (G.regions[Region.WE].era !== IEra.THREE || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.industry;
             break;
         case SchoolCardID.S4006:
-            if ((G.regions[0].era === IEra.THREE || G.regions[1].era === IEra.THREE ||
-                    G.regions[2].era === IEra.THREE || G.regions[3].era === IEra.THREE) && G.pub[parseInt(arg.buyer)].resource <= 7
+            if ((G.regions[Region.NA].era === IEra.THREE || G.regions[Region.WE].era === IEra.THREE ||
+                    G.regions[Region.EE].era === IEra.THREE || G.regions[Region.ASIA].era === IEra.THREE) && G.pub[parseInt(arg.buyer)].resource <= 7
                 && G.player[parseInt(arg.buyer)].hand.length === 0 && !pub.actionused && !pub.bought_extension) {
                 resRequired = 0;
             } else {
@@ -2130,16 +2357,49 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             }
             break;
         case SchoolCardID.S4007:
-            if (G.regions[1].era !== IEra.THREE || pub.bought_extension) {
+            if (G.regions[Region.WE].era !== IEra.THREE || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.handsize_startturn;
             break;
         case SchoolCardID.S4008:
-            if (G.regions[0].era !== IEra.THREE || pub.bought_extension) {
+            if (G.regions[Region.NA].era !== IEra.THREE || pub.bought_extension) {
                 resRequired = 1000;
             }
             resRequired += pub.aesthetics;
+            break;
+        case SchoolCardID.S6001:
+            if (G.regions[Region.ASIA].era !== IEra.TWO && G.regions[Region.ASIA].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S6002:
+        case SchoolCardID.S6003:
+            if (G.regions[Region.EE].era !== IEra.TWO && G.regions[Region.EE].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S6004:
+            if (G.regions[Region.WE].era !== IEra.TWO && G.regions[Region.WE].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5001:
+        case SchoolCardID.S5002:
+        case SchoolCardID.S5003:
+        case SchoolCardID.S5004:
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
             break;
     }
     return resRequired;
@@ -2229,13 +2489,19 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
 }
 
 export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
-    if (r === Region.NONE || r === Region.EXTENSION) return;
+    if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) return;
+    // @ts-ignore
     let legend = cardsByCond(r, e, true).map(c => c.cardId);
     let normal = cardsByCond(r, e, false).map(c => c.cardId);
+    // @ts-ignore
     G.secretInfo.regions[r].legendDeck = shuffle(ctx, legend).slice(0, LegendCardCountInUse[r][e]);
+    // @ts-ignore
     G.secretInfo.regions[r].normalDeck = shuffle(ctx, normal).slice(0, NormalCardCountInUse[r][e]);
+    // @ts-ignore
     let l: ClassicCardID[] = G.secretInfo.regions[r].legendDeck;
+    // @ts-ignore
     let n: ClassicCardID[] = G.secretInfo.regions[r].normalDeck;
+    // @ts-ignore
     for (let s of G.regions[r].normal) {
         let c = n.pop();
         if (c === undefined) {
@@ -2248,6 +2514,7 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
     if (c === undefined) {
         throw new Error(c);
     } else {
+        // @ts-ignore
         G.regions[r].legend.card = c;
     }
 }
@@ -2290,6 +2557,9 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
         log.push(`|disableNextUndo`);
     }
     const pid = parseInt(id);
+    console.log(id, pid);
+    //console.log(G.secretInfo);
+    //console.log(G.secretInfo.playerDecks);
     const p = G.player[pid]
     const pub = G.pub[pid]
     let s = G.secretInfo.playerDecks[pid]
@@ -2750,18 +3020,22 @@ export const getPlayerRegionRank = (G: IG, ctx: Ctx, pid: PlayerID, r: ValidRegi
     if (pub.shares[r] === 0) {
         return -1
     } else {
+        // @ts-ignore
         const rankResult = getRegionRank(G, ctx, r);
         return rankResult.indexOf(pid);
     }
 }
 
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
-    if (r === Region.NONE || r === Region.EXTENSION) return;
+    if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) return;
+    // @ts-ignore
     let era = G.regions[r].era;
     const eraShareReturnVp = era + 1;
+    // @ts-ignore
     const log = [`regionRank|region${r}|era${era}`];
     G.order.forEach((i, idx) => {
         const playerIdx = parseInt(i);
+        // @ts-ignore
         const playerShareCount = G.pub[playerIdx].shares[r];
         log.push(`|orderIdx${idx}|playerIdx${playerIdx}|p${i}|i${i}|share${playerShareCount}`);
         if (playerShareCount === 0) {
@@ -2776,6 +3050,7 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             log.push(`|rank`);
         }
     });
+    // @ts-ignore
     const rankResult = getRegionRank(G, ctx, r);
     log.push(`|rankResult|${rankResult}`);
     const firstPlayer: PlayerID = rankResult[0];
@@ -2953,11 +3228,12 @@ export const regionEraProgress = (G: IG, ctx: Ctx) => {
     const log = ["regionEraProgress"];
     const r = G.currentScoreRegion;
     log.push(`|region|${r}`);
-    if (r === Region.NONE || r === Region.EXTENSION) {
+    if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) {
         logger.error("noScoringRegion");
         logger.debug(`${G.matchID}|${log.join('')}`);
         return;
     }
+    // @ts-ignore
     if (!G.pending.nextEraRegions.includes(r)) {
         G.pending.nextEraRegions.push(r as ValidRegion);
     }
@@ -3055,6 +3331,9 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     if (pub.school === SchoolCardID.S4007) {
         addVp(G, ctx, p, pub.playedCardInTurn.length);
     }
+    if (pub.school === SchoolCardID.S6001) {
+        G.e.stack.push({e: "industryOrAestheticsLevelDown", a: 1, target: p})
+    }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
     pub.playedCardInTurn = [];
     pub.revealedHand = [];
@@ -3070,8 +3349,44 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     log.push(`| execute development rewards`);
     log.push(`|aesAwardEndTurn`);
     aesAwardEndTurn(G, ctx, ctx.currentPlayer);
+
+    let deltaLv = pub.aesthetics - pub.industry;
+    if(deltaLv < 0) deltaLv = -deltaLv;
+    if (pub.school === SchoolCardID.S6003 && deltaLv <= 2) {
+        if (pub.aesthetics > 1) {
+            log.push(`|>1`);
+            addVp(G, ctx, p, 1);
+        }
+        if (pub.aesthetics > 4) {
+            log.push(`|>4`);
+            addVp(G, ctx, p, 2);
+        }
+        if (pub.aesthetics > 7) {
+            log.push(`|>7`);
+            addVp(G, ctx, p, 2);
+        }
+    }
+
     log.push(`|industryAwardEndTurn`);
     industryAwardEndTurn(G, ctx, ctx.currentPlayer);
+
+    deltaLv = pub.aesthetics - pub.industry;
+    if(deltaLv < 0) deltaLv = -deltaLv;
+    if (pub.school === SchoolCardID.S6003 && deltaLv <= 2) {
+        if (pub.industry > 1) {
+            log.push(`|before|${pub.resource}`);
+            addRes(G, ctx, p, 1);
+            log.push(`|after|${pub.resource}`);
+        }
+        if (pub.industry > 4) {
+            drawCardForPlayer(G, ctx, p);
+        }
+        if (pub.industry > 7) {
+            drawCardForPlayer(G, ctx, p);
+            addCompetitionPower(G, ctx, p, 1);
+        }
+    }
+
     logger.debug(`${G.matchID}|${log.join('')}`);
     pub.actionused = false;
 }
@@ -3119,6 +3434,9 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         }
         log.push(`|target|${targetPlayer}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
+        
+        console.log("CheckNextEffect: " , G.secretInfo);
+
         playerEffExec(G, ctx, targetPlayer);
     }
 }
@@ -3245,6 +3563,12 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
         pub.shares[r]++
         reg.share--;
     }
+	if(pub.school === SchoolCardID.S5002){
+		if (reg.share > 0) {
+			pub.shares[r]++
+			reg.share--;
+		}
+	}
     let built = false;
     reg.buildings.forEach((slot: IBuildingSlot, idx: number) => {
         if (slot.activated && slot.owner === "" && !built) {
@@ -3262,6 +3586,10 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
         }
     })
     addVp(G, ctx, p, 3);
+    //流派扩：法国印象派
+    if (pub.school === SchoolCardID.S4001) {
+        pub.resource += 1;
+    }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 

@@ -11,7 +11,7 @@ import {
     IShowCompetitionResultArgs,
     ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
-import {ClassicFilmAutoMoveMode, GameMode, GameTurnOrder, IBuyInfo} from "../../types/core";
+import {ClassicFilmAutoMoveMode, GameMode, GameTurnOrder, IBuyInfo, Region} from "../../types/core";
 
 export interface LocaleClassicFilmAutoMoveMode {
     MODE_NAME: string,
@@ -21,12 +21,14 @@ export interface LocaleClassicFilmAutoMoveMode {
 }
 
 export interface LocaleRegions {
-    0: string,
-    1: string,
-    2: string,
-    3: string,
-    4: string,
-    5: string,
+    [Region.NA]: string,
+    [Region.WE]: string,
+    [Region.EE]: string,
+    [Region.ASIA]: string,
+    [Region.EXTENSION]: string,
+    [Region.EXTENSION1]: string,
+    [Region.EXTENSION2]: string,
+    [Region.NONE]: string,
 }
 
 export interface LocaleSettings {
@@ -35,6 +37,9 @@ export interface LocaleSettings {
     normal: string,
     newbie: string,
     enableSchoolExtension: string,
+    enableSchoolExtensionMuki: string,
+    enableSchoolExtensionMuki2: string,
+    enableSchoolExtensionQM: string,
     randomFirst: string,
     fixedFirst: string,
     allRandom: string,
@@ -72,9 +77,23 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                     break;
             }
             if (arg.enableSchoolExtension){
+                t += ", "
                 t += setting.enableSchoolExtension
             }
+            if (arg.enableSchoolExtensionMuki){
+                t += ", "
+                t += setting.enableSchoolExtensionMuki
+            }
+            if (arg.enableSchoolExtensionMuki2){
+                t += ", "
+                t += setting.enableSchoolExtensionMuki2
+            }
+            if (arg.enableSchoolExtensionQM){
+                t += ", "
+                t += setting.enableSchoolExtensionQM
+            }
             if (arg.disableUndo) {
+                t += ", "
                 t += setting.disableUndo
             }
             return t;

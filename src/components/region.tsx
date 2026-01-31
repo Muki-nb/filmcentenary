@@ -1,5 +1,6 @@
 import React from "react";
 import {
+    CardCategory,
     BasicCardID,
     BuildingType,
     getCardById,
@@ -40,6 +41,8 @@ import AestheticsIcon from "@material-ui/icons/ImportContacts";
 import IndustryIcon from "@material-ui/icons/Settings";
 import {getValidHelper} from "../game/board-util";
 
+import './card.css';
+
 export interface ICardSlotProp {
     slot: ICardSlot,
     G: IG,
@@ -69,7 +72,17 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
     return <>
         <Paper variant={variant}>
             <Grid container>
-                <Grid item xs={12}>
+                <Grid item xs={12} className="dybn-card"
+                    style={{
+                        backgroundImage: `url("/img/${slot.card}.png")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right center',
+                        backgroundSize: 'auto 100%',
+                        ...(slot.card !== null && getCardById(slot.card).category === CardCategory.LEGEND ? {
+                            boxShadow: '2px 2px 2px #000000c4, -1px -1px 1px 1px #dadadacc'
+                        } : {})
+                    }}
+                >
                     {slot.card === null ? <></> :
                         <>
                             <CardInfo cid={slot.card}/>
@@ -78,12 +91,12 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                                     display: 'inline-flex',
                                     verticalAlign: 'middle'
                                 }}>
-                                <ResourceIcon/>
-                                {cardObj.cost.res}
                                 <IndustryIcon/>
                                 {cardObj.cost.industry}
                                 <AestheticsIcon/>
                                 {cardObj.cost.aesthetics}
+                                <ResourceIcon/>
+                                {cardObj.cost.res}
                                 <PrestigeIcon/>
                                 {cardObj.vp}
                             </Typography>
@@ -280,7 +293,7 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
                 </Grid>
             </AccordionSummary>
             <AccordionDetails key={r}>
-                <Grid container>
+                <Grid container spacing={1}>
                     <Grid item xs={12} md={6}>
                         <BoardCardSlot
                             G={G} ctx={ctx} slot={legend}
@@ -307,6 +320,19 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
     </Grid>
 }
 
+const isRegionVisible = (G:IG, region:IRegionInfo) => {
+    if(region == G.regions[Region.EXTENSION]){
+        return G.hasSchoolExtension;
+    }
+    if(region == G.regions[Region.EXTENSION1]){
+        return G.hasSchoolExtensionMuki || G.hasSchoolExtensionQM;
+    }
+    if(region == G.regions[Region.EXTENSION2]){
+        return G.hasSchoolExtensionMuki2;
+    }
+    return true;
+};
+
 export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}: InvRegionProp) => {
     useI18n(i18n);
     const {era, share, legend, normal, legendDeckLength, normalDeckLength} = region;
@@ -319,6 +345,7 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}
     })
 
     return <Grid item xs={12}>
+        { isRegionVisible(G, region) && (
         <Accordion
             className={classes.root}
             expanded={true}
@@ -355,7 +382,7 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}
                 </Grid>
             </AccordionSummary>
             <AccordionDetails key={r}>
-                <Grid container>
+                <Grid container spacing={1}>
                     <Grid item xs={12} md={6}>
                         <BoardCardSlot
                             G={G} ctx={ctx} slot={legend}
@@ -379,6 +406,7 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}
                 </Grid>
             </AccordionDetails>
         </Accordion>
+        )}
     </Grid>
 }
 

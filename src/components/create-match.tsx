@@ -20,6 +20,8 @@ import TableBody from "@material-ui/core/TableBody";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, songJinnName} from "../constant/multi-games";
 
+import {UpdateHistory} from "../update";
+
 type PlayerMetadata = {
     id: number;
     name?: string;
@@ -86,7 +88,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [matchID, setMatchID] = React.useState("");
     const [error, setError] = React.useState("");
     const [numPlayers, setNumPlayers] = React.useState(gameName === filmCentenaryName ? 4 : 2);
-    const [isPublic, setIsPublic] = React.useState(true);
+    const [isPublic, setIsPublic] = React.useState(false);
     const [matches, setMatches] = React.useState([]);
 
     const onClick = () => {
@@ -140,56 +142,6 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     }, []);
 
     return <Grid container>
-        <Grid item container xs={12} sm={8}>
-            <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.dialog.buyCard.refresh}</Button>
-            <Table size="small" aria-label="Public match table">
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Match ID</TableCell>
-                        <TableCell>{i18n.lobby.numPlayers}</TableCell>
-                        <TableCell>{i18n.lobby.join}</TableCell>
-                        <TableCell>{i18n.lobby.spectate}</TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {matches.map((match: MatchData) => {
-                        const createdDate = new Date(match.createdAt);
-                        const updateDate = new Date(match.updatedAt);
-                        return <TableRow key={match.matchID}>
-                            <TableCell component="th" scope="row">
-                                {match.matchID}
-                            </TableCell>
-                            <TableCell>
-                                {match.players.length}
-                            </TableCell>
-                            <TableCell>
-                                {match.players.map((player, idx) => {
-                                    if (player.name === undefined) {
-                                        return <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`}>
-                                            {`${i18n.lobby.join}|${idx + 1}`}
-                                        </a>
-                                    } else {
-                                        return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
-                                    }
-                                })}
-                            </TableCell>
-                            <TableCell>
-                                <a
-                                    href={`${serverURL}/join/${match.gameName}/${match.matchID}/spectate`}
-                                >{i18n.lobby.spectate}</a>
-                            </TableCell>
-                            <TableCell>
-                                {createdDate.toLocaleString()}
-                            </TableCell>
-                            <TableCell>
-                                {updateDate.toLocaleString()}
-                            </TableCell>
-
-                        </TableRow>
-                    })}
-                </TableBody>
-            </Table>
-        </Grid>
         <Grid item container xs={12} sm={4}>
             <Grid item container xs={12} alignItems="center">
                 <Grid item xs={12}>
@@ -254,6 +206,67 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                     {i18n.lobby.createPrivateMatch}
                 </Button>
             </Grid>
+        </Grid>
+        <Grid item container xs={12} sm={8}>
+            <Typography variant={"h5"}>公告</Typography>
+            {UpdateHistory.map((update) => {
+                return <div key={update.date}>
+                    <Typography variant={"subtitle1"}>{update.date}</Typography>
+                    <ul>
+                        {update.info.map((info, idx) => <li key={idx}>
+                            <Typography>{info}</Typography>
+                        </li>)}
+                    </ul>
+                </div>
+            })}
+            <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.dialog.buyCard.refresh}</Button>
+            <Table size="small" aria-label="Public match table">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>Match ID</TableCell>
+                        <TableCell>{i18n.lobby.numPlayers}</TableCell>
+                        <TableCell>{i18n.lobby.join}</TableCell>
+                        <TableCell>{i18n.lobby.spectate}</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {matches.map((match: MatchData) => {
+                        const createdDate = new Date(match.createdAt);
+                        const updateDate = new Date(match.updatedAt);
+                        return <TableRow key={match.matchID}>
+                            <TableCell component="th" scope="row">
+                                {match.matchID}
+                            </TableCell>
+                            <TableCell>
+                                {match.players.length}
+                            </TableCell>
+                            <TableCell>
+                                {match.players.map((player, idx) => {
+                                    if (player.name === undefined) {
+                                        return <a href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`}>
+                                            {`${i18n.lobby.join}|${idx + 1}`}
+                                        </a>
+                                    } else {
+                                        return <Typography>{player.name} {player.isConnected ? "(+)" : "(-)"} </Typography>
+                                    }
+                                })}
+                            </TableCell>
+                            <TableCell>
+                                <a
+                                    href={`${serverURL}/join/${match.gameName}/${match.matchID}/spectate`}
+                                >{i18n.lobby.spectate}</a>
+                            </TableCell>
+                            <TableCell>
+                                {createdDate.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                                {updateDate.toLocaleString()}
+                            </TableCell>
+
+                        </TableRow>
+                    })}
+                </TableBody>
+            </Table>
         </Grid>
     </Grid>
 }

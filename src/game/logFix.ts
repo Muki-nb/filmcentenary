@@ -55,6 +55,7 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
 }
 
 export function changePlayerStage(G: any, ctx: Ctx, stage: string, p: PlayerID): void {
+    console.log("changePlayerStage: ", G.secretInfo);
     ctx.events?.setActivePlayers?.({
         value: {
             [p]: {stage: stage},

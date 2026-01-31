@@ -16,6 +16,9 @@ import {Theme} from '@material-ui/core/styles';
 import withStyles from "@material-ui/core/styles/withStyles";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
+
+import './drawer-app-bar.css';
+
 const MUIDrawer = Drawer;
 
 
@@ -72,7 +75,7 @@ const DrawerAppBar = () => {
         setChecked(event.target.checked);
     };
     return <React.Fragment>
-        <AppBar position={"sticky"}>
+        <AppBar position={"sticky"} className="dybn-app-bar">
         <Toolbar>
             <IconButton
                 color="inherit"
@@ -99,7 +102,6 @@ const DrawerAppBar = () => {
                 <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/about'}>{i18n.drawer.about}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/songJinn'}>{"宋金战争"}</Link></Button></ListItem>
             </List>
         </MUIDrawer>
     </React.Fragment>

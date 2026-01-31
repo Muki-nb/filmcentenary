@@ -1,6 +1,6 @@
 import React from "react";
 import {LogEntry} from "boardgame.io";
-import {CardID, getCardById, MoveNames} from "../../types/core";
+import {CardCategory, CardID, getCardById, MoveNames} from "../../types/core";
 import i18n from "../../constant/i18n";
 import CardInfo, {effName, getCardName} from "../card";
 import {useI18n} from "@i18n-chain/react";
@@ -17,6 +17,8 @@ import AestheticsIcon from "@material-ui/icons/ImportContacts";
 import IndustryIcon from "@material-ui/icons/Settings";
 import ResourceIcon from "@material-ui/icons/MonetizationOn";
 import Typography from "@material-ui/core/Typography";
+
+import '../card.css';
 
 
 export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
@@ -95,19 +97,30 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
             <DialogContent>
                 {cards.map(c => {
                         const cardObj = getCardById(c);
-                        return <Paper variant="outlined" key={title + c}>
+                        return <Paper variant="outlined" key={title + c} className="dybn-card"
+                                style={{
+                                    backgroundImage: `url("/img/${c}.png")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right center',
+                                    backgroundSize: 'auto 100%',
+                                    margin: '4px 0',
+                                    ...(getCardById(c).category === CardCategory.LEGEND ? {
+                                        boxShadow: '2px 2px 2px #000000c4, -1px -1px 1px 1px #dadadacc'
+                                    } : {})
+                                }}
+                            >
                             <CardInfo cid={c}/>
                             <Typography
                                 style={{
                                     display:'inline-flex',
                                     verticalAlign:'middle'
                                 }}>
-                                <ResourceIcon/>
-                                {cardObj.cost.res}
                                 <IndustryIcon/>
                                 {cardObj.cost.industry}
                                 <AestheticsIcon/>
                                 {cardObj.cost.aesthetics}
+                                <ResourceIcon/>
+                                {cardObj.cost.res}
                                 <PrestigeIcon/>
                                 {cardObj.vp}
                             </Typography>

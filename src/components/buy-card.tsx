@@ -79,7 +79,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     }, false);
     const minDeposit = Math.max(realtimeCost - pub.resource, 0);
     const affordable = canAfford(G, ctx, card, playerID) && pub.action > 0;
-    const buttonColor = affordable ? "primary" : "secondary"
+    const buttonColor = affordable ? "inherit" : "secondary"
     const res = realtimeCost - depositExtra - minDeposit;
     const deposit = depositExtra + minDeposit
     const buyArg = {
@@ -119,10 +119,19 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     return <Grid item xs={12}>
         <Button
             fullWidth
-            style={{textTransform: 'none'}}
             onClick={handleOpen}
-            color={buttonColor}
-            variant={"outlined"}
+            //variant={affordable ? "contained" : "outlined"}
+            style={{
+                textTransform: 'none',
+                ...(affordable ? {
+                    color: '#0b77baff',
+                    border: '1px solid #1880c2',
+                    "box-shadow": "2px 1px 2px #23a2f1ff, -2px -1px 2px 0px #2ca5f0ff"
+                } : {
+                    color: '#db243fff',
+                    border: '1px solid #db243fff',
+                })
+            }}
         >
             <Typography>
                 {i18n.dialog.buyCard.board}

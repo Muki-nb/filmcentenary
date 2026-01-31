@@ -22,6 +22,9 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [mode, setMode] = React.useState(GameMode.NORMAL);
     const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
     const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(false);
+    const [enableSchoolExtensionMuki, setEnableSchoolExtensionMuki] = React.useState(false);
+    const [enableSchoolExtensionMuki2, setEnableSchoolExtensionMuki2] = React.useState(false);
+    const [enableSchoolExtensionQM, setEnableSchoolExtensionQM] = React.useState(false);
     const [disableUndo,setDisableUndo] = React.useState(false);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,6 +35,9 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: newMode,
             order: order,
             enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
             disableUndo: disableUndo
         })
     };
@@ -42,6 +48,48 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: mode,
             order: order,
             enableSchoolExtension: checked,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
+            disableUndo: disableUndo
+        })
+    };
+
+    const handleSchoolExtensionMukiChange =  (event: React.ChangeEvent<{}>, checked: boolean) => {
+        setEnableSchoolExtensionMuki(checked);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: checked,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
+            disableUndo: disableUndo
+        })
+    };
+
+    const handleSchoolExtensionMuki2Change =  (event: React.ChangeEvent<{}>, checked: boolean) => {
+        setEnableSchoolExtensionMuki2(checked);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: checked,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
+            disableUndo: disableUndo
+        })
+    };
+
+    const handleSchoolExtensionQMChange =  (event: React.ChangeEvent<{}>, checked: boolean) => {
+        setEnableSchoolExtensionQM(checked);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: checked,
             disableUndo: disableUndo
         })
     };
@@ -52,6 +100,9 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: mode,
             order: order,
             enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
             disableUndo: checked
         })
     };
@@ -64,6 +115,9 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode: mode,
             order: newOrder,
             enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
             disableUndo: disableUndo
         })
     };
@@ -86,6 +140,21 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     onChange={handleSchoolExtensionChange}
                     disabled={ctx.numPlayers < 3}
                     control={<Checkbox/>} label={i18n.setting.enableSchoolExtension}/>
+                <FormControlLabel
+                    value={enableSchoolExtensionMuki}
+                    onChange={handleSchoolExtensionMukiChange}
+                    disabled={ctx.numPlayers < 3}
+                    control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionMuki}/>
+                <FormControlLabel
+                    value={enableSchoolExtensionMuki2}
+                    onChange={handleSchoolExtensionMuki2Change}
+                    disabled={ctx.numPlayers < 3}
+                    control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionMuki2}/>
+                <FormControlLabel
+                    value={enableSchoolExtensionQM}
+                    onChange={handleSchoolExtensionQMChange}
+                    disabled={ctx.numPlayers < 3}
+                    control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionQM}/>
                 <FormControlLabel
                     value={enableSchoolExtension}
                     onChange={handleDisableUndoChange}

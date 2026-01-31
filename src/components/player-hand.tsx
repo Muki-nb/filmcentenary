@@ -13,12 +13,14 @@ import {nanoid} from "nanoid";
 import {CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
-import {getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
+import {CardCategory, getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
 import DepositIcon from '@material-ui/icons/LocalAtm';
 import ResIcon from '@material-ui/icons/MonetizationOn';
 import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
 import {ChampionIcon, FreeBreakthroughIcon, getColor} from "./icons";
 import PrestigeIcon from "@material-ui/icons/EmojiEvents";
+
+import './card.css';
 
 // import Backdrop from '@material-ui/core/Backdrop';
 // import CircularProgress from '@material-ui/core/CircularProgress';
@@ -98,8 +100,23 @@ export const PlayerHand = ({
                     }
                     return <Accordion
                         expanded={true}
-                        key={nanoid()}>
-                        <AccordionSummary key={idx}>
+                        key={nanoid()}
+                        className="dybn-card"
+                        style={{
+                            margin: '4px 0'
+                        }}
+                        >
+                        <AccordionSummary key={idx} className="dybn-card"
+                            style={{
+                                backgroundImage: `url("/img/${c}.png")`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right center',
+                                backgroundSize: 'auto 100%',
+                                ...(getCardById(c).category === CardCategory.LEGEND ? {
+                                    boxShadow: '2px 2px 2px #000000c4'
+                                } : {})
+                            }}
+                        >
                             <CardInfo cid={c}/>
                             {era !== null ?
                                 <Typography aria-label={i18n.era[era]}>

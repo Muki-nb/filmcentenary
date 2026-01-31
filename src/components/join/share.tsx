@@ -31,10 +31,11 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
             p0URL, p1URL, p2URL, p3URL,
             i18n.playerName.spectator,
             spectateURL
-        ].join("\r\n");
+        ].join("\n");
         copy(copyText, {
             message: i18n.lobby.copyPrompt,
         });
+		console.log(copyText);
     }
     return <>
         <IconButton
@@ -46,10 +47,10 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
             复制邀请链接
         </IconButton>
         <Typography>{i18n.lobby.shareLink}</Typography>
-        {Player.P0 !== player && <a href={p0URL}>{matchID}P0</a>}
-        {Player.P1 !== player && <a href={p1URL}>{matchID}P1</a>}
-        {Player.P2 !== player && numPlayer > 2 && <a href={p0URL}>{matchID}P2</a>}
-        {Player.P3 !== player && numPlayer > 3 && <a href={p0URL}>{matchID}P3</a>}
+        {Player.P0 !== player && <a href={p0URL}>{matchID} P0</a>}
+        {Player.P1 !== player && <a href={p1URL}>{matchID} P1</a>}
+        {Player.P2 !== player && numPlayer > 2 && <a href={p2URL}>{matchID} P2</a>}
+        {Player.P3 !== player && numPlayer > 3 && <a href={p3URL}>{matchID} P3</a>}
         <a href={urlPrefix + Player.SPECTATE}>{i18n.playerName.spectator}</a>
     </>
 }

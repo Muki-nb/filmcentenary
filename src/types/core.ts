@@ -7,6 +7,8 @@ export enum Region {
     EE,
     ASIA,
     EXTENSION,
+    EXTENSION1,
+    EXTENSION2,
     NONE,
 }
 
@@ -291,6 +293,10 @@ export enum NoExecutorEffectNames {
     Third_Cinema = "Third_Cinema",
     kitchen_sink_turnstart = "kitchen_sink_turnstart",
     High_Concept_Film = "High_Concept_Film",
+	
+	West_Film = "West_Film",
+	Brighton_School = "Brighton_School",
+	Experimental_Film = "Experimental_Film",
 }
 
 export enum EventCardID {
@@ -341,10 +347,10 @@ export interface IScoreCard extends ICard {
 }
 
 export interface IPlayerShare {
-    0: number,
-    1: number,
-    2: number,
-    3: number,
+    [Region.NA]: number,
+    [Region.WE]: number,
+    [Region.EE]: number,
+    [Region.ASIA]: number
 }
 
 export interface Champion {
@@ -509,6 +515,18 @@ export enum SchoolCardID {
     'S4006' = 'S4006',
     'S4007' = 'S4007',
     'S4008' = 'S4008',
+	
+	//Muki扩
+    'S5001' = 'S5001',
+    'S5002' = 'S5002',
+    'S5003' = 'S5003',
+    'S5004' = 'S5004',
+
+    //起名扩
+    'S6001' = 'S6001',
+    'S6002' = 'S6002',
+    'S6003' = 'S6003',
+    'S6004' = 'S6004',
 }
 
 export enum PersonCardID {
@@ -1234,7 +1252,7 @@ const NoneBasicCards = {
         era: IEra.TWO,
         region: Region.WE,
         name: "Federico Fellini",
-        cardId: PersonCardID.P2202,
+        cardId: PersonCardID.P2202, //TEST
         cost: cost(7, 1, 5),
         vp: 0,
         category: CardCategory.LEGEND,
@@ -1532,7 +1550,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Seven Samurai",
         cardId: FilmCardID.F2406,
-        cost: cost(6, 4, 0),
+        cost: cost(6, 4, 2),
         vp: 6,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -2287,6 +2305,96 @@ const NoneBasicCards = {
         industry: 3,
         aesthetics: 0,
     }),
+    "S5001": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "Silent Film",
+        cardId: SchoolCardID.S5001,
+        cost: cost(6, 1, 2),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S5002": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "West Film",
+        cardId: SchoolCardID.S5002,
+        cost: cost(5, 3, 1),
+        vp: 2,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "S5003": schoolCard({
+        era: IEra.ONE,
+        region: Region.WE,
+        name: "Brighton School",
+        cardId: SchoolCardID.S5003,
+        cost: cost(5, 0, 3),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S5004": schoolCard({
+        era: IEra.ONE,
+        region: Region.EE,
+        name: "Experimental Film",
+        cardId: SchoolCardID.S5004,
+        cost: cost(5, 1, 0),
+        vp: 3,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+
+    
+    "S6001": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "New Drama",
+        cardId: SchoolCardID.S6001,
+        cost: cost(7, 3, 3),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S6002": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Czechoslovakian Film",
+        cardId: SchoolCardID.S6002,
+        cost: cost(7, 5, 5),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S6003": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Czechoslovakian Film",
+        cardId: SchoolCardID.S6003,
+        cost: cost(7, 5, 5),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S6004": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Auteur film",
+        cardId: SchoolCardID.S6004,
+        cost: cost(8, 4, 4),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
 }
 
 const E01: IEventCard = eventCard({
@@ -2361,6 +2469,7 @@ const E14: IEventCard = eventCard({
 })
 const EVENT_CARDS = [E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14]
 const EVENT_ERA = [[E01, E02, E03, E04,], [E05, E06, E07, E08, E09,], [E10, E11, E12, E13, E14]]
+//const EVENT_ERA = [[E08, E02, E03, E04,], [E05, E06, E07, E01, E09,], [E10, E11, E12, E13, E14]]
 export let idToCard = new Map();
 EVENT_CARDS.forEach((v: IEventCard) => {
     idToCard.set(v.cardId, v);
@@ -2821,7 +2930,7 @@ export const B04: IBasicCard = {
     cost: cost(0, 0, 0),
     industry: 0,
     type: CardType.F,
-    vp: -2,
+    vp: -3,
     region: Region.NONE,
     name: "Bad Film",
     category: CardCategory.BASIC
@@ -2907,7 +3016,7 @@ export function filmCardsByEra(e: IEra) {
 export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(
-        c => !(['S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008'].includes(c[1].cardId))
+        c => !(['S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', 'S5001', 'S5002', 'S5003', 'S5004', 'S6001', 'S6002', 'S6003', 'S6004'].includes(c[1].cardId))
     )
     if (isLegend) {
         res = res.filter(c => c[1].category === CardCategory.LEGEND)

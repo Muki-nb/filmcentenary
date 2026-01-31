@@ -1,6 +1,7 @@
 import React from "react";
 import {
     AllClassicCards,
+    CardCategory,
     CardID, CardType,
     EventCardID,
     getCardById,
@@ -84,25 +85,21 @@ export const getCardName = (cardId: string): string => {
 }
 export const playCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
-    let r: string[] = [];
     if (effObj.hasOwnProperty("play") && effObj.play.e !== "none") {
-        r.push(i18n.effect.playCardHeader);
-        r.push(effName(effObj.play));
+        return i18n.effect.playCardHeader + effName(effObj.play);
     }
-    return r.join(" ");
+    return "";
 }
 export const buyCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
-    let r: string[] = [];
     try{
         if (effObj.hasOwnProperty("buy") && effObj.buy.e !== "none") {
-            r.push(i18n.effect.buyCardHeader);
-            r.push(effName(effObj.buy));
+            return i18n.effect.buyCardHeader + effName(effObj.buy);
         }
     }catch (e) {
         console.error(`${e}|${effObj}|${cardId}`);
     }
-    return r.join(" ");
+    return "";
 }
 export const schoolEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
@@ -110,48 +107,44 @@ export const schoolEffectText = (cardId: CardID): string => {
     try{
         if (effObj.hasOwnProperty("school")) {
             if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
-                r.push(i18n.effect.extraEffect);
                 if (effObj.response.pre.e === "multiple") {
                     effObj.response.effect.forEach((singleEff: any) => {
-                        r.push(effName(singleEff.pre))
-                        r.push(effName(singleEff.effect))
+                        r.push(effName(singleEff.pre) + effName(singleEff.effect));
                     })
                 } else {
-                    r.push(effName(effObj.response.pre));
-                    r.push(effName(effObj.response.effect));
+                    r.push(effName(effObj.response.pre) + effName(effObj.response.effect));
                 }
+                return i18n.effect.extraEffect + r.join("。");
             }
+            return "";
         } else {
             if (effObj.hasOwnProperty("response") && effObj.response.hasOwnProperty("pre") && effObj.response.pre.e !== "none") {
-                r.push(i18n.effect.responseHeader);
-                r.push(effName(effObj.response.pre));
-                r.push(effName(effObj.response.effect));
+                r.push(i18n.effect.responseHeader
+                    + effName(effObj.response.pre)
+                    + effName(effObj.response.effect));
             }
+            return r.join("。");
         }
     }catch (e) {
         console.error(`${e}|${JSON.stringify(effObj)}|${cardId}`);
     }finally {
 
     }
-    return r.join(" ");
+    return "";
 }
 export const archiveCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
-    let r: string[] = [];
     if (effObj.hasOwnProperty("archive") && effObj.archive.e !== "none") {
-        r.push(i18n.effect.breakthroughHeader);
-        r.push(effName(effObj.archive));
+        return i18n.effect.breakthroughHeader + effName(effObj.archive);
     }
-    return r.join(" ");
+    return "";
 }
 export const scoreEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
-    let r: string[] = [];
     if (effObj.hasOwnProperty("scoring")) {
-        r.push(i18n.effect.scoringHeader);
-        r.push(effName(effObj.scoring));
+        return i18n.effect.scoringHeader + effName(effObj.scoring);
     }
-    return r.join(" ");
+    return "";
 }
 
 export const effIcon = (eff: any): JSX.Element => {
@@ -529,7 +522,15 @@ export const effName = (eff: any): string => {
             break;
     }
     if (eff.e === "pay") {
-        return i18n.effect.pay + effName(eff.a.cost) + effName(eff.a.eff);
+        switch(eff.a.cost.e){
+            case "vp":
+                return i18n.effect.pay + eff.a.cost.a + "声望，" + effName(eff.a.eff);
+            case "deposit":
+                return i18n.effect.pay + eff.a.cost.a + "存款，" + effName(eff.a.eff);
+            case "res":
+                return i18n.effect.pay + eff.a.cost.a + "资源，" + effName(eff.a.eff);
+        }
+        return i18n.effect.pay + effName(eff.a.cost) + "，" + effName(eff.a.eff);
     }
     if (eff.e === "era") {
         let r = []
@@ -537,19 +538,18 @@ export const effName = (eff: any): string => {
             let sub = eff.a[i];
             if (sub.e === "none") continue;
             const eraConvert = i as 0 | 1 | 2;
-            r.push(i18n.effect.era[eraConvert]);
-            r.push(effName(sub));
+            r.push(i18n.effect.era[eraConvert] + effName(sub));
         }
-        return r.join("");
+        return r.join("。");
     }
     if (eff.e === "step") {
         // @ts-ignore
         return eff.a.map(e => effName(e)).join("，");
     }
     if (eff.e === "choice") {
-        let res = eff.a.map((e: any, idx: number) => "（" + (idx + 1).toString() + "）" + effName(e));
-        res.unshift(i18n.effect.choice)
-        return res.join("");
+        const numberIcon = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
+        let res = eff.a.map((e: any, idx: number) => numberIcon[idx] + effName(e));
+        return i18n.effect.choice + res.join("；");
     }
     // @ts-ignore
     let name = i18n.effect[eff.e];
@@ -569,26 +569,49 @@ export const CardInfo = ({cid}: ICardEffectProps) => {
     const r = card.region;
 
     return <Grid
-        container item xs={12}
+        container item xs={12} direction="column"
+        
     >
-        {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
-                <IndustryIcon
-                    key={nanoid()}
-                    style={{color: getColor(r)}}/>)
-            : <React.Fragment key={nanoid()}/>}
-        {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
-                <AestheticsIcon
-                    key={nanoid()}
-                    style={{color: getColor(r)}}/>)
-            : <React.Fragment key={nanoid()}/>}
-        <Typography
-            style={{
-                color: getColor(r)
-            }}
-        >{getCardName(cid)}</Typography>
-        {/*<CardEffect cid={cid}/>*/}
-        <Typography>{getEffectTextById(cid)}</Typography>
+        <Grid container item>
+            <Typography
+                style={{
+                    color: getColor(r),
+                    whiteSpace: 'pre-line'
+                }}
+            >{getCardName(cid) + " - " + getRegionEraTextById(cid) + " "}</Typography>
+
+            {card.industry > 0 ? Array(card.industry).fill(1).map(() =>
+                    <IndustryIcon
+                        key={nanoid()}
+                        style={{color: getColor(r)}}/>)
+                : <React.Fragment key={nanoid()}/>}
+            {card.aesthetics > 0 ? Array(card.aesthetics).fill(1).map(() =>
+                    <AestheticsIcon
+                        key={nanoid()}
+                        style={{color: getColor(r)}}/>)
+                : <React.Fragment key={nanoid()}/>}
+            {/*<CardEffect cid={cid}/>*/}
+        </Grid>
+        <Grid item>
+            <Typography style={{ whiteSpace: 'pre-line' }}>{getEffectTextById(cid)}</Typography>
+        </Grid>
     </Grid>
+}
+
+export const getRegionEraTextById = (cid: CardID) : string => {
+    const card = getCardById(cid);
+    if(card.category === CardCategory.BASIC){
+        return `基础`;
+    }else{
+        const r = card.region;
+        const e = card.era;
+        const eraText = {
+            [IEra.ONE] : "I",
+            [IEra.TWO] : "II",
+            [IEra.THREE] : "III"
+        }
+        return `${i18n.region[r]} ${eraText[e]}`;
+    }
 }
 
 export const getEffectTextById = (cid: CardID): string => {
@@ -602,7 +625,25 @@ export const getEffectTextById = (cid: CardID): string => {
             hand: eff.school.hand,
             action: eff.school.action
         }) : ""
-    return `${buyEffText} ${playEffText} ${arch} ${score} ${schoolBasic} ${schoolEffectText(cid)}`
+    const schoolEffectTextStr = schoolEffectText(cid);
+    const textList = [buyEffText, playEffText, arch, score, schoolBasic, schoolEffectTextStr];
+    const lineList : string[] = [];
+    for(let text of textList){
+        if(text === "") continue;
+        if(text == schoolBasic){lineList.push(text);}
+        else if(lineList.length === 0){lineList.push(text + "。");}
+        else{
+            if(text.length + lineList[lineList.length - 1].length <= 20){
+                lineList[lineList.length - 1] += text + "。";
+            }else{
+                lineList.push(text + "。");
+            }
+        }
+    }
+    if(lineList.length === 0) return "";
+    if(schoolBasic !== "" && schoolEffectTextStr === "") return lineList.join("\n");
+    return lineList.join("\n");
+    //return `${buyEffText}${buyEffText == ""?"":"<br>"}${playEffText}${playEffText == ""?"":"<br>"}${arch}${arch == ""?"":"<br>"}${score}${score == ""?"":"<br>"}${schoolBasic}${schoolBasic == ""?"":"<br>"}${schoolEffectText(cid)}`
 }
 
 export const CardEffect = ({cid}: ICardEffectProps) => {

@@ -22,6 +22,7 @@ import {
     INormalOrLegendCard,
     IRegionInfo,
     ItrEffects,
+    PersonCardID,
     Region,
     SchoolCardID,
     SimpleEffectNames,
@@ -88,6 +89,9 @@ export interface ISetupGameModeArgs {
     order: GameTurnOrder,
     mode: GameMode,
     enableSchoolExtension: boolean,
+    enableSchoolExtensionMuki: boolean,
+    enableSchoolExtensionMuki2: boolean,
+    enableSchoolExtensionQM: boolean,
     disableUndo: boolean
 }
 
@@ -172,6 +176,8 @@ export const setupGameMode: LongFormMove = {
         }
         if (args.enableSchoolExtension) {
             log.push(`|drawForSchoolExtension`)
+			
+			
             for (let sch of shuffle(ctx, [SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008]).slice(0, 2)) {
                 log.push(`|${sch}|drawn`);
                 G.schoolExt.push(sch);
@@ -180,6 +186,7 @@ export const setupGameMode: LongFormMove = {
                 log.push(`|${sch}|drawn`);
                 G.schoolExt.push(sch);
             }
+			
             let schoolCardPopped = G.schoolExt.pop();
             if (schoolCardPopped === undefined) {
                 throw new Error(schoolCardPopped);
@@ -201,7 +208,49 @@ export const setupGameMode: LongFormMove = {
                 iCardSlot.card = null;
             }
         }
+
+        G.regions[Region.EXTENSION1].legend.card = null;
+        for (let iCardSlot of G.regions[Region.EXTENSION1].normal) {
+            iCardSlot.card = null;
+        }
+        let cardsEx = [];
+        if(args.enableSchoolExtensionMuki) {
+			for (let sch of shuffle(ctx, [SchoolCardID.S5001, SchoolCardID.S5003]).slice(0, 1)) {
+                log.push(`|${sch}|drawn`);
+                cardsEx.push(sch);
+            }
+			for (let sch of shuffle(ctx, [SchoolCardID.S5002, SchoolCardID.S5004]).slice(0, 1)) {
+                log.push(`|${sch}|drawn`);
+                cardsEx.push(sch);
+            }
+        }
+        if(args.enableSchoolExtensionQM){
+            let cards = [SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003/*, SchoolCardID.S6004*/];
+            for (let card of shuffle(ctx, cards).slice(0, 2)) cardsEx.push(card);
+        }
+
+        if(cardsEx.length > 0){
+            let schoolCardPopped = cardsEx.pop();
+            if (schoolCardPopped === undefined) {
+                throw new Error(schoolCardPopped);
+            } else {
+                G.regions[Region.EXTENSION1].legend.card = schoolCardPopped;
+            }
+            for (let iCardSlot of G.regions[Region.EXTENSION1].normal) {
+                schoolCardPopped = cardsEx.pop();
+                if (schoolCardPopped === undefined) {
+                    break;
+                } else {
+                    iCardSlot.card = schoolCardPopped;
+                }
+            }
+        }
+
+
         G.hasSchoolExtension = args.enableSchoolExtension;
+        G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;
+        G.hasSchoolExtensionMuki2 = args.enableSchoolExtensionMuki2;
+        G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -216,10 +265,13 @@ export const payAdditionalCost: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.payAdditionalCost(${JSON.stringify(arg)})`);
         const log = [`payAdditionalCost|${JSON.stringify(arg)}`];
+
+        console.log("payAdditionalCost: " , G.secretInfo);
+
         undoCheck(G, log);
         let pub = G.pub[parseInt(ctx.playerID)]
         let eff = G.e.stack.pop();
-        const r = G.e.regions[0];
+        const r = G.e.regions[Region.NA];
         if (eff === undefined) {
             log.push(`|stackEmpty`);
             logger.debug(`${G.matchID}|${log.join('')}`);
@@ -234,21 +286,23 @@ export const payAdditionalCost: LongFormMove = {
             case "buildCinema":
                 G.e.regions = [];
                 log.push(`|region:|${r}`);
-                if (r === undefined || r === Region.NONE || r === Region.EXTENSION) {
+                if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) {
                     log.push(`|invalid`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return INVALID_MOVE;
                 }
+                // @ts-ignore
                 buildBuildingFor(G, ctx, r, ctx.playerID, BuildingType.cinema);
                 break;
             case "buildStudio":
                 G.e.regions = [];
                 log.push(`|region:|${r}`);
-                if (r === undefined || r === Region.NONE || r === Region.EXTENSION) {
+                if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) {
                     log.push(`|invalid`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     return INVALID_MOVE;
                 }
+                // @ts-ignore
                 buildBuildingFor(G, ctx, r, ctx.playerID, BuildingType.studio);
                 break;
             case "industryLevelUpCost":
@@ -390,10 +444,11 @@ export const chooseTarget: LongFormMove = {
                         logger.debug(`${G.matchID}|${log.join('')}`);
                         return;
                     } else {
-                        const targetRegion = G.e.regions[0];
+                        const targetRegion = G.e.regions[Region.NA];
                         G.e.regions = [];
                         log.push(`|onlyOneRegion|${targetRegion}`)
-                        if (targetRegion !== Region.NONE && targetRegion !== Region.EXTENSION) {
+                        if ([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(targetRegion)) {
+                            // @ts-ignore
                             playerLoseShare(G, targetRegion, targetPlayerId, 1);
                             loseCompetitionPower(G, ctx, targetPlayerId, 1);
                         }
@@ -734,7 +789,7 @@ export const chooseRegion: LongFormMove = {
         const r = arg.r;
         const pub = G.pub[parseInt(arg.p)]
         log.push(JSON.stringify(arg));
-        if (r === Region.NONE || r === Region.EXTENSION) {
+        if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) {
             logger.debug(`${G.matchID}|${log.join('')}|NONE|return`);
             return;
         }
@@ -743,15 +798,18 @@ export const chooseRegion: LongFormMove = {
         logger.debug(`${G.matchID}|${log.join('')}`);
         let p = arg.p;
         const totalResource = pub.resource + pub.deposit;
+        // @ts-ignore
         const reg = G.regions[r]
         const i = G.competitionInfo;
         if (eff.e === "buildStudio" || eff.e === "buildCinema") {
             if (totalResource === 3) {
                 payCost(G, ctx, p, 3);
                 if (eff.e === "buildStudio") {
+                    // @ts-ignore
                     buildBuildingFor(G, ctx, r, p, BuildingType.studio);
                 }
                 if (eff.e === "buildCinema") {
+                    // @ts-ignore
                     buildBuildingFor(G, ctx, r, p, BuildingType.cinema);
                 }
             } else {
@@ -769,6 +827,7 @@ export const chooseRegion: LongFormMove = {
                     p = G.c.players[0];
                     log.push(`|targetPlayer|p${p}`);
                     G.c.players = [];
+                    // @ts-ignore
                     playerLoseShare(G, r, p, 1);
                     loseCompetitionPower(G, ctx, p, 1);
                     break;
@@ -776,9 +835,13 @@ export const chooseRegion: LongFormMove = {
                     // const loser = i.progress > 0 ? i.def : i.atk;
                     const loser = i.def;
                     const loserPid = parseInt(loser);
+                    // @ts-ignore
                     log.push(`|beforeLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
+                    // @ts-ignore
                     G.pub[loserPid].shares[r]--;
+                    // @ts-ignore
                     pub.shares[r]++;
+                    // @ts-ignore
                     log.push(`|afterLose|${G.pub[loserPid].shares[r]}|${pub.shares[r]}`);
                     if (eff.a > 1) {
                         eff.a--;
@@ -788,6 +851,7 @@ export const chooseRegion: LongFormMove = {
                     break;
                 case ItrEffects.anyRegionShareCentral:
                 case ItrEffects.anyRegionShare:
+                    // @ts-ignore
                     pub.shares[r]++;
                     reg.share--;
                     if (eff.a > 1) {
@@ -1415,6 +1479,7 @@ export const playCard: LongFormMove = {
                 G.e.stack.splice(0, 0, eff);
                 log.push(`${JSON.stringify(G.e.stack)}`)
                 playerEffExec(G, ctx, ctx.currentPlayer);
+                //checkNextEffect(G, ctx);
             } else {
                 log.push(`|emptyPlayEffect`);
                 checkNextEffect(G, ctx);

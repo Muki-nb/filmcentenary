@@ -11,61 +11,70 @@ import DenseTable from "./components/card-table";
 import AboutPage from "./components/about-page";
 import Lobby from "./components/lobby";
 import Local from "./songJinn/components/local";
+import {ThemeProvider, createTheme} from '@material-ui/core/styles';
+
 
 const rootElement = document.getElementById("root");
 
+const theme = createTheme({
+    palette: {
+        primary: {
+            main: '#131313c3',
+        }
+    }
+});
+
 render(
-    <BrowserRouter>
-        <CssBaseline/>
-        <DrawerAppBar/>
-        <Switch>
-            <Route exact path="/lobby">
-                <Lobby/>
-            </Route>
-            <Route exact path="/">
-                <MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/songJinn">
-                <MUICreateMatch gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/cards">
-                <DenseTable/>
-            </Route>
-            <Route exact path="/about">
-                <AboutPage/>
-            </Route>
-            <Route exact path="/join/film/:matchID/:player/:credential">
-                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/join/film/:matchID/:player">
-                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/join/songJinn/:matchID/:player/:credential">
-                <JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/join/songJinn/:matchID/:player">
-                <JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/join/:matchID/:player/:credential">
-                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/join/:matchID/:player">
-                <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
-            </Route>
-            <Route exact path="/local">
-                <Local/>
-            </Route>
-            <Route exact path="/local2p">
-                <Local2p/>
-            </Route>
-            <Route exact path="/local4p">
-                <Local4p/>
-            </Route>
-            <Route path="*">
-                <Redirect to="/"/>
-            </Route>
-        </Switch>
-    </BrowserRouter>
+    <ThemeProvider theme={theme}>
+        <BrowserRouter>
+            <CssBaseline/>
+            <DrawerAppBar/>
+            <Switch>
+                <Route exact path="/lobby">
+                    <Lobby/>
+                </Route>
+                <Route exact path="/">
+                    <MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/cards">
+                    <DenseTable/>
+                </Route>
+                <Route exact path="/about">
+                    <AboutPage/>
+                </Route>
+                <Route exact path="/join/film/:matchID/:player/:credential">
+                    <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/join/film/:matchID/:player">
+                    <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/join/songJinn/:matchID/:player/:credential">
+                    <JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/join/songJinn/:matchID/:player">
+                    <JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/join/:matchID/:player/:credential">
+                    <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/join/:matchID/:player">
+                    <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
+                </Route>
+                <Route exact path="/local">
+                    <Local/>
+                </Route>
+                <Route exact path="/local2p">
+                    <Local2p/>
+                </Route>
+                <Route exact path="/local4p">
+                    <Local4p/>
+                </Route>
+                <Route path="*">
+                    <Redirect to="/"/>
+                </Route>
+            </Switch>
+        </BrowserRouter>
+    </ThemeProvider>
     , rootElement
 );
 

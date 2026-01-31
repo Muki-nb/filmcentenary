@@ -94,15 +94,19 @@ export const ChoiceDialog = ({
     };
 
     const handleConfirm = () => {
-        callback(choice);
-        handleClose();
+        if(choices.map(c => c.value).includes(choice)){
+            callback(choice);
+            handleClose();
+        }else{
+            setChoice(defaultChoice);
+        }
     };
 
     const debouncedHandleConfirm = useDebounce(handleConfirm, 400);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setChoice(e.target.value);
-        console.log(e.target.value);
+        //console.log(e.target.value);
     };
 
     return show ? <Grid key={nanoid()} item xs={12}>

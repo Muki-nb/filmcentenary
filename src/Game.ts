@@ -94,9 +94,12 @@ export const FilmCentenaryGame: Game<IG> = {
             }
         }
         r.player = newPlayerObj;
+        /*
         if (r.secretInfo !== undefined) {
             delete r.secretInfo;
         }
+        //疑似引发突抽bug，君子游戏吧
+        */
         return r;
     },
     moves: {

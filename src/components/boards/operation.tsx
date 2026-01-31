@@ -489,7 +489,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                       getName={getName}/>
         </Grid>
         {noStage && canMoveCurrent ?
-            <Grid item xs={6}>
+            <Grid item xs={6} spacing={1}>
                 <Typography
                     variant={"h6"}
                     color="inherit"

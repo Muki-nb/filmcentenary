@@ -132,7 +132,7 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
-                G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
+                addCompetitionPower(G, ctx, p, 1);
                 G.e.choices.push({
                     e: "optional", a: {
                         e: "competition", a: {
@@ -199,6 +199,30 @@ export const NormalTurn: TurnConfig = {
                 });
                 for (let i = 0; i < drawCount; i++) {
                     drawCardForPlayer(G, ctx, p);
+                }
+            }
+            if(pub.school === SchoolCardID.S6001) {
+                if (pub.industry < 10 && pub.aesthetics < 10) {
+                    log.push(`|${JSON.stringify(G.e.choices)}|addChoice`);
+                    G.e.choices.push({e: "industryLevelUp", a: 1});
+                    G.e.choices.push({e: "aestheticsLevelUp", a: 1});
+                    log.push(`|${JSON.stringify(G.e)}|chooseEffect`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    changePlayerStage(G, ctx, "chooseEffect", p);
+                } else {
+                    if (pub.industry < 10) {
+                        log.push(`|aesthetics10AddIndustry`);
+                        pub.industry++;
+                        log.push(`|i${pub.industry}`);
+                    } else {
+                        if (pub.aesthetics < 10) {
+                            log.push(`|Industry10AddAesthetics`);
+                            pub.aesthetics++;
+                            log.push(`|i${pub.aesthetics}`);
+                        } else {
+                            log.push("|bothLV10|skip");
+                        }
+                    }
                 }
             }
         } else {

@@ -2,7 +2,7 @@ import React from "react";
 import SvgIcon from "@material-ui/core/SvgIcon";
 import NoScoringCardIcon from '@material-ui/icons/Block';
 import {Champion, IEra, Region,} from "../types/core";
-import {blue, grey, purple, red, yellow} from "@material-ui/core/colors";
+import {blue, grey, purple, red, yellow, green, indigo} from "@material-ui/core/colors";
 import LooksOneIcon from '@material-ui/icons/LooksOne';
 import LooksTwoIcon from '@material-ui/icons/LooksTwo';
 import Looks3Icon from '@material-ui/icons/Looks3';
@@ -220,5 +220,9 @@ export const getColor = (r: Region): string => {
             return grey[700]
         case Region.EXTENSION:
             return grey[700]
+        case Region.EXTENSION1:
+            return indigo[800]
+        case Region.EXTENSION2:
+            return green[800]
     }
 }

@@ -14,6 +14,7 @@ import {
     IPubInfo,
     IRegionInfo,
     IRegionPrivate,
+    PersonCardID,
     Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
@@ -50,6 +51,9 @@ export interface IG {
     updateCardHistory: CardID[][],
     mode: GameMode,
     hasSchoolExtension: boolean,
+    hasSchoolExtensionMuki: boolean,
+    hasSchoolExtensionMuki2: boolean,
+    hasSchoolExtensionQM: boolean,
     randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
@@ -66,6 +70,8 @@ export interface IG {
     playerCount: number,
     //流派扩
     schoolExt: SchoolCardID[],
+	//Muki Pro
+    schoolExtMuki: SchoolCardID[],
     activeEvents: EventCardID[],
     logDiscrepancyWorkaround: boolean,
     pending: {
@@ -100,11 +106,13 @@ export interface IG {
     competitionInfo: CompetitionInfo,
     secretInfo: {
         regions: {
-            0: IRegionPrivate,
-            1: IRegionPrivate,
-            2: IRegionPrivate,
-            3: IRegionPrivate,
-            4: IRegionPrivate,
+            [Region.NA]: IRegionPrivate,
+            [Region.WE]: IRegionPrivate,
+            [Region.EE]: IRegionPrivate,
+            [Region.ASIA]: IRegionPrivate,
+            [Region.EXTENSION]: IRegionPrivate,
+            [Region.EXTENSION1]: IRegionPrivate,
+            [Region.EXTENSION2]: IRegionPrivate,
         },
         events: EventCardID[],
         playerDecks: CardID[][],
@@ -114,11 +122,13 @@ export interface IG {
         },
     },
     regions: {
-        0: IRegionInfo,
-        1: IRegionInfo,
-        2: IRegionInfo,
-        3: IRegionInfo,
-        4: IRegionInfo,
+        [Region.NA]: IRegionInfo,
+        [Region.WE]: IRegionInfo,
+        [Region.EE]: IRegionInfo,
+        [Region.ASIA]: IRegionInfo,
+        [Region.EXTENSION]: IRegionInfo,
+        [Region.EXTENSION1]: IRegionInfo,
+        [Region.EXTENSION2]: IRegionInfo,
     },
     pendingEffects: any[],
     basicCards: {
@@ -269,6 +279,9 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         updateCardHistory: [],
         mode: GameMode.NORMAL,
         hasSchoolExtension: false,
+        hasSchoolExtensionMuki: false,
+        hasSchoolExtensionMuki2: false,
+        hasSchoolExtensionQM: false,
         randomOrder: false,
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
@@ -294,6 +307,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         schoolExt: [], //SchoolCardID.S4004,SchoolCardID.S4001, SchoolCardID.S4002,SchoolCardID.S4003,
         //     SchoolCardID.S4005,SchoolCardID.S4006,
         //     SchoolCardID.S4007,SchoolCardID.S4008
+		schoolExtMuki:[], 
         pending: {
             nextEraRegions: [],
             lastRoundOfGame: false,
@@ -336,23 +350,31 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         player: players,
         secretInfo: {
             regions: {
-                0: {
+                [Region.NA]: {
                     legendDeck: [],
                     normalDeck: [],
                 },
-                1: {
+                [Region.WE]: {
                     legendDeck: [],
                     normalDeck: [],
                 },
-                2: {
+                [Region.EE]: {
                     legendDeck: [],
                     normalDeck: [],
                 },
-                3: {
+                [Region.ASIA]: {
                     legendDeck: [],
                     normalDeck: [],
                 },
-                4: {
+                [Region.EXTENSION]: {
+                    legendDeck: [],
+                    normalDeck: [],
+                },
+                [Region.EXTENSION1]: {
+                    legendDeck: [],
+                    normalDeck: [],
+                },
+                [Region.EXTENSION2]: {
                     legendDeck: [],
                     normalDeck: [],
                 },
@@ -365,84 +387,106 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             playerDecks: decks,
         },
         regions: {
-            0: {
+            [Region.NA] : {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
                 completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
-                    emptyBuildingSlot(0),
-                    emptyBuildingSlot(0, false),
-                    emptyBuildingSlot(0, false),
+                    emptyBuildingSlot(Region.NA),
+                    emptyBuildingSlot(Region.NA, false),
+                    emptyBuildingSlot(Region.NA, false),
                 ],
-                legend: emptyLegendCardSlot(0),
+                legend: emptyLegendCardSlot(Region.NA),
                 normal: [
-                    emptyNormalCardSlot(0),
-                    emptyNormalCardSlot(0),
-                    emptyNormalCardSlot(0),
+                    emptyNormalCardSlot(Region.NA),
+                    emptyNormalCardSlot(Region.NA),
+                    emptyNormalCardSlot(Region.NA),
                 ],
                 share: 6,
             },
-            1: {
+            [Region.WE]: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
                 completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
-                    emptyBuildingSlot(1),
-                    emptyBuildingSlot(1, false)
+                    emptyBuildingSlot(Region.WE),
+                    emptyBuildingSlot(Region.WE, false)
                 ],
-                legend: emptyLegendCardSlot(1),
+                legend: emptyLegendCardSlot(Region.WE),
                 normal: [
-                    emptyNormalCardSlot(1),
-                    emptyNormalCardSlot(1),
-                    emptyNormalCardSlot(1),
+                    emptyNormalCardSlot(Region.WE),
+                    emptyNormalCardSlot(Region.WE),
+                    emptyNormalCardSlot(Region.WE),
                 ],
                 share: 6,
             },
-            2: {
+            [Region.EE] : {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
                 completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
-                    emptyBuildingSlot(2),
-                    emptyBuildingSlot(2, false),
+                    emptyBuildingSlot(Region.EE),
+                    emptyBuildingSlot(Region.EE, false),
                 ],
-                legend: emptyLegendCardSlot(2),
-                normal: [emptyNormalCardSlot(2), emptyNormalCardSlot(2)],
+                legend: emptyLegendCardSlot(Region.EE),
+                normal: [emptyNormalCardSlot(Region.EE), emptyNormalCardSlot(Region.EE)],
                 share: 4,
             },
-            3: {
+            [Region.ASIA]: {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
                 completedLastScoring: false,
                 era: IEra.ONE,
                 buildings: [
-                    emptyBuildingSlot(3),
-                    emptyBuildingSlot(3, false),
+                    emptyBuildingSlot(Region.ASIA),
+                    emptyBuildingSlot(Region.ASIA, false),
                 ],
-                legend: emptyLegendCardSlot(3),
-                normal: [emptyNormalCardSlot(3), emptyNormalCardSlot(3)],
+                legend: emptyLegendCardSlot(Region.ASIA),
+                normal: [emptyNormalCardSlot(Region.ASIA), emptyNormalCardSlot(Region.ASIA)],
                 share: 0,
             },
-            4: {
+            [Region.EXTENSION] : {
                 normalDeckLength: 0,
                 legendDeckLength: 0,
                 completedLastScoring: false,
                 era: IEra.ONE,
-                buildings: [emptyBuildingSlot(4, false),
-                    emptyBuildingSlot(4, false)],
-                legend: emptyNormalCardSlot(4),
-                normal: [emptyNormalCardSlot(4), emptyNormalCardSlot(4), emptyNormalCardSlot(4)],
+                buildings: [emptyBuildingSlot(Region.EXTENSION, false),
+                    emptyBuildingSlot(Region.EXTENSION, false)],
+                legend: emptyNormalCardSlot(Region.EXTENSION),
+                normal: [emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION)],
+                share: 0,
+            },
+            [Region.EXTENSION1] : {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
+                completedLastScoring: false,
+                era: IEra.ONE,
+                buildings: [emptyBuildingSlot(Region.EXTENSION1, false),
+                    emptyBuildingSlot(Region.EXTENSION1, false)],
+                legend: emptyNormalCardSlot(Region.EXTENSION1),
+                normal: [emptyNormalCardSlot(Region.EXTENSION1), emptyNormalCardSlot(Region.EXTENSION1), emptyNormalCardSlot(Region.EXTENSION1)],
+                share: 0,
+            },
+            [Region.EXTENSION2] : {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
+                completedLastScoring: false,
+                era: IEra.ONE,
+                buildings: [emptyBuildingSlot(Region.EXTENSION2, false),
+                    emptyBuildingSlot(Region.EXTENSION2, false)],
+                legend: emptyNormalCardSlot(Region.EXTENSION2),
+                normal: [emptyNormalCardSlot(Region.EXTENSION2), emptyNormalCardSlot(Region.EXTENSION2), emptyNormalCardSlot(Region.EXTENSION2)],
                 share: 0,
             },
         },
         scoringRegions: [],
         pendingEffects: [],
         basicCards: {
-            "B01": 20,
-            "B02": 20,
+            "B01": 10,
+            "B02": 10,
             "B03": 10,
             "B04": 40,
             "B05": 20,
@@ -560,7 +604,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // @ts-ignore
     // G.pub[firstMovePlayer].school = "S2101";
     // @ts-ignore
-    // G.pub[firstMovePlayer].school = "S2101";
+    // G.pub[firstMovePlayer].school = "S6004";
+    // G.player[firstMovePlayer].hand = [FilmCardID.F2407, FilmCardID.F3112, BasicCardID.B02, PersonCardID.P2103];
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[firstMovePlayer].industry = 10;
     // G.pub[firstMovePlayer].deposit = 30;

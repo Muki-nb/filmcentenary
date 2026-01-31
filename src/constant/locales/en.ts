@@ -179,14 +179,26 @@ const cards = {
     '4006': 'Third Cinema',
     '4007': 'Kitchen Sink Film',
     '4008': 'High-Concept Film',
+	
+    '5001': 'Silent Film',
+	'5002': 'West Film',
+	'5003': 'Brighton School',
+	'5004': 'Experimental Film',
+
+    '6001': 'New Drama',
+    '6002': 'Czechoslovak Film',
+    '6003': 'New Czechoslovak Film',
+	'6004': 'Auteur film',
 };
 const region = {
-    0: "North America",
-    1: "West Europe",
-    2: "East Europe",
-    3: "Asia",
-    4: "School Extension",
-    5: "Any Region",
+    [Region.NA] : "North America",
+    [Region.WE] : "West Europe",
+    [Region.EE] : "East Europe",
+    [Region.ASIA] : "Asia",
+    [Region.EXTENSION] : "School Extension",
+    [Region.EXTENSION1] : "Muki & QM Extension",
+    [Region.EXTENSION2] : "Muki Extension2",
+    [Region.NONE] : "Any Region",
 };
 const numToValue = (value: number = 1): string => value.toString();
 
@@ -250,6 +262,9 @@ const setting: LocaleSettings = {
     normal: "Complete Mode",
     newbie: "Newbie Mode",
     enableSchoolExtension: "Enable school extension",
+    enableSchoolExtensionMuki: "Enable Muki school extension",
+    enableSchoolExtensionMuki2: "Enable Muki school extension 2",
+    enableSchoolExtensionQM: "Enable QM school extension",
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
@@ -529,7 +544,7 @@ const en = {
         cards: "Card list",
         about: "Rules & Help",
     },
-    title: "Film Centenary",
+    title: "Film Centenary - Muki Server",
     lobby: {
         copyPrompt: "Copied to clipboard",
         numPlayers: "Players",
@@ -618,6 +633,7 @@ const en = {
         }],
         industryAndAestheticsBreakthrough: "Do industry and aesthetics breakthrough",
         industryOrAestheticsLevelUp: "Upgrade industry or aesthetics level",
+        industryOrAestheticsLevelDown: "Downgrade industry or aesthetics level",
         era: {
             0: " Invention:",
             1: " Classic:",
@@ -666,6 +682,13 @@ const en = {
         kitchen_sink_turnstart: "-1 vp for each 1 hand you have, and +1 card for every company that has more cards than you. End of Turn: You gain +1 vp for each card played in this turn.",
         High_Concept_Film: "Each industrial symbol for your played card: +1 resource, +1 vp. After competition :+1 competition power, +1 card.",
         schoolExtNonePre: "",
+
+		West_Film: "建造建筑时，额外获得对应地区的一个份额",
+		Brighton_School: "美学等级为2的美学奖励效果改为【资源+1】",
+		Experimental_Film: "每当你购买等级需求比你的等级高的影片后，+1存款，+1声望。购买东欧地区流派后，+1工业等级，+1存款，+1声望",
+		Czechoslovakian_Film: "如果你的工业等级和美学等级差值小于等于1，你执行工业奖励和美学奖励后再执行一次",
+		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励；所有人物牌对你的制片厂效果额外触发一次",
+		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为指定【除你以外，所有本地区没有制片厂的公司。】",
 
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
@@ -784,6 +807,7 @@ const en = {
         loseVpRespond: "When you lose vp in your turn,",
         othersBuySchool: "When another company buys a school card,",
         turnStart: "On the beginning of every turn",
+        turnEnd: "On the end of every turn",
         studio: "All companies with a studio in this region,",
         building: "All companies with a building in this region,，",
         noStudio: "Choose a company without a studio in this region,",
@@ -809,8 +833,10 @@ const en = {
         competitionLoserBuy: ["The loser buy [{{a}} ]", argCardName],
         buyCardToHand: ["Buy 【{{a}}】 for free, and add to hand.", argCardName],
         industryLevelUp: ["Upgrade industry level {{a}}", argTimes],
+        industryLevelDown: ["Downgrade industry level {{a}}", argTimes],
         industryLevelUpCost: ["Upgrade industry level {{a}} with possible extra cost", argTimes],
         aestheticsLevelUp: ["Upgrade aesthetics level {{a}}", argTimes],
+        aestheticsLevelDown: ["Downgrade aesthetics level {{a}}", argTimes],
         aestheticsLevelUpCost: ["Upgrade aesthetics level {{a}} with possible extra cost", argTimes],
         buildCinema: "Build Cinema",
         buildCinemaInRegion: ["Build cinema in {{a}}", argRegion],

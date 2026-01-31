@@ -173,7 +173,7 @@ export const FilmCentenaryBoard = ({
             <Grid item xs={12} sm={6}>
                 <Typography>
                     {valid_regions.map(r => {
-                        const regionIdx: 0 | 1 | 2 | 3 | 4 = r;
+                        const regionIdx: 0 | 1 | 2 | 3 | 4 | 5 | 6 = r;
                         const region = G.regions[regionIdx];
                         return <React.Fragment key={nanoid()}>
                             <DrawnShareIcon r={r}/>{region.share}
@@ -212,15 +212,19 @@ export const FilmCentenaryBoard = ({
         </Grid> :
 
         <Grid item container xs={12} sm={7}>
-            <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[0]} G={G} ctx={ctx}
+            <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[Region.NA]} G={G} ctx={ctx}
                          playerID={playerID}/>
-            <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[1]} G={G} ctx={ctx}
+            <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[Region.WE]} G={G} ctx={ctx}
                          playerID={playerID}/>
-            <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[2]} G={G} ctx={ctx}
+            <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[Region.EE]} G={G} ctx={ctx}
                          playerID={playerID}/>
-            <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[3]} G={G} ctx={ctx}
+            <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[Region.ASIA]} G={G} ctx={ctx}
                          playerID={playerID}/>
-            <SchoolRegion getPlayerName={getName} r={Region.NONE} moves={moves} region={G.regions[4]} G={G} ctx={ctx}
+            <SchoolRegion getPlayerName={getName} r={Region.EXTENSION} moves={moves} region={G.regions[Region.EXTENSION]} G={G} ctx={ctx}
+                          playerID={playerID}/>
+            <SchoolRegion getPlayerName={getName} r={Region.EXTENSION1} moves={moves} region={G.regions[Region.EXTENSION1]} G={G} ctx={ctx}
+                          playerID={playerID}/>
+            <SchoolRegion getPlayerName={getName} r={Region.EXTENSION2} moves={moves} region={G.regions[Region.EXTENSION2]} G={G} ctx={ctx}
                           playerID={playerID}/>
         </Grid>
 
