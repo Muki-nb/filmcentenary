@@ -2632,8 +2632,10 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     if (s.length === 0) {
         //S5204
         if(pub.school === SchoolCardID.S5204){
-            addVp(G, ctx, id, 4);
-            addRes(G, ctx, id, 2);
+            if(pub.discard.length !== 0){
+                addVp(G, ctx, id, 4);
+                addRes(G, ctx, id, 2);
+            }
         }
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
         log.push(`|shuffledDeck|${JSON.stringify(s)}`);
@@ -2672,8 +2674,10 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     if (s.length === 0) {
         //S5204
         if(pub.school === SchoolCardID.S5204){
-            addVp(G, ctx, id, 4);
-            addRes(G, ctx, id, 2);
+            if(pub.discard.length !== 0){
+                addVp(G, ctx, id, 4);
+                addRes(G, ctx, id, 2);
+            }
         }
 
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
