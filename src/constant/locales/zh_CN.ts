@@ -209,10 +209,11 @@ const cards = {
 	'5003': '布莱顿学派',
 	'5004': '电影实验派',
 
-	'5005': '默剧',
-	'5006': '西部电影',
-	'5007': '布莱顿学派',
-	'5008': '电影实验派',
+    '5201': '布拉格电影学派',
+    '5202': '通心粉西部电影',
+    '5203': '巨片',
+    '5204': '剧影派',
+    '5205': '巧克力学派',
 
 	'6001': '平行电影',
 	'6002': '思想电影',
@@ -269,8 +270,8 @@ const setting = {
 
     enableSchoolExtension: "启用杨-流派扩",
     enableSchoolExtensionMuki: "启用Muki流派扩 - Ⅰ时代流派",
-    enableSchoolExtensionMuki2: "启用Muki流派扩2",
-    enableSchoolExtensionQM: "启用起名流派扩",
+    enableSchoolExtensionQM: "启用起名流派扩 - Ⅱ时代流派",
+    enableSchoolExtensionMuki2: "启用Muki流派扩2 - Ⅲ时代流派",
 
     randomFirst: "随机首位",
     fixedFirst: "固定首位",
@@ -734,6 +735,18 @@ const zh_CN: Locale = {
 		Brighton_School: "美学等级为2的美学奖励效果改为【+1资源】",
 		Experimental_Film: "购买等级需求比你的等级高的影片后，+1存款，+1声望。购买东欧地区流派后，+1工业等级，+1存款，+1声望",
 
+
+        '5201_effect': "购买影片时，忽略较低的等级需求（之一）",
+        '5202_effect': "你+1牌后，+1声望。被争夺后，不会失去声望",
+        '5203_effect': "购买影片时，多获得一个份额",
+        '5204_effect': "你+1牌前，如果牌库为空，+2资源，+4声望。被争夺后，不会失去声望",
+        '5205_effect': "如果【最后一轮】已被触发，购买对应牌获得对应奖励：\n" +
+            "传奇牌：+1行动力；\n" +
+            "普通牌：+4资源；\n" +
+            "基础牌：+6声望；\n" +
+            "影片牌：+1牌；\n" +
+            "人物牌：根据人物牌的等级需求获得声望",
+
 		Czechoslovakian_Film: "不能触发工业/美学等级为8的奖励效果。如果你的工业等级和美学等级差值小于等于2：每当你触发工业奖励或美学奖励，额外触发一次",
 		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励，并且所有人物牌对你的制片厂效果额外触发一次",
 		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为【指定所有本地区没有制片厂的公司（除你以外）。】",
@@ -895,7 +908,7 @@ const zh_CN: Locale = {
         loseShareEE: ["失去{{a}}个东欧地区的份额", argValue],
         loseShareASIA: ["失去{{a}}个亚洲地区的份额", argValue],
         anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
-        anyRegionShareCompetition: ["从争夺失败方获得{{a}}个任意地区的份额", argValue],
+        anyRegionShareCompetition: ["从被争夺方获得{{a}}个任意地区的份额", argValue],
         newHollyWoodEff: "每回合仅限一次,获得1个任意地区的份额",
         anyRegionShareCentral: ["从中央牌列获得{{a}}个任意地区的份额", argValue],
         deductRes: ["少花费{{a}}资源", argValue],
@@ -928,7 +941,7 @@ const zh_CN: Locale = {
         industryBreakthrough: ["工业突破{{a}}次", argValue],
         aestheticsBreakthrough: ["美学突破{{a}}次", argValue],
         buy: ["免费购买【 {{a}} 】", argCardName],
-        competitionLoserBuy: ["争夺失败方免费购买【 {{a}} 】", argCardName],
+        competitionLoserBuy: ["被争夺方免费购买【 {{a}} 】", argCardName],
         buyCardToHand: ["免费购买【{{a}}】并加入手牌", argCardName],
         industryLevelUp: ["+{{a}}工业等级", argValue],
         industryLevelDown: ["-{{a}}工业等级", argValue],

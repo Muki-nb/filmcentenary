@@ -604,7 +604,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // @ts-ignore
     // G.pub[firstMovePlayer].school = "S2101";
     // @ts-ignore
-    // G.pub[firstMovePlayer].school = "S6004";
+    // G.pub[0].school = "S5201";
+    // // @ts-ignore
+    // G.pub[1].school = "S5202";
+    // // @ts-ignore
+    // G.pub[2].school = "S5203";
+    // // @ts-ignore
+    // G.pub[3].school = "S5204";
     // G.player[firstMovePlayer].hand = [FilmCardID.F2407, FilmCardID.F3112, BasicCardID.B02, PersonCardID.P2103];
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[firstMovePlayer].industry = 10;

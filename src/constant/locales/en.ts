@@ -185,6 +185,12 @@ const cards = {
 	'5003': 'Brighton School',
 	'5004': 'Experimental Film',
 
+    '5201': 'Plague Film School',
+    '5202': 'Spaghetti Western',
+    '5203': 'Epic Film',
+    '5204': 'Drama Film School',
+    '5205': 'Chocolate School',
+
     '6001': 'New Drama',
     '6002': 'Czechoslovak Film',
     '6003': 'New Czechoslovak Film',
@@ -689,6 +695,18 @@ const en = {
 		Czechoslovakian_Film: "如果你的工业等级和美学等级差值小于等于1，你执行工业奖励和美学奖励后再执行一次",
 		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励；所有人物牌对你的制片厂效果额外触发一次",
 		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为指定【除你以外，所有本地区没有制片厂的公司。】",
+
+        '5201_effect': "购买影片时，忽略较低的等级需求（之一）",
+        '5202_effect': "你+1牌后，+1声望。被争夺后，不会失去声望。",
+        '5203_effect': "购买影片时，多获得一个份额",
+        '5204_effect': "你+1牌前，如果牌库为空，+2资源，+4声望。被争夺后，不会失去声望",
+        '5205_effect': "如果【最后一轮】已被触发，购买对应牌获得对应奖励：\n" +
+            "传奇牌：+1行动力；\n" +
+            "普通牌：+4资源；\n" +
+            "基础牌：+6声望；\n" +
+            "影片牌：+1牌；\n" +
+            "人物牌：根据人物牌的等级需求获得声望"
+        ,
 
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",

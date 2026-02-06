@@ -522,6 +522,13 @@ export enum SchoolCardID {
     'S5003' = 'S5003',
     'S5004' = 'S5004',
 
+    //Muki扩2
+    'S5201' = 'S5201',
+    'S5202' = 'S5202',
+    'S5203' = 'S5203',
+    'S5204' = 'S5204',
+    'S5205' = 'S5205',
+
     //起名扩
     'S6001' = 'S6001',
     'S6002' = 'S6002',
@@ -2305,6 +2312,8 @@ const NoneBasicCards = {
         industry: 3,
         aesthetics: 0,
     }),
+
+    // Muki Extension
     "S5001": schoolCard({
         era: IEra.ONE,
         region: Region.NA,
@@ -2350,7 +2359,70 @@ const NoneBasicCards = {
         aesthetics: 0,
     }),
 
-    
+    //Muki Extension part 2
+
+    // 布拉格电影学院
+    "S5201": schoolCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Prague Film School",
+        cardId: SchoolCardID.S5201,
+        cost: cost(10, 5, 5),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    // 通心粉西部电影
+    "S5202": schoolCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Spaghetti Western",
+        cardId: SchoolCardID.S5202,
+        cost: cost(7, 0, 10),
+        vp: 13,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 2,
+    }),
+    // 巨片
+    "S5203": schoolCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Epic film",
+        cardId: SchoolCardID.S5203,
+        cost: cost(12, 10, 2),
+        vp: 13,
+        category: CardCategory.NORMAL,
+        industry: 2,
+        aesthetics: 0,
+    }),
+    // 剧影派
+    "S5204": schoolCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "Drama Film School",
+        cardId: SchoolCardID.S5204,
+        cost: cost(8, 4, 4),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    // 巧克力学派
+    "S5205": schoolCard({
+        era: IEra.THREE,
+        region: Region.EXTENSION2,
+        name: "Chocolate School",
+        cardId: SchoolCardID.S5205,
+        cost: cost(7, 2, 2),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+
+    // QM Extension
     "S6001": schoolCard({
         era: IEra.TWO,
         region: Region.ASIA,
@@ -3016,7 +3088,12 @@ export function filmCardsByEra(e: IEra) {
 export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(
-        c => !(['S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', 'S5001', 'S5002', 'S5003', 'S5004', 'S6001', 'S6002', 'S6003', 'S6004'].includes(c[1].cardId))
+        c => !([
+            'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008',
+            'S5001', 'S5002', 'S5003', 'S5004',
+            'S5201', 'S5202', 'S5203', 'S5204', 'S5205',
+            'S6001', 'S6002', 'S6003', 'S6004'
+        ].includes(c[1].cardId))
     )
     if (isLegend) {
         res = res.filter(c => c[1].category === CardCategory.LEGEND)

@@ -246,6 +246,45 @@ export const setupGameMode: LongFormMove = {
             }
         }
 
+        
+        G.regions[Region.EXTENSION2].legend.card = null;
+        for (let iCardSlot of G.regions[Region.EXTENSION2].normal) {
+            iCardSlot.card = null;
+        }
+        let cardsMukiEx2 = [];
+        if(args.enableSchoolExtensionMuki2){
+            let industryCards = [
+                SchoolCardID.S5201, SchoolCardID.S5204, SchoolCardID.S5205,
+                SchoolCardID.S5203, SchoolCardID.S5203,
+            ];
+            let aestheticCards = [
+                SchoolCardID.S5201, SchoolCardID.S5204, SchoolCardID.S5205,
+                SchoolCardID.S5202, SchoolCardID.S5202,
+            ];
+            let industryCard = shuffle(ctx, industryCards)[0];
+            if(industryCard !== SchoolCardID.S5203){
+                aestheticCards.splice(aestheticCards.indexOf(industryCard), 1);
+            }
+            let aestheticCard = shuffle(ctx, aestheticCards)[0];
+            cardsMukiEx2.push(industryCard);
+            cardsMukiEx2.push(aestheticCard);
+        }
+        if(cardsMukiEx2.length > 0){
+            let schoolCardPopped = cardsMukiEx2.pop();
+            if (schoolCardPopped === undefined) {
+                throw new Error(schoolCardPopped);
+            } else {
+                G.regions[Region.EXTENSION2].legend.card = schoolCardPopped;
+            }
+            for (let iCardSlot of G.regions[Region.EXTENSION2].normal) {
+                schoolCardPopped = cardsMukiEx2.pop();
+                if (schoolCardPopped === undefined) {
+                    break;
+                } else {
+                    iCardSlot.card = schoolCardPopped;
+                }
+            }
+        }
 
         G.hasSchoolExtension = args.enableSchoolExtension;
         G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;

@@ -484,6 +484,7 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
     }
     playerObj.hand.push(card.cardId);
     pub.allCards.push(card.cardId)
+    checkS5205(G, ctx, card, p);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -505,6 +506,27 @@ export const checkSocialismRealism = (G: IG, ctx: Ctx, card: INormalOrLegendCard
         }
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
+}
+
+export const checkS5205 = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
+    const pub = G.pub[parseInt(p)];
+    if(G.pending.lastRoundOfGame && pub.school == SchoolCardID.S5205){
+        if(card.category === CardCategory.BASIC){
+            addVp(G, ctx, p, 6);
+        }
+        if(card.category === CardCategory.NORMAL){
+            addRes(G, ctx, p, 4);
+        }
+        if(card.category === CardCategory.LEGEND){
+            pub.action++;
+        }
+        if(card.type === CardType.F){
+            drawCardForPlayer(G, ctx, p);
+        }
+        if(card.type === CardType.P){
+            addVp(G, ctx, p, card.cost.industry + card.cost.aesthetics);
+        }
+    }
 }
 
 export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p: PlayerID): void => {
@@ -559,6 +581,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 if (card.type === CardType.F) {
                     log.push(`|film`);
                     share++;
+                    if(pub.school === SchoolCardID.S5203) share++;
                 }
                 log.push(`|share${share}`);
                 // @ts-ignore
@@ -681,6 +704,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             pub.discard.push(card.cardId);
         }
         pub.allCards.push(card.cardId);
+        checkS5205(G, ctx, card, p);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -2189,6 +2213,13 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S6004:
             r = G.regions[Region.EXTENSION1];
             break;
+        case SchoolCardID.S5201:
+        case SchoolCardID.S5202:
+        case SchoolCardID.S5203:
+        case SchoolCardID.S5204:
+        case SchoolCardID.S5205:
+            r = G.regions[Region.EXTENSION2];
+            break;
         default:
             break;
     }
@@ -2204,15 +2235,7 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
             return null;
         }
     } else {
-        if (r !== G.regions[Region.EXTENSION] && r !== G.regions[Region.EXTENSION1]) {
-            for (let slot of r.normal) {
-                if (slot.card !== null) {
-                    if (slot.card === card.cardId) {
-                        return slot;
-                    }
-                }
-            }
-        } else if(r == G.regions[Region.EXTENSION]){
+        if(r == G.regions[Region.EXTENSION]){
             for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {
@@ -2228,7 +2251,23 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
                     }
                 }
             }
-		}
+		} else if(r == G.regions[Region.EXTENSION2]){
+			for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
+                if (slot.card !== null) {
+                    if (slot.card === card.cardId) {
+                        return slot;
+                    }
+                }
+            }
+		} else {
+            for (let slot of r.normal) {
+                if (slot.card !== null) {
+                    if (slot.card === card.cardId) {
+                        return slot;
+                    }
+                }
+            }
+        }
         return null;
     }
 }
@@ -2268,6 +2307,7 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
     log.push(`|p${arg.buyer}|industry${pub.industry}|aesthetics${pub.aesthetics}`);
     let aesthetics: number = cost.aesthetics
     let industry: number = cost.industry
+
     aesthetics -= pub.aesthetics;
     industry -= pub.industry;
     log.push(`|${targetCard.cardId}|i:${industry}|a:${aesthetics}`);
@@ -2289,6 +2329,17 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
         aesthetics -= helperCard.aesthetics;
         log.push(`|i:${industry}|a:${aesthetics}`);
     }
+
+    // 布拉格电影
+    if(pub.school === SchoolCardID.S5201 && targetCard.type === CardType.F){
+        if(cost.aesthetics > cost.industry) industry = 0;
+        if(cost.industry > cost.aesthetics) aesthetics = 0;
+        if(cost.aesthetics === cost.industry){
+            if(aesthetics > industry)  aesthetics = 0;
+            if(industry >= aesthetics) industry = 0;
+        }
+    }
+
     if (aesthetics > 0) {
         log.push(("Lack aesthetics " + aesthetics));
         resRequired += aesthetics * 2;
@@ -2400,6 +2451,54 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             if (pub.bought_extension) {
                 resRequired = 1000;
             }
+            break;
+        case SchoolCardID.S5201:
+            if(G.regions[Region.EE].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5202:
+            if(G.regions[Region.WE].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5203:
+            if(G.regions[Region.NA].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5204:
+            if(G.regions[Region.ASIA].era !== IEra.THREE){
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5205:
+            if(G.regions[Region.EE].era === IEra.THREE ||
+               G.regions[Region.WE].era === IEra.THREE ||
+               G.regions[Region.NA].era === IEra.THREE ||
+               G.regions[Region.ASIA].era === IEra.THREE)
+            {
+                //ok
+            }else{
+                resRequired = 1000;
+            }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        default:
             break;
     }
     return resRequired;
@@ -2531,6 +2630,11 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
         log.push(`|disableNextUndo`);
     }
     if (s.length === 0) {
+        //S5204
+        if(pub.school === SchoolCardID.S5204){
+            addVp(G, ctx, id, 4);
+            addRes(G, ctx, id, 2);
+        }
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
         log.push(`|shuffledDeck|${JSON.stringify(s)}`);
         pub.discard = [];
@@ -2542,6 +2646,8 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     } else {
         log.push(`|${card}`);
         p.cardsToPeek.push(card);
+        //S5202
+        if(pub.school === SchoolCardID.S5202) addVp(G, ctx, id, 1);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -2564,6 +2670,12 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     const pub = G.pub[pid]
     let s = G.secretInfo.playerDecks[pid]
     if (s.length === 0) {
+        //S5204
+        if(pub.school === SchoolCardID.S5204){
+            addVp(G, ctx, id, 4);
+            addRes(G, ctx, id, 2);
+        }
+
         G.secretInfo.playerDecks[pid] = shuffle(ctx, pub.discard);
         log.push(`|shuffledDeck|${JSON.stringify(s)}`);
         pub.discard = [];
@@ -2571,9 +2683,12 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
     let card = G.secretInfo.playerDecks[pid].pop();
     if (card === undefined) {
         log.push(`|deckEmpty`);
-    } else {
+    } else {id
         log.push(`|${card}`);
         p.hand.push(card);
+
+        //S5202
+        if(pub.school === SchoolCardID.S5202) addVp(G, ctx, id, 1);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -3857,6 +3972,9 @@ export const doNotLoseVpAfterCompetitionSchool = (school: SchoolCardID): boolean
         case SchoolCardID.S3204:
             return true;
         case SchoolCardID.S3304:
+            return true;
+        case SchoolCardID.S5202:
+        case SchoolCardID.S5204:
             return true;
         default:
             return false;
