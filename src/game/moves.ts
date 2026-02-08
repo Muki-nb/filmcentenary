@@ -1224,7 +1224,7 @@ export const chooseEvent: LongFormMove = {
                                     addVp(G, ctx, j, 4);
                                     break;
                                 case IEra.THREE:
-                                    addVp(G, ctx, j, 6);
+                                    addVp(G, ctx, j, 8);
                                     break;
                             }
                         });
