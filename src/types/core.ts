@@ -2515,7 +2515,7 @@ const E09: IEventCard = eventCard({
     effect: {}, id: EventCardID.E09
 })
 const E10: IEventCard = eventCard({
-    era: IEra.TWO,
+    era: IEra.THREE,
     name: "Dismantling of HAYS CODE",
     effect: {}, id: EventCardID.E10
 })
