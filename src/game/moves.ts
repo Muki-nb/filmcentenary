@@ -632,17 +632,8 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S5208) {
                     let active = false;
 
-                    let era;
-                    let eff = getCardEffect(arg.hand);
-                    if(eff.hasOwnProperty("play")){
-                        eff = eff.play;
-                        if(eff.e === "era"){
-                            for(era = 0; era < 3; era++){
-                                if(eff.a[era].e !== 'none') break;
-                            }
-                            if(era === getCardById(arg.hand).era) active = true;
-                        }
-                    }
+                    let card = getCardById(arg.hand);
+                    if(card.region !== Region.NONE && card.era != G.regions[card.region].era && card.type === CardType.F) active = true;
                     if(arg.hand === BasicCardID.B04) active = true;
 
                     if(active){
@@ -663,17 +654,8 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S5208) {
                     let active = false;
 
-                    let era;
-                    let eff = getCardEffect(arg.hand);
-                    if(eff.hasOwnProperty("play")){
-                        eff = eff.play;
-                        if(eff.e === "era"){
-                            for(era = 0; era < 3; era++){
-                                if(eff.a[era].e !== 'none') break;
-                            }
-                            if(era === getCardById(arg.hand).era) active = true;
-                        }
-                    }
+                    let card = getCardById(arg.hand);
+                    if(card.region !== Region.NONE && card.era != G.regions[card.region].era && card.type === CardType.F) active = true;
                     if(arg.hand === BasicCardID.B04) active = true;
 
                     if(active){
@@ -719,18 +701,9 @@ export const chooseHand: LongFormMove = {
                 //黑浪潮
                 if (pub.school === SchoolCardID.S5208) {
                     let active = false;
-
-                    let era;
-                    let eff = getCardEffect(arg.hand);
-                    if(eff.hasOwnProperty("play")){
-                        eff = eff.play;
-                        if(eff.e === "era"){
-                            for(era = 0; era < 3; era++){
-                                if(eff.a[era].e !== 'none') break;
-                            }
-                            if(era === getCardById(arg.hand).era) active = true;
-                        }
-                    }
+                    
+                    let card = getCardById(arg.hand);
+                    if(card.region !== Region.NONE && card.era != G.regions[card.region].era && card.type === CardType.F) active = true;
                     if(arg.hand === BasicCardID.B04) active = true;
 
                     if(active){
@@ -764,17 +737,8 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S5208) {
                     let active = false;
 
-                    let era;
-                    let eff = getCardEffect(arg.hand);
-                    if(eff.hasOwnProperty("play")){
-                        eff = eff.play;
-                        if(eff.e === "era"){
-                            for(era = 0; era < 3; era++){
-                                if(eff.a[era].e !== 'none') break;
-                            }
-                            if(era === getCardById(arg.hand).era) active = true;
-                        }
-                    }
+                    let card = getCardById(arg.hand);
+                    if(card.region !== Region.NONE && card.era != G.regions[card.region].era && card.type === CardType.F) active = true;
                     if(arg.hand === BasicCardID.B04) active = true;
 
                     if(active){
@@ -1728,17 +1692,8 @@ export const breakthrough: LongFormMove = {
         if (pub.school === SchoolCardID.S5208) {
             let active = false;
 
-            let era;
-            let eff = getCardEffect(arg.card);
-            if(eff.hasOwnProperty("play")){
-                eff = eff.play;
-                if(eff.e === "era"){
-                    for(era = 0; era < 3; era++){
-                        if(eff.a[era].e !== 'none') break;
-                    }
-                    if(era === getCardById(arg.card).era) active = true;
-                }
-            }
+            let card = getCardById(arg.card);
+            if(card.region !== Region.NONE && card.era != G.regions[card.region].era && card.type === CardType.F) active = true;
             if(arg.card === BasicCardID.B04) active = true;
 
             if(active){
