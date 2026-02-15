@@ -1626,7 +1626,7 @@ export const playCard: LongFormMove = {
             if(playCard.category === CardCategory.BASIC){
                 if(pub.vp > 0){
                     loseVp(G, ctx, arg.playerID, 1);
-                    pub.deposit += 1;
+                    addRes(G, ctx, arg.playerID, 1);
                 }
             }
         }

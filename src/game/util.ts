@@ -1202,7 +1202,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
             G.e.stack.push({
                 e: "pay", a: {
                     cost: {e: "vp", a: 1},
-                    eff: {e: "deposit", a: 1}
+                    eff: {e: "res", a: 1}
                 }
             });
         }
