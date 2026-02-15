@@ -529,6 +529,11 @@ export enum SchoolCardID {
     'S5204' = 'S5204',
     'S5205' = 'S5205',
 
+    'S5206' = 'S5206',
+    'S5207' = 'S5207',
+    'S5208' = 'S5208',
+    'S5209' = 'S5209',
+
     //起名扩
     'S6001' = 'S6001',
     'S6002' = 'S6002',
@@ -2421,6 +2426,54 @@ const NoneBasicCards = {
         industry: 1,
         aesthetics: 1,
     }),
+    // 明星制
+    "S5206": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Star System",
+        cardId: SchoolCardID.S5206,
+        cost: cost(5, 3, 4),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    // 室内剧电影
+    "S5207": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Interior Drama Film",
+        cardId: SchoolCardID.S5207,
+        cost: cost(10, 2, 2),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    // 黑浪潮
+    "S5208": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Black Wave",
+        cardId: SchoolCardID.S5208,
+        cost: cost(5, 2, 6),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    // 武侠电影
+    "S5209": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Wuxia Film",
+        cardId: SchoolCardID.S5209,
+        cost: cost(8, 3, 2),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
 
     // QM Extension
     "S6001": schoolCard({
@@ -3092,6 +3145,7 @@ export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INor
             'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008',
             'S5001', 'S5002', 'S5003', 'S5004',
             'S5201', 'S5202', 'S5203', 'S5204', 'S5205',
+            'S5206', 'S5207', 'S5208', 'S5209',
             'S6001', 'S6002', 'S6003', 'S6004'
         ].includes(c[1].cardId))
     )

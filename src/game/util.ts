@@ -678,6 +678,21 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 pub.deposit = 0;
                 pub.action++;
             }
+            // 黑浪潮
+            if(pub.school === SchoolCardID.S5208){
+                if(G.regions[Region.EE].era === IEra.ONE){
+                    // @ts-ignore
+                    pub.shares[Region.EE] += G.regions[Region.EE].share;
+                    // @ts-ignore
+                    G.regions[Region.EE].share = 0;
+                }
+                if(G.regions[Region.EE].era === IEra.TWO){
+                    if(G.regions[Region.EE].share > 0){
+                        pub.shares[Region.EE] += 1;
+                        G.regions[Region.EE].share -= 1;
+                    }
+                }
+            }
             switch (pub.school) {
                 case SchoolCardID.S4001:
                 case SchoolCardID.S4002:
@@ -692,6 +707,16 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 case SchoolCardID.S5002:
                 case SchoolCardID.S5003:
                 case SchoolCardID.S5004:
+
+                case SchoolCardID.S5201:
+                case SchoolCardID.S5202:
+                case SchoolCardID.S5203:
+                case SchoolCardID.S5204:
+                case SchoolCardID.S5205:
+                case SchoolCardID.S5206:
+                case SchoolCardID.S5207:
+                case SchoolCardID.S5208:
+                case SchoolCardID.S5209:
 
                 case SchoolCardID.S6001:
                 case SchoolCardID.S6002:
@@ -1170,6 +1195,18 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         })
         log.push(`|after|${JSON.stringify(G.e.stack)}`);
     }
+    // 明星制
+    if (pub.school === SchoolCardID.S5206) {
+        if(c.category === CardCategory.BASIC){
+            log.push(`|starSystem`);
+            G.e.stack.push({
+                e: "pay", a: {
+                    cost: {e: "vp", a: 1},
+                    eff: {e: "deposit", a: 1}
+                }
+            });
+        }
+    }
     if (c.cardId === FilmCardID.F1108) {
         const curDep = pub.deposit;
         if (curDep >= 1) {
@@ -1393,6 +1430,21 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
         case "era":
+            // 武侠电影
+            if(pub.school === SchoolCardID.S5209 && pub.action == 1){
+                let era;
+                for(era = 0; era < 3; era++){
+                    if(eff.a[era].e !== 'none') break;
+                }
+                log.push(`|era|${era}`);
+                subEffect = {...eff.a[era]}
+                if (eff.hasOwnProperty("target")) {
+                    subEffect.target = eff.target
+                }
+                G.e.stack.push(subEffect);
+                log.push(`|era|${JSON.stringify(G.e.stack)}`);
+                break;
+            }
             subEffect = getEraEffectByRegion(G, ctx, eff, region);
             G.e.stack.push(subEffect);
             log.push(`|era|${JSON.stringify(G.e.stack)}`);
@@ -2218,6 +2270,10 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S5203:
         case SchoolCardID.S5204:
         case SchoolCardID.S5205:
+        case SchoolCardID.S5206:
+        case SchoolCardID.S5207:
+        case SchoolCardID.S5208:
+        case SchoolCardID.S5209:
             r = G.regions[Region.EXTENSION2];
             break;
         default:
@@ -2494,6 +2550,32 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             }else{
                 resRequired = 1000;
             }
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5206:
+            if(G.regions[Region.NA].era === IEra.ONE) resRequired = 1000;
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5207:
+            if(G.regions[Region.WE].era === IEra.ONE) resRequired = 1000;
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5208:
+            if(G.regions[Region.EE].era === IEra.ONE &&
+               G.regions[Region.WE].era === IEra.ONE &&
+               G.regions[Region.NA].era === IEra.ONE) resRequired = 1000;
+            if (pub.bought_extension) {
+                resRequired = 1000;
+            }
+            break;
+        case SchoolCardID.S5209:
+            if(G.regions[Region.ASIA].era === IEra.ONE) resRequired = 1000;
             if (pub.bought_extension) {
                 resRequired = 1000;
             }
@@ -3453,6 +3535,13 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     if (pub.school === SchoolCardID.S6001) {
         G.e.stack.push({e: "industryOrAestheticsLevelDown", a: 1, target: p})
     }
+    // 室内剧电影
+    if (pub.school === SchoolCardID.S5207) {
+        if(pub.playedCardInTurn.length >= pub.industry){
+            pub.deposit++;
+            addVp(G, ctx, p, 1);
+        }
+    }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
     pub.playedCardInTurn = [];
     pub.revealedHand = [];
@@ -3606,6 +3695,22 @@ export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
     log.push(`|prev|${pub.vp}`);
     pub.vp += vp;
     log.push(`|after|${pub.vp}`);
+    //明星制
+    if(pub.school === SchoolCardID.S5206 && _ctx.currentPlayer === p){
+        let cnt = 0;
+        for(let otherP in G.pub){
+            if(otherP !== p){
+                let otherPub = G.pub[parseInt(otherP)];
+                if(pub.vp - vp < otherPub.vp && pub.vp > otherPub.vp){
+                    cnt++;
+                }
+            }
+        }
+        while(cnt > 0){
+            drawCardForPlayer(G, _ctx, p);
+            cnt--;
+        }
+    }
     let count = 0;
     if (pub.vp >= 40 && !pub.vpAward.v60) {
         log.push(`|v40`);

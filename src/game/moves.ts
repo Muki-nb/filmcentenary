@@ -268,6 +268,12 @@ export const setupGameMode: LongFormMove = {
             let aestheticCard = shuffle(ctx, aestheticCards)[0];
             cardsMukiEx2.push(industryCard);
             cardsMukiEx2.push(aestheticCard);
+
+            
+            let era2Cards = shuffle(ctx, [
+                SchoolCardID.S5206, SchoolCardID.S5207, SchoolCardID.S5208, SchoolCardID.S5209
+            ]).slice(0, 2);
+            cardsMukiEx2.push(...era2Cards);
         }
         if(cardsMukiEx2.length > 0){
             let schoolCardPopped = cardsMukiEx2.pop();
@@ -591,7 +597,20 @@ export const chooseHand: LongFormMove = {
                     let eff = {...cardEff.play};
                     if (eff.e !== "none") {
                         if (eff.e === "era") {
-                            eff = getEraEffectByRegion(G, ctx, eff, card.region);
+                            // 武侠电影
+                            if(pub.school === SchoolCardID.S5209 && pub.action == 1){
+                                let era;
+                                for(era = 0; era < 3; era++){
+                                    if(eff.a[era].e !== 'none') break;
+                                }
+                                log.push(`|era|${era}`);
+                                eff = {...eff.a[era]};
+                                if (eff.hasOwnProperty("target")) {
+                                    eff.target = eff.target
+                                }
+                            }else{
+                                eff = getEraEffectByRegion(G, ctx, eff, card.region);
+                            }
                         }
                         eff.target = arg.p;
                         G.e.stack.push(eff);
@@ -609,6 +628,28 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
+                //黑浪潮
+                if (pub.school === SchoolCardID.S5208) {
+                    let active = false;
+
+                    let era;
+                    let eff = getCardEffect(arg.hand);
+                    if(eff.hasOwnProperty("play")){
+                        eff = eff.play;
+                        if(eff.e === "era"){
+                            for(era = 0; era < 3; era++){
+                                if(eff.a[era].e !== 'none') break;
+                            }
+                            if(era === getCardById(arg.hand).era) active = true;
+                        }
+                    }
+                    if(arg.hand === BasicCardID.B04) active = true;
+
+                    if(active){
+                        doBuy(G, ctx, B05, p);
+                        drawCardForPlayer(G, ctx, p);
+                    }
+                }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
                 return;
             case "archiveToEEBuildingVP":
@@ -617,6 +658,28 @@ export const chooseHand: LongFormMove = {
                 //流派扩：波兰学派
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
+                }
+                //黑浪潮
+                if (pub.school === SchoolCardID.S5208) {
+                    let active = false;
+
+                    let era;
+                    let eff = getCardEffect(arg.hand);
+                    if(eff.hasOwnProperty("play")){
+                        eff = eff.play;
+                        if(eff.e === "era"){
+                            for(era = 0; era < 3; era++){
+                                if(eff.a[era].e !== 'none') break;
+                            }
+                            if(era === getCardById(arg.hand).era) active = true;
+                        }
+                    }
+                    if(arg.hand === BasicCardID.B04) active = true;
+
+                    if(active){
+                        doBuy(G, ctx, B05, p);
+                        drawCardForPlayer(G, ctx, p);
+                    }
                 }
                 if (buildingInRegion(G, ctx, Region.EE, p)) {
                     addVp(G, ctx, p, card.vp)
@@ -653,6 +716,28 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
+                //黑浪潮
+                if (pub.school === SchoolCardID.S5208) {
+                    let active = false;
+
+                    let era;
+                    let eff = getCardEffect(arg.hand);
+                    if(eff.hasOwnProperty("play")){
+                        eff = eff.play;
+                        if(eff.e === "era"){
+                            for(era = 0; era < 3; era++){
+                                if(eff.a[era].e !== 'none') break;
+                            }
+                            if(era === getCardById(arg.hand).era) active = true;
+                        }
+                    }
+                    if(arg.hand === BasicCardID.B04) active = true;
+
+                    if(active){
+                        doBuy(G, ctx, B05, p);
+                        drawCardForPlayer(G, ctx, p);
+                    }
+                }
                 const vpToAdd = getCardById(arg.hand).vp;
                 if (vpToAdd > 0) {
                     addVp(G, ctx, p, vpToAdd);
@@ -675,6 +760,29 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
                 }
+                //黑浪潮
+                if (pub.school === SchoolCardID.S5208) {
+                    let active = false;
+
+                    let era;
+                    let eff = getCardEffect(arg.hand);
+                    if(eff.hasOwnProperty("play")){
+                        eff = eff.play;
+                        if(eff.e === "era"){
+                            for(era = 0; era < 3; era++){
+                                if(eff.a[era].e !== 'none') break;
+                            }
+                            if(era === getCardById(arg.hand).era) active = true;
+                        }
+                    }
+                    if(arg.hand === BasicCardID.B04) active = true;
+
+                    if(active){
+                        doBuy(G, ctx, B05, p);
+                        drawCardForPlayer(G, ctx, p);
+                    }
+                }
+                
                 if (eff.a > 1) {
                     log.push(`|prev:${eff.a}`);
                     eff.a--;
@@ -1513,6 +1621,19 @@ export const playCard: LongFormMove = {
         let cardEff = getCardEffect(arg.card);
         if (cardEff.hasOwnProperty("play")) {
             const eff = {...cardEff.play};
+            
+            // 黑浪潮
+            if (pub.school === SchoolCardID.S5208 && arg.card === BasicCardID.B05) {
+                eff.a = [...eff.a,
+                    {e: "step", a:
+                        [
+                            {e: "deposit", a: 1},
+                            {e: "addVp", a: 2},
+                        ]
+                    }
+                ];
+            }
+
             if (eff.e !== "none") {
                 log.push(`|${JSON.stringify(eff)}`);
                 G.e.stack.splice(0, 0, eff);
@@ -1533,6 +1654,15 @@ export const playCard: LongFormMove = {
             if (G.pub[id_4001].school === SchoolCardID.S4001) {
                 if (G.pub[id_4001].vp - vp_4001 >= 3) {
                     G.pub[id_4001].resource += 1;
+                }
+            }
+        }
+        // 明星制
+        if(pub.school === SchoolCardID.S5206){
+            if(playCard.category === CardCategory.BASIC){
+                if(pub.vp > 0){
+                    loseVp(G, ctx, arg.playerID, 1);
+                    pub.deposit += 1;
                 }
             }
         }
@@ -1590,8 +1720,31 @@ export const breakthrough: LongFormMove = {
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);
         pub.archive.push(arg.card);
+        // 流派扩：波兰学派
         if (pub.school === SchoolCardID.S4004) {
             drawCardForPlayer(G, ctx, arg.playerID);
+        }
+        // 流派扩：黑浪潮
+        if (pub.school === SchoolCardID.S5208) {
+            let active = false;
+
+            let era;
+            let eff = getCardEffect(arg.card);
+            if(eff.hasOwnProperty("play")){
+                eff = eff.play;
+                if(eff.e === "era"){
+                    for(era = 0; era < 3; era++){
+                        if(eff.a[era].e !== 'none') break;
+                    }
+                    if(era === getCardById(arg.card).era) active = true;
+                }
+            }
+            if(arg.card === BasicCardID.B04) active = true;
+
+            if(active){
+                doBuy(G, ctx, B05, arg.playerID);
+                drawCardForPlayer(G, ctx, arg.playerID);
+            }
         }
         log.push(`|startBreakthrough`);
         logger.debug(`${G.matchID}|${log.join('')}`);

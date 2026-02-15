@@ -3151,6 +3151,60 @@ export const effects = {
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5205_effect"}},
     },
 
+    //Muki Extension 2 - era 2
+    "5206": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5206_effect"}},
+    },
+    "5207": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5207_effect"}},
+    },
+    "5208": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "5208_buy"}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5208_effect"}},
+    },
+    "5209": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5209_effect"}},
+    },
+
     //QM Extension Schools
     "6001": {
         "school": {

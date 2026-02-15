@@ -191,6 +191,11 @@ const cards = {
     '5204': 'Drama Film School',
     '5205': 'Chocolate School',
 
+    '5206': 'Star System',
+    '5207': 'Interior Drama Film',
+    '5208': 'Black Wave',
+    '5209': 'Martial Arts Film',
+
     '6001': 'New Drama',
     '6002': 'Czechoslovak Film',
     '6003': 'New Czechoslovak Film',
@@ -707,6 +712,11 @@ const en = {
             "影片牌：+1牌；\n" +
             "人物牌：根据人物牌的等级需求获得声望"
         ,
+        '5206_effect': "在你的回合中，每当你增加声望并超过其他公司后，+1牌。你打出或突破一张基础牌时，支付1声望，+1存款。",
+        '5207_effect': "每回合开始时，如果手牌数≤工业等级，+1行动力。每回合结束时，如果出牌区牌数≥工业等级，+1存款，+1声望。",
+        '5208_buy': "任意地区处于2时代时可以购买。如果东欧处于1/2时代，获得所有/1个东欧份额。",
+        '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典，+1牌。你的传世经典还可以选择③+1存款，+2声望。",
+        '5209_effect': "仅剩1点行动力时，参考影片的最早时代执行【出牌】效果。",
 
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",

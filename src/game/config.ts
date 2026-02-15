@@ -201,6 +201,13 @@ export const NormalTurn: TurnConfig = {
                     drawCardForPlayer(G, ctx, p);
                 }
             }
+            // 室内剧电影
+            if(pub.school === SchoolCardID.S5207) {
+                if(pub.handsize_startturn <= pub.industry) {
+                    log.push(`|handSizeLEIndustry|addAction`);
+                    pub.action++;
+                }
+            }
             if(pub.school === SchoolCardID.S6001) {
                 if (pub.industry < 10 && pub.aesthetics < 10) {
                     log.push(`|${JSON.stringify(G.e.choices)}|addChoice`);
