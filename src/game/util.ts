@@ -3701,7 +3701,7 @@ export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
         for(let otherP in G.pub){
             if(otherP !== p){
                 let otherPub = G.pub[parseInt(otherP)];
-                if(pub.vp - vp < otherPub.vp && pub.vp > otherPub.vp){
+                if(pub.vp - vp < otherPub.vp && pub.vp >= otherPub.vp){
                     cnt++;
                 }
             }
