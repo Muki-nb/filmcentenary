@@ -283,7 +283,12 @@ const setting = {
     allRandom: "完全随机",
     order: "行动顺序",
     changeSetting: "更改设置",
-    disableUndo: "禁止撤回"
+    disableUndo: "禁止撤回",
+
+    extensionMode: "流派扩模式",
+    extensionMode_none: "全部发放",
+    extensionMode_four: "每时代2个",
+    extensionMode_fixed: "随机取代原有卡牌(实验性选项，限Muki扩内容)",
 };
 const classicFilmAutoMoveMode = {
     MODE_NAME: "传世经典:",

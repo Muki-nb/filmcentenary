@@ -13,6 +13,7 @@ import {
     EventCardID,
     FilmCardID,
     GameMode,
+    ExtensionMode,
     GameTurnOrder,
     getCardById,
     IBasicCard,
@@ -92,6 +93,7 @@ export interface ISetupGameModeArgs {
     enableSchoolExtensionMuki: boolean,
     enableSchoolExtensionMuki2: boolean,
     enableSchoolExtensionQM: boolean,
+    extensionMode: ExtensionMode,
     disableUndo: boolean
 }
 
@@ -189,14 +191,14 @@ export const setupGameMode: LongFormMove = {
 			
             let schoolCardPopped = G.schoolExt.pop();
             if (schoolCardPopped === undefined) {
-                throw new Error(schoolCardPopped);
+                
             } else {
                 G.regions[Region.EXTENSION].legend.card = schoolCardPopped;
             }
             for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
                 schoolCardPopped = G.schoolExt.pop();
                 if (schoolCardPopped === undefined) {
-                    throw new Error(schoolCardPopped);
+                    break;
                 } else {
                     iCardSlot.card = schoolCardPopped;
                 }
@@ -292,10 +294,48 @@ export const setupGameMode: LongFormMove = {
             }
         }
 
+        if(args.extensionMode === ExtensionMode.NONE){
+            //as default, do nothing
+        }else if(args.extensionMode === ExtensionMode.FOUR){
+            //pick 4 school from all extensions, 2 for era2 and 2 for era3
+            let cards_era1 = [];
+            if(args.enableSchoolExtensionMuki) cards_era1.push(SchoolCardID.S5001, SchoolCardID.S5002, SchoolCardID.S5003, SchoolCardID.S5004);
+            let cards_era2 = [];
+            if(args.enableSchoolExtension) cards_era2.push(SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004);
+            if(args.enableSchoolExtensionMuki2) cards_era2.push(SchoolCardID.S5206, SchoolCardID.S5207, SchoolCardID.S5208, SchoolCardID.S5209);
+            if(args.enableSchoolExtensionQM) cards_era2.push(SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003, /*SchoolCardID.S6004*/);
+            let cards_era3 = [];
+            if(args.enableSchoolExtension) cards_era3.push(SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008);
+            if(args.enableSchoolExtensionMuki2) cards_era3.push(SchoolCardID.S5201, SchoolCardID.S5202, SchoolCardID.S5203, SchoolCardID.S5204, SchoolCardID.S5205);
+
+            let drawn_cards = [...shuffle(ctx, cards_era1).slice(0, 2), ...shuffle(ctx, cards_era2).slice(0, 2), ...shuffle(ctx, cards_era3).slice(0, 2)];
+            
+            G.regions[Region.EXTENSION].legend.card = null;
+            for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
+                iCardSlot.card = null;
+            }
+
+            let schoolCardPopped = drawn_cards.pop();
+            if (schoolCardPopped === undefined) {
+                //
+            } else {
+                G.regions[Region.EXTENSION].legend.card = schoolCardPopped;
+            }
+            for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
+                schoolCardPopped = drawn_cards.pop();
+                if (schoolCardPopped === undefined) {
+                    break;
+                } else {
+                    iCardSlot.card = schoolCardPopped;
+                }
+            }
+        }
+
         G.hasSchoolExtension = args.enableSchoolExtension;
         G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;
         G.hasSchoolExtensionMuki2 = args.enableSchoolExtensionMuki2;
         G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
+        G.extensionMode = args.extensionMode;
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -1565,6 +1605,7 @@ export const playCard: LongFormMove = {
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
         G.e.card = arg.card;
+        let autoActive = false;
         if (arg.card === BasicCardID.B05) {
             const privateInfo = G.player[parseInt(arg.playerID)];
             switch (privateInfo.classicFilmAutoMove) {
@@ -1572,18 +1613,20 @@ export const playCard: LongFormMove = {
                     aesAward(G, ctx, arg.playerID);
                     log.push(`|ClassicFilm|AutoAesthetics`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
+                    autoActive = true;
+                    break;
                 case ClassicFilmAutoMoveMode.DRAW_CARD:
                     drawCardForPlayer(G, ctx, arg.playerID);
                     log.push(`|ClassicFilm|AutoDraw`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
-                    return;
+                    autoActive = true;
+                    break;
                 default:
                     log.push(`|ClassicFilm|NO_AUTO_MOVE`);
             }
         }
         let cardEff = getCardEffect(arg.card);
-        if (cardEff.hasOwnProperty("play")) {
+        if (!autoActive && cardEff.hasOwnProperty("play")) {
             const eff = {...cardEff.play};
             
             // 黑浪潮
@@ -1613,6 +1656,8 @@ export const playCard: LongFormMove = {
             checkNextEffect(G, ctx);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
+
+
         //流派扩：法国印象派
         if (has_4001) {
             if (G.pub[id_4001].school === SchoolCardID.S4001) {

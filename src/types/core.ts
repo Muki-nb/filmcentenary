@@ -18,6 +18,12 @@ export enum GameTurnOrder {
     ALL_RANDOM = "ALL_RANDOM",
 }
 
+export enum ExtensionMode {
+    NONE = "NONE",
+    FOUR = "FOUR",
+    FIXED = "FIXED",
+}
+
 export enum ClassicFilmAutoMoveMode {
     NO_AUTO = "NO_AUTO",
     DRAW_CARD = "DRAW_CARD",

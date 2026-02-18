@@ -11,7 +11,7 @@ import {
     IShowCompetitionResultArgs,
     ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
-import {ClassicFilmAutoMoveMode, GameMode, GameTurnOrder, IBuyInfo, Region} from "../../types/core";
+import {ClassicFilmAutoMoveMode, GameMode, GameTurnOrder, ExtensionMode, IBuyInfo, Region} from "../../types/core";
 
 export interface LocaleClassicFilmAutoMoveMode {
     MODE_NAME: string,
@@ -45,7 +45,12 @@ export interface LocaleSettings {
     allRandom: string,
     order: string,
     changeSetting: string,
-    disableUndo: string
+    disableUndo: string,
+
+    extensionMode: string,
+    extensionMode_none: string,
+    extensionMode_four: string,
+    extensionMode_fixed: string,
 }
 
 export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
@@ -74,6 +79,17 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                     break;
                 case GameTurnOrder.FIXED:
                     t += setting.fixedFirst
+                    break;
+            }
+            switch (arg.extensionMode) {
+                case ExtensionMode.NONE:
+                    t += ", " + setting.extensionMode_none;
+                    break;
+                case ExtensionMode.FOUR:
+                    t += ", " + setting.extensionMode_four;
+                    break;
+                case ExtensionMode.FIXED:
+                    t += ", " + setting.extensionMode_fixed;
                     break;
             }
             if (arg.enableSchoolExtension){

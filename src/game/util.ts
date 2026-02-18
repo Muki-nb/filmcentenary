@@ -12,6 +12,7 @@ import {
     DEFAULT_COMPANY_SCALE,
     eventCardByEra,
     EventCardID,
+    ExtensionMode,
     FilmCardID,
     filmCardsByEra,
     GameMode,
@@ -1269,8 +1270,6 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     }
     log.push(`|checkNextEffect`);
     logger.debug(`${G.matchID}|${log.join('')}`);
-    // checkNextEffect(G, ctx);
-    playerEffExec(G, ctx, pid);
     //流派扩：玛萨拉突破
     if (pub.school === SchoolCardID.S4002 && c.industry === 0 && c.aesthetics === 0
         && !(c.cardId in ScoreCardID) && (c.cardId !== BasicCardID.B07) && !(c.cardId in PersonCardID)) {
@@ -1284,8 +1283,10 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         log.push(`|playerEffExec`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         // checkNextEffect(G, ctx);
-        playerEffExec(G, ctx, pid);
+        // playerEffExec(G, ctx, pid);
     }
+    // checkNextEffect(G, ctx);
+    playerEffExec(G, ctx, pid);
     // return;
 }
 
@@ -2263,7 +2264,8 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S6002:
         case SchoolCardID.S6003:
         case SchoolCardID.S6004:
-            r = G.regions[Region.EXTENSION1];
+            if(G.extensionMode === ExtensionMode.FOUR) r = G.regions[Region.EXTENSION];
+            else r = G.regions[Region.EXTENSION1];
             break;
         case SchoolCardID.S5201:
         case SchoolCardID.S5202:
@@ -2274,7 +2276,8 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S5207:
         case SchoolCardID.S5208:
         case SchoolCardID.S5209:
-            r = G.regions[Region.EXTENSION2];
+            if(G.extensionMode === ExtensionMode.FOUR) r = G.regions[Region.EXTENSION];
+            else r = G.regions[Region.EXTENSION2];
             break;
         default:
             break;
@@ -2291,31 +2294,15 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
             return null;
         }
     } else {
-        if(r == G.regions[Region.EXTENSION]){
-            for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
+        if(r == G.regions[Region.EXTENSION] || r == G.regions[Region.EXTENSION1] || r == G.regions[Region.EXTENSION2]){
+            for (let slot of [r.legend, ...r.normal]) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {
                         return slot;
                     }
                 }
             }
-        } else if(r == G.regions[Region.EXTENSION1]){
-			for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
-                if (slot.card !== null) {
-                    if (slot.card === card.cardId) {
-                        return slot;
-                    }
-                }
-            }
-		} else if(r == G.regions[Region.EXTENSION2]){
-			for (let slot of [r.legend, r.normal[0], r.normal[1], r.normal[2]]) {
-                if (slot.card !== null) {
-                    if (slot.card === card.cardId) {
-                        return slot;
-                    }
-                }
-            }
-		} else {
+        } else {
             for (let slot of r.normal) {
                 if (slot.card !== null) {
                     if (slot.card === card.cardId) {

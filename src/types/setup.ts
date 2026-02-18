@@ -7,6 +7,7 @@ import {
     EventCardID,
     FilmCardID,
     GameMode,
+    ExtensionMode,
     IBuildingSlot,
     ICardSlot,
     IEra,
@@ -54,6 +55,7 @@ export interface IG {
     hasSchoolExtensionMuki: boolean,
     hasSchoolExtensionMuki2: boolean,
     hasSchoolExtensionQM: boolean,
+    extensionMode: ExtensionMode,
     randomOrder: boolean,
     regionScoreCompensateMarker: PlayerID,
     eventDeckLength: number,
@@ -282,6 +284,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         hasSchoolExtensionMuki: false,
         hasSchoolExtensionMuki2: false,
         hasSchoolExtensionQM: false,
+        extensionMode: ExtensionMode.NONE,
         randomOrder: false,
         regionScoreCompensateMarker: "0",
         eventDeckLength: 0,
@@ -456,7 +459,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                 buildings: [emptyBuildingSlot(Region.EXTENSION, false),
                     emptyBuildingSlot(Region.EXTENSION, false)],
                 legend: emptyNormalCardSlot(Region.EXTENSION),
-                normal: [emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION)],
+                normal: [emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION), emptyNormalCardSlot(Region.EXTENSION)],
                 share: 0,
             },
             [Region.EXTENSION1] : {
@@ -613,13 +616,15 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // // G.pub[3].school = "S5204";
     // if(ctx.numPlayers === 4){
     //     // @ts-ignore
-    //     G.pub[0].school = "S5206";
-    //     // @ts-ignore
-    //     G.pub[1].school = "S5207";
-    //     // @ts-ignore
-    //     G.pub[2].school = "S5208";
-    //     // @ts-ignore
-    //     G.pub[3].school = "S5209";
+    //     G.pub[0].school = "S4002"; // 玛萨拉
+    //     G.player[0].hand = [PersonCardID.P2202, PersonCardID.P2202, BasicCardID.B04, BasicCardID.B01]; //费里尼
+    //     G.pub[0].vp = 39;
+    //     // // @ts-ignore
+    //     // G.pub[1].school = "S5207";
+    //     // // @ts-ignore
+    //     // G.pub[2].school = "S5208";
+    //     // // @ts-ignore
+    //     // G.pub[3].school = "S5209";
     // }
     // G.player[firstMovePlayer].hand = [FilmCardID.F2407, FilmCardID.F3112, BasicCardID.B02, PersonCardID.P2103];
     // G.pub[firstMovePlayer].resource = 30;

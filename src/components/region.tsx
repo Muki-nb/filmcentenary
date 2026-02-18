@@ -8,7 +8,8 @@ import {
     IRegionInfo,
     Region,
     SimpleRuleNumPlayers,
-    ValidRegion
+    ValidRegion,
+    ExtensionMode
 } from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
@@ -321,13 +322,17 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves}:
 }
 
 const isRegionVisible = (G:IG, region:IRegionInfo) => {
+    if(ExtensionMode.FIXED === G.extensionMode) return false;
     if(region == G.regions[Region.EXTENSION]){
+        if(G.extensionMode === ExtensionMode.FOUR) return true;
         return G.hasSchoolExtension;
     }
     if(region == G.regions[Region.EXTENSION1]){
+        if(G.extensionMode === ExtensionMode.FOUR) return false;
         return G.hasSchoolExtensionMuki || G.hasSchoolExtensionQM;
     }
     if(region == G.regions[Region.EXTENSION2]){
+        if(G.extensionMode === ExtensionMode.FOUR) return false;
         return G.hasSchoolExtensionMuki2;
     }
     return true;

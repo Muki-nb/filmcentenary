@@ -5,7 +5,7 @@ import RadioGroup from '@material-ui/core/RadioGroup';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FormControl from '@material-ui/core/FormControl';
 import FormLabel from '@material-ui/core/FormLabel';
-import {GameMode, GameTurnOrder} from "../../types/core";
+import {ExtensionMode, GameMode, GameTurnOrder} from "../../types/core";
 import {Ctx} from "boardgame.io";
 import Grid from "@material-ui/core/Grid";
 
@@ -21,6 +21,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     useI18n(i18n);
     const [mode, setMode] = React.useState(GameMode.NORMAL);
     const [order, setOrder] = React.useState(GameTurnOrder.FIXED);
+    const [extensionMode, setExtensionMode] = React.useState(ExtensionMode.NONE);
     const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(false);
     const [enableSchoolExtensionMuki, setEnableSchoolExtensionMuki] = React.useState(false);
     const [enableSchoolExtensionMuki2, setEnableSchoolExtensionMuki2] = React.useState(false);
@@ -38,7 +39,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
-            disableUndo: disableUndo
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
         })
     };
 
@@ -51,7 +53,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
-            disableUndo: disableUndo
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
         })
     };
 
@@ -64,7 +67,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: checked,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
-            disableUndo: disableUndo
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
         })
     };
 
@@ -77,7 +81,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: checked,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
-            disableUndo: disableUndo
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
         })
     };
 
@@ -90,7 +95,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: checked,
-            disableUndo: disableUndo
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
         })
     };
 
@@ -103,7 +109,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
-            disableUndo: checked
+            disableUndo: checked,
+            extensionMode: extensionMode
         })
     };
 
@@ -118,9 +125,26 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
-            disableUndo: disableUndo
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
         })
     };
+
+    const handleExtensionModeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        // @ts-ignore
+        const newExtensionMode: ExtensionMode = event.target.value;
+        setExtensionMode(newExtensionMode);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
+            disableUndo: disableUndo,
+            extensionMode: newExtensionMode
+        })
+    }
 
     return (
         <Grid container>
@@ -171,6 +195,20 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     <FormControlLabel
                         disabled={ctx.numPlayers === 2}
                         value={GameTurnOrder.ALL_RANDOM} control={<Radio/>} label={i18n.setting.allRandom}/>
+                </RadioGroup>
+            </FormControl>
+            <FormControl component="fieldset">
+                <FormLabel component="legend">{i18n.setting.extensionMode}</FormLabel>
+                <RadioGroup row aria-label={i18n.setting.extensionMode} name="extension" value={extensionMode}
+                            onChange={handleExtensionModeChange}>
+                    <FormControlLabel
+                        value={ExtensionMode.NONE} control={<Radio/>} label={i18n.setting.extensionMode_none}/>
+                    <FormControlLabel
+                        disabled={ctx.numPlayers < 3}
+                        value={ExtensionMode.FOUR} control={<Radio/>} label={i18n.setting.extensionMode_four}/>
+                    <FormControlLabel
+                        disabled={true}
+                        value={ExtensionMode.FIXED} control={<Radio/>} label={i18n.setting.extensionMode_fixed}/>
                 </RadioGroup>
             </FormControl>
         </Grid>

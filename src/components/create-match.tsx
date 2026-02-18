@@ -208,17 +208,19 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
             </Grid>
         </Grid>
         <Grid item container xs={12} sm={8}>
-            <Typography variant={"h5"}>公告</Typography>
-            {UpdateHistory.map((update) => {
-                return <div key={update.date}>
-                    <Typography variant={"subtitle1"}>{update.date}</Typography>
-                    <ul>
-                        {update.info.map((info, idx) => <li key={idx}>
-                            <Typography>{info}</Typography>
-                        </li>)}
-                    </ul>
-                </div>
-            })}
+            <div style={{display: "block", width: "100%"}}>
+                <Typography variant={"h5"}>公告</Typography>
+                {UpdateHistory.map((update) => {
+                    return <div key={update.date}>
+                        <Typography component="div" display="block" variant={"subtitle1"}>{update.date}</Typography>
+                        <ul>
+                            {update.info.map((info, idx) => <li key={idx}>
+                                <Typography component="div" display="block">{info}</Typography>
+                            </li>)}
+                        </ul>
+                    </div>
+                })}
+            </div>
             <Button fullWidth color={"secondary"} onChange={refreshLobby}>{i18n.dialog.buyCard.refresh}</Button>
             <Table size="small" aria-label="Public match table">
                 <TableHead>

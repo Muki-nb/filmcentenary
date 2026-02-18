@@ -281,7 +281,12 @@ const setting: LocaleSettings = {
     allRandom: "Random Order",
     order: "Turn Order",
     changeSetting: "Change Game Setting",
-    disableUndo: "Disable Undo"
+    disableUndo: "Disable Undo",
+
+    extensionMode: "Extension Mode",
+    extensionMode_none: "normal Extension mode",
+    extensionMode_four: "4-Extension-school mode",
+    extensionMode_fixed: "fixed-Extension mode",
 };
 const argSetupGameMode = argSetupGameModeHOF(chose, setting);
 
