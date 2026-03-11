@@ -3120,7 +3120,7 @@ export const effects = {
             ],
         },
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e: "addVp", a: 5}, {e: "archive", a: 1}]},
+        archive: {e: "archive", a: 1},
         response: noResponse,
     },
     "6211": {
@@ -3283,7 +3283,7 @@ export const effects = {
         play: {
             e: "era", a: [
                 noEff,
-                {e: "step", a: [{e: "res", a: 2}, {e: "deposit", a: 1}, {e: ItrEffects.update, a: 1}]},
+                {e: "step", a: [{e: "res", a: 1}, {e: "deposit", a: 1}, {e: ItrEffects.update, a: 1}]},
                 {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
             ]
         },
@@ -3319,7 +3319,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "res", a: 3},
+                {e: "res", a: 2},
                 {e: "draw", a: 2},
                 {e: "discard", a: 2},
                 {e: "6312_effect"}
@@ -3420,7 +3420,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "deposit", a: 2},
+                {e: "deposit", a: 1},
                 {e: "aesAward", a: 2},
                 {
                     e: "choice", a: [
@@ -3447,7 +3447,7 @@ export const effects = {
             e: "step", a: [
                 {e: "deposit", a: 2},
                 {e: "vp", a: 2},
-                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: "loseVp", a: 2}] }},
+                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: "loseVpForLevelDiff"}] }},
                 {e: "studio", a: {e: "step", a: [{e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B05}, {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B05}] }},
             ]
         },

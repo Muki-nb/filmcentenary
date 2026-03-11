@@ -304,7 +304,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "loseVp":
             loseVp(G, ctx, p, eff.a);
             break;
-
+        case "loseVpForLevelDiff":
+            loseVp(G, ctx, p, Math.abs(pub.industry - pub.aesthetics));
+            break;
         case "loseShareNA":
             playerLoseShare(G, Region.NA, p, eff.a);
             break;

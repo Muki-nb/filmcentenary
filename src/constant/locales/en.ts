@@ -836,6 +836,7 @@ const en = {
             }
         }],
         loseVp: ["Lose {{a}} prestige", argValue],
+        loseVpForLevelDiff: "Lose prestige according to the difference between your industry level and aesthetics level",
         loseDeposit: ["Lose {{a}} deposit", argValue],
         beforeCompetition: "Before launching competition,",
         competitionStart: "On competition start,",

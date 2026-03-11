@@ -934,6 +934,7 @@ const zh_CN: Locale = {
             }
         }],
         loseVp: ["-{{a}}声望", argValue],
+        loseVpForLevelDiff: "按照等级差值失去声望",
         loseDeposit: ["-{{a}}存款", argValue],
         beforeCompetition: "争夺开始前，",
         competitionStart: "争夺开始时，",
