@@ -57,9 +57,11 @@ import {
     die,
     doAestheticsBreakthrough,
     doBuy,
+    doFillNewEraEventDeck,
     doIndustryBreakthrough,
     doReturnSlotCard,
     drawCardForPlayer,
+    drawForRegion,
     endTurnEffect,
     fillEmptySlots,
     fillEventCard,
@@ -93,6 +95,7 @@ export interface ISetupGameModeArgs {
     enableSchoolExtensionMuki: boolean,
     enableSchoolExtensionMuki2: boolean,
     enableSchoolExtensionQM: boolean,
+    enableExtensionChaosMedia: boolean,
     extensionMode: ExtensionMode,
     disableUndo: boolean
 }
@@ -335,7 +338,16 @@ export const setupGameMode: LongFormMove = {
         G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;
         G.hasSchoolExtensionMuki2 = args.enableSchoolExtensionMuki2;
         G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
+        G.hasExtensionChaosMedia = args.enableExtensionChaosMedia;
         G.extensionMode = args.extensionMode;
+
+        
+        if (ctx.numPlayers === 4) {
+            drawForRegion(G, ctx, Region.NA, IEra.ONE);
+            drawForRegion(G, ctx, Region.WE, IEra.ONE);
+            drawForRegion(G, ctx, Region.EE, IEra.ONE);
+        }
+
         logger.debug(`${G.matchID}|${log.join('')}`);
     }
 }
@@ -549,6 +561,13 @@ export const chooseTarget: LongFormMove = {
                 G.c.players = [arg.target];
                 G.e.stack.push(eff);
                 changePlayerStage(G, ctx, "chooseHand", arg.p);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
+            case "discardToAnyPlayer":
+                log.push(`|own|chooseDiscard`);
+                G.c.players = [arg.target];
+                G.e.stack.push(eff);
+                changePlayerStage(G, ctx, "chooseDiscard", arg.p);
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 return;
             default:
@@ -826,6 +845,62 @@ export const chooseHand: LongFormMove = {
     }
 }
 
+export interface IChooseDiscardArg {
+    p: PlayerID,
+    discard: CardID,
+    idx: number,
+}
+
+export const chooseDiscard: LongFormMove = {
+    undoable: (G) => G.previousMoveUndoable,
+    client: false,
+    move: (G: IG, ctx: Ctx, arg: IChooseDiscardArg) => {
+        if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
+        logger.info(`${G.matchID}|p${arg.p}.moves.chooseDiscard(${JSON.stringify(arg)})`);
+        const log = [`chooseDiscard|p${arg.p}|${arg.discard}|${arg.idx}`];
+        undoCheck(G, log);
+        let eff = G.e.stack.pop();
+        if (eff === undefined) {
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            throw Error("No effect cannot choose discard!")
+        }
+        log.push(`|${JSON.stringify(eff)}`);
+        let p = arg.p;
+        let pub = G.pub[parseInt(p)];
+        let target: CardID = arg.discard;
+        const discard = G.pub[parseInt(p)].discard;
+        const card: IBasicCard | INormalOrLegendCard = getCardById(target);
+        log.push(`|prev|discard|${JSON.stringify(discard)}`);
+
+        switch (eff.e) {
+            case "discardToAnyPlayer":
+                discard.splice(arg.idx, 1);
+                G.player[parseInt(G.c.players[0])].hand.push(arg.discard);
+                G.pub[parseInt(G.c.players[0])].allCards.push(arg.discard);
+                //流派扩：波兰学派
+                if (pub.school === SchoolCardID.S4004 && parseInt(G.c.players[0]) !== parseInt(p)) {
+                    drawCardForPlayer(G, ctx, p);
+                }
+                if (pub.school !== SchoolCardID.S4004 && G.pub[parseInt(G.c.players[0])].school === SchoolCardID.S4004 && arg.discard in BasicCardID) {
+                    addVp(G, ctx, G.c.players[0], 2);
+                }
+                if (eff.a > 1) {
+                    log.push(`|prev:${eff.a}`);
+                    eff.a--;
+                    log.push(`|remain:${eff.a}`);
+                    G.e.stack.push(eff);
+                }
+                break;
+            default:
+                throw new Error();
+        }
+        log.push(`|after|discard|${JSON.stringify(discard)}`);
+        log.push(`|checkNextEffect`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        checkNextEffect(G, ctx);
+    }
+}
+
 export interface IEffectChooseArg {
     effect: any,
     idx: number,
@@ -918,6 +993,14 @@ export const updateSlot: LongFormMove = {
         const updateResult = ctx.numPlayers > SimpleRuleNumPlayers ? fillEmptySlots(G) : fillTwoPlayerBoard(G);
         ctx.log?.setMetadata({updateResult})
         G.updateCardHistory.push(updateResult);
+
+        const newCinemaPlayer = schoolPlayer(G, ctx, SchoolCardID.S6342);
+        if (newCinemaPlayer !== null) {
+            drawCardForPlayer(G, ctx, newCinemaPlayer);
+            changePlayerStage(G, ctx, "comment", newCinemaPlayer);
+            return;
+        }
+
         checkNextEffect(G, ctx);
     },
     undoable: false

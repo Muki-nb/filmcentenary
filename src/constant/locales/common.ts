@@ -2,6 +2,7 @@ import {
     IChangePlayerSettingArgs,
     IChooseEventArg,
     IChooseHandArg,
+    IChooseDiscardArg,
     ICommentArg, ICompetitionCardArg,
     IPayAdditionalCostArgs,
     IPeekArgs,
@@ -40,6 +41,7 @@ export interface LocaleSettings {
     enableSchoolExtensionMuki: string,
     enableSchoolExtensionMuki2: string,
     enableSchoolExtensionQM: string,
+    enableExtensionChaosMedia: string,
     randomFirst: string,
     fixedFirst: string,
     allRandom: string,
@@ -108,6 +110,10 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                 t += ", "
                 t += setting.enableSchoolExtensionQM
             }
+            if (arg.enableExtensionChaosMedia){
+                t += ", "
+                t += setting.enableExtensionChaosMedia
+            }
             if (arg.disableUndo) {
                 t += ", "
                 t += setting.disableUndo
@@ -155,6 +161,7 @@ export const moveHOF = (
     argChangePlayerSetting: { args: (arg: IChangePlayerSettingArgs[]) => string },
     argChooseEvent: { args: (arg: IChooseEventArg[]) => string },
     argChooseHand: { args: (arg: IChooseHandArg[]) => string },
+    argChooseDiscard: { args: (arg: IChooseDiscardArg[]) => string },
     argChooseRegion: { args: (arg: IRegionChooseArg[]) => string },
     argChooseTarget: { args: (arg: ITargetChooseArgs[]) => string },
     argComment: { args: (arg: ICommentArg[]) => string },
@@ -178,6 +185,7 @@ export const moveHOF = (
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEvent: ["{{args}}", argChooseEvent],
         chooseHand: ["{{args}}", argChooseHand],
+        chooseDiscard: ["{{args}}", argChooseDiscard],
         chooseRegion: ["{{args}}", argChooseRegion],
         chooseTarget: ["{{args}}", argChooseTarget],
         peek: ["{{args}}", argPeek],

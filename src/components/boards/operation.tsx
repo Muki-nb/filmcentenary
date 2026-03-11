@@ -49,7 +49,8 @@ export interface IOPanelProps {
 export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, events, log}: IOPanelProps) => {
     const pub = G.pub[parseInt(playerID)];
     const iPrivateInfo = G.player[parseInt(playerID)];
-    const hand = iPrivateInfo.hand
+    const hand = iPrivateInfo.hand;
+    const discard = pub.discard;
     const stage = actualStage(G, ctx);
     const noStage = stage === Stage.NULL;
 
@@ -182,6 +183,28 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
             title={chooseHandTitle}
             toggleText={i18n.dialog.chooseHand.toggleText}
+            initial={true}/>
+
+    const chooseDiscard = (choice: string) => {
+        moves.chooseDiscard({
+            discard: discard[parseInt(choice)],
+            idx: parseInt(choice),
+            p: playerID,
+        })
+    }
+    const chooseDiscardTitle = hasCurEffect ? curEffName : i18n.dialog.chooseDiscard.title;
+    const chooseDiscardDialog =
+        <ChoiceDialog
+            callback={chooseDiscard}
+            choices={discard.map((card: CardID, idx: number) => ({
+                label: getCardName(card),
+                value: idx.toString(),
+                hidden: false,
+                disabled: false
+            }))} defaultChoice={"0"}
+            show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseDiscard"}
+            title={chooseDiscardTitle}
+            toggleText={i18n.dialog.chooseDiscard.toggleText}
             initial={true}/>
 
     const confirmRespond = (choice: string) => {
@@ -527,6 +550,7 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             {chooseEventDialog}
             {competitionCardDialog}
             {chooseHandDialog}
+            {chooseDiscardDialog}
             {confirmRespondDialog}
             {chooseEffectDialog}
             {deckDialog}

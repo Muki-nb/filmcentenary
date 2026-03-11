@@ -26,6 +26,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [enableSchoolExtensionMuki, setEnableSchoolExtensionMuki] = React.useState(false);
     const [enableSchoolExtensionMuki2, setEnableSchoolExtensionMuki2] = React.useState(false);
     const [enableSchoolExtensionQM, setEnableSchoolExtensionQM] = React.useState(false);
+    const [enableExtensionChaosMedia, setEnableExtensionChaosMedia] = React.useState(false);
     const [disableUndo,setDisableUndo] = React.useState(false);
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +40,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: disableUndo,
             extensionMode: extensionMode
         })
@@ -53,6 +55,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: disableUndo,
             extensionMode: extensionMode
         })
@@ -67,6 +70,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: checked,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: disableUndo,
             extensionMode: extensionMode
         })
@@ -81,6 +85,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: checked,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: disableUndo,
             extensionMode: extensionMode
         })
@@ -95,6 +100,22 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: checked,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
+            disableUndo: disableUndo,
+            extensionMode: extensionMode
+        })
+    };
+
+    const handleExtensionChaosMediaChange =  (event: React.ChangeEvent<{}>, checked: boolean) => {
+        setEnableExtensionChaosMedia(checked);
+        moves.setupGameMode({
+            mode: mode,
+            order: order,
+            enableSchoolExtension: enableSchoolExtension,
+            enableSchoolExtensionMuki: enableSchoolExtensionMuki,
+            enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
+            enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: checked,
             disableUndo: disableUndo,
             extensionMode: extensionMode
         })
@@ -109,6 +130,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: checked,
             extensionMode: extensionMode
         })
@@ -125,6 +147,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: disableUndo,
             extensionMode: extensionMode
         })
@@ -141,6 +164,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             enableSchoolExtensionMuki: enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2: enableSchoolExtensionMuki2,
             enableSchoolExtensionQM: enableSchoolExtensionQM,
+            enableExtensionChaosMedia: enableExtensionChaosMedia,
             disableUndo: disableUndo,
             extensionMode: newExtensionMode
         })
@@ -179,6 +203,11 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     onChange={handleSchoolExtensionQMChange}
                     disabled={ctx.numPlayers < 3}
                     control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionQM}/>
+                <FormControlLabel
+                    value={enableExtensionChaosMedia}
+                    onChange={handleExtensionChaosMediaChange}
+                    disabled={ctx.numPlayers < 3}
+                    control={<Checkbox/>} label={i18n.setting.enableExtensionChaosMedia}/>
                 <FormControlLabel
                     value={enableSchoolExtension}
                     onChange={handleDisableUndoChange}

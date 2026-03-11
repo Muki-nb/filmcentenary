@@ -3,6 +3,7 @@ import {IG, setup} from "./types/setup";
 import {
     breakthrough,
     buyCard, changePlayerSetting,
+    chooseDiscard,
     chooseEffect,
     chooseEvent,
     chooseHand,
@@ -113,6 +114,7 @@ export const FilmCentenaryGame: Game<IG> = {
         moveBlocker: moveBlocker,
         chooseTarget: chooseTarget,
         chooseHand: chooseHand,
+        chooseDiscard: chooseDiscard,
         chooseEvent: chooseEvent,
         chooseEffect: chooseEffect,
         chooseRegion: chooseRegion,

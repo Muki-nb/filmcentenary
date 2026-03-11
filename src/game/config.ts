@@ -7,6 +7,7 @@ import {
     chooseEffect,
     chooseEvent,
     chooseHand,
+    chooseDiscard,
     chooseRegion,
     chooseTarget,
     comment,
@@ -23,6 +24,7 @@ import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
     addCompetitionPower,
+    addRes,
     addVp,
     aesAward,
     curPub,
@@ -64,6 +66,12 @@ export const confirmRespondStage: StageConfig = {
 export const chooseHandStage: StageConfig = {
     moves: {
         chooseHand: chooseHand,
+    }
+}
+
+export const chooseDiscardStage: StageConfig = {
+    moves: {
+        chooseDiscard: chooseDiscard,
     }
 }
 
@@ -208,6 +216,14 @@ export const NormalTurn: TurnConfig = {
                     pub.action++;
                 }
             }
+            // 奶油派
+            if(pub.school === SchoolCardID.S5205) {
+                for(let Gpub of G.pub) {
+                    if(Gpub.vpAward.v60) addVp(G, ctx, p, 1);
+                    if(Gpub.vpAward.v90) addRes(G, ctx, p, 1);
+                    if(Gpub.vpAward.v120) drawCardForPlayer(G, ctx, p);
+                }
+            }
             if(pub.school === SchoolCardID.S6001) {
                 if (pub.industry < 10 && pub.aesthetics < 10) {
                     log.push(`|${JSON.stringify(G.e.choices)}|addChoice`);
@@ -232,6 +248,13 @@ export const NormalTurn: TurnConfig = {
                     }
                 }
             }
+            if (pub.school === SchoolCardID.S6241) {
+                log.push(`|solitaryIsland|choosePeekType`);
+                G.e.choices.push({e: "peek", a: {count: 2, target: "hand", filter: {e: "industry", a: "all"}}});
+                G.e.choices.push({e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}});
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                changePlayerStage(G, ctx, "chooseEffect", p);
+            }
         } else {
             log.push(`|playerConceded|endTurn`);
             ctx?.events?.endTurn?.();
@@ -245,6 +268,7 @@ export const NormalTurn: TurnConfig = {
         chooseEffect: chooseEffectStage,
         chooseEvent: chooseEventStage,
         chooseHand: chooseHandStage,
+        chooseDiscard: chooseDiscardStage,
         chooseRegion: chooseRegionStage,
         chooseTarget: chooseTargetStage,
         comment: commentStage,
@@ -268,6 +292,7 @@ export const NormalPhase: PhaseConfig = {
         breakthrough: breakthrough,
         chooseTarget: chooseTarget,
         chooseHand: chooseHand,
+        chooseDiscard: chooseDiscard,
         chooseEvent: chooseEvent,
         chooseEffect: chooseEffect,
         chooseRegion: chooseRegion,

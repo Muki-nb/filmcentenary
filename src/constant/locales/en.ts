@@ -8,6 +8,8 @@ import {
     ValidRegion,
 } from "../../types/core";
 import {
+    chooseDiscard,
+    IChooseDiscardArg,
     IChooseEventArg, IChooseHandArg, ICommentArg,
     IPayAdditionalCostArgs,
     IPeekArgs,
@@ -15,6 +17,7 @@ import {
     IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
 import {argChangePlayerSettingHOF, argChooseRegionHOF, argSetupGameModeHOF, LocaleSettings, moveHOF} from "./common";
+import buyCard from "../../components/buy-card";
 
 const chose = " chose "
 const cards = {
@@ -200,6 +203,30 @@ const cards = {
     '6002': 'Czechoslovak Film',
     '6003': 'New Czechoslovak Film',
 	'6004': 'Auteur film',
+
+    '6111': 'The Birth of a Nation',
+    '6121': "Baby's Lunch",
+    '6131': "The Cameraman's Revenge",
+    '6211': 'Stanley Donen',
+    '6212': 'Touch of Evil',
+    '6221': 'Jean Vigo',
+    '6222': 'Zero for Conduct',
+    '6231': 'Andrzej Wajda',
+    '6232': 'Knife in the Water',
+    '6241': 'Solitary Island',
+    '6242': 'Floating Weeds',
+    '6311': 'Stanley Kubrick',
+    '6312': 'Alien',
+    '6313': 'Jurassic Park',
+    '6321': 'Jean-Pierre Melville',
+    '6322': 'The Living Daylights',
+    '6323': 'Wings of Desire',
+    '6331': 'Emir Kusturica',
+    '6332': 'Love',
+    '6333': 'Ashes and Diamonds',
+    '6341': 'Hou Hsiao-hsien',
+    '6342': 'New Cinema',
+    '6343': 'Yellow Earth',
 };
 const region = {
     [Region.NA] : "North America",
@@ -276,6 +303,7 @@ const setting: LocaleSettings = {
     enableSchoolExtensionMuki: "Enable Muki school extension",
     enableSchoolExtensionMuki2: "Enable Muki school extension 2",
     enableSchoolExtensionQM: "Enable QM school extension",
+    enableExtensionChaosMedia: "Enable Chaos Media extension",
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
@@ -462,6 +490,15 @@ const argChooseHand = {
         return t
     }
 }
+const argChooseDiscard = {
+    args: (arg: IChooseDiscardArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += bracketCardName(a.discard)
+        return t
+    }
+}
+
 const argCompetitionCard = {
     args: (): string => {
         return " played a card for competition"
@@ -529,6 +566,7 @@ const movesI18n = moveHOF(
     argChangePlayerSetting,
     argChooseEvent,
     argChooseHand,
+    argChooseDiscard,
     argChooseRegion,
     argChooseTarget,
     argComment,
@@ -665,6 +703,7 @@ const en = {
         everyPlayer: "Every company",
         onYourComment: "After you perform a comment,",
         onAnyOneComment: "After any one perform a comment,",
+        onAnyOneUpdate: "After any one update a slot,",
         onAnyInTurnAesAward: "In your turn, after every aesthetics level award",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
         discardInSettle: "When you comment or update,",
@@ -723,10 +762,14 @@ const en = {
         '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典，+1牌。你的传世经典还可以选择③+1存款，+2声望。",
         '5209_effect': "仅剩1点行动力时，参考影片的最早时代执行【出牌】效果。",
 
+        '6311_effect': "在本回合中，你工业奖励后，+1竞争力",
+        '6312_effect': "在本回合中，你工业奖励后，+1牌",
+
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute a free breakthrough action", argValue],
         handToAnyPlayer: ["Give one card in hand to other companies", argValue],
+        discardToAnyPlayer: ["Give one card from your discard pile to any company", argValue],
         buyNoneEEFilm: "When buy film card in east europe, 1CP 1VP。",
         extraVp: ["Pay extra {{a}} prestige", argValue],
         inventionEraBreakthroughPrevent: "Cannot breakthrough if it is invention era",
@@ -865,6 +908,7 @@ const en = {
         buy: ["Buy 【{{a}}】 for free", argCardName],
         competitionLoserBuy: ["The loser buy [{{a}} ]", argCardName],
         buyCardToHand: ["Buy 【{{a}}】 for free, and add to hand.", argCardName],
+        buyCardToDeckTop: ["Buy 【{{a}}】 for free, and put it on top of deck.", argCardName],
         industryLevelUp: ["Upgrade industry level {{a}}", argTimes],
         industryLevelDown: ["Downgrade industry level {{a}}", argTimes],
         industryLevelUpCost: ["Upgrade industry level {{a}} with possible extra cost", argTimes],
@@ -919,6 +963,10 @@ const en = {
         chooseHand: {
             title: "Please choose one card as target of the current effect",
             toggleText: "Choose card for effect",
+        },
+        chooseDiscard: {
+            title: "Please choose one card from your discard pile as target of the current effect",
+            toggleText: "Choose card from discard",
         },
         competitionCard: {
             title: "Please choose one card from hand for competition",

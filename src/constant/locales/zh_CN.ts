@@ -7,6 +7,7 @@ import {
     Region, SimpleEffectNames, ValidRegion, NoExecutorEffectNames, CardID
 } from "../../types/core";
 import {
+    IChooseDiscardArg,
     IChooseEventArg,
     IChooseHandArg,
     ICommentArg,
@@ -213,7 +214,7 @@ const cards = {
     '5202': '通心粉西部电影',
     '5203': '巨片',
     '5204': '剧影派',
-    '5205': '巧克力学派',
+    '5205': '奶油派',
 
     '5206': '明星制',
     '5207': '室内剧电影',
@@ -224,6 +225,30 @@ const cards = {
 	'6002': '思想电影',
 	'6003': '新思想电影',
 	'6004': '作者电影',
+
+    '6111': '一个国家的诞生',
+    '6121': '婴儿的午餐',
+    '6131': '摄影师的复仇',
+    '6211': '斯坦利·多南',
+    '6212': '历劫佳人',
+    '6221': '让·维果',
+    '6222': '操行零分',
+    '6231': '安杰伊·瓦依达',
+    '6232': '水中刀',
+    '6241': '“孤岛”沦陷区',
+    '6242': '浮草',
+    '6311': '斯坦利·库布里克',
+    '6312': '异形',
+    '6313': '侏罗纪公园',
+    '6321': '让-皮埃尔·梅尔维尔',
+    '6322': '007：黎明生机',
+    '6323': '柏林苍穹下',
+    '6331': '埃米尔·库斯图里卡',
+    '6332': '爱',
+    '6333': '灰烬与钻石',
+    '6341': '侯孝贤',
+    '6342': '新电影',
+    '6343': '黄土地',
 };
 const eventName = {
     'E01': '每个公司选择一项：①+1工业等级；②+1美学等级',
@@ -277,6 +302,7 @@ const setting = {
     enableSchoolExtensionMuki: "启用Muki流派扩 - Ⅰ时代流派",
     enableSchoolExtensionQM: "启用起名流派扩 - Ⅱ时代流派",
     enableSchoolExtensionMuki2: "启用Muki流派扩2 - Ⅱ & Ⅲ时代流派",
+    enableExtensionChaosMedia: "启用乱世光影扩（测试中）by Muki",
 
     randomFirst: "随机首位",
     fixedFirst: "固定首位",
@@ -506,6 +532,14 @@ const argChooseHand = {
         return t
     }
 }
+const argChooseDiscard = {
+    args: (arg: IChooseDiscardArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += bracketCardName(a.discard)
+        return t
+    }
+}
 const argPayAdditionalCost = {
     args: (arg: IPayAdditionalCostArgs[]) => {
         let t = "用"
@@ -559,6 +593,7 @@ const movesI18n = moveHOF(
     argChangePlayerSetting,
     argChooseEvent,
     argChooseHand,
+    argChooseDiscard,
     argChooseRegion,
     argChooseTarget,
     argComment,
@@ -706,6 +741,7 @@ const zh_CN: Locale = {
         doNotLoseVpAfterCompetition: "被争夺后，不会失去声望",
         discardInSettle: "你【评论】或【更新】之后，",
         onAnyOneComment: "任何公司【评论】后，",
+        onAnyOneUpdate: "任何公司【更新】后，",
         onAnyInTurnAesAward: "在你的行动阶段内：当你执行1次美学奖励时，立即",
         industryToVp: "按照你的工业等级获得声望",
         aestheticsToVp: "按照你的美学等级获得声望",
@@ -748,14 +784,15 @@ const zh_CN: Locale = {
 
         '5201_effect': "购买影片时，忽略较低的等级需求（之一）",
         '5202_effect': "你+1牌后，+1声望。被争夺后，不会失去声望",
-        '5203_effect': "购买影片时，多获得一个份额",
-        '5204_effect': "你+1牌前，如果牌库为空，+2资源，+4声望。被争夺后，不会失去声望",
-        '5205_effect': "如果【最后一轮】已被触发，购买对应牌获得对应奖励：\n" +
+        '5203_effect': "购买影片时，多获得一个份额，所在地区每有一个不是你的电影院/制片厂，+1资源/+2声望",
+        '5204_effect': "你+1牌前，如果牌库为空，+2资源，+1声望。每回合结束时，每有一个其他公司的弃牌堆没有普通或传奇牌，+1牌，+1声望",
+        /*'5205_effect': "如果【最后一轮】已被触发，购买对应牌获得对应奖励：\n" +
             "传奇牌：+1行动力；\n" +
             "普通牌：+4资源；\n" +
             "基础牌：+6声望；\n" +
             "影片牌：+1牌；\n" +
-            "人物牌：根据人物牌的等级需求获得声望",
+            "人物牌：根据人物牌的等级需求获得声望",*/
+        '5205_effect': "每回合开始时，每有一个公司已抵达过40/80/120声望，+1声望/+1资源/+1牌",
         
         '5206_effect': "在你的回合中，每当你增加声望并超过其他公司(从小于到大于等于)后，+1牌。你打出或突破一张基础牌后，支付1声望，+1资源",
         '5207_effect': "每回合开始时，如果手牌数≤工业等级，+1行动力。每回合结束时，如果出牌区牌数≥工业等级，+1存款，+1声望",
@@ -763,6 +800,9 @@ const zh_CN: Locale = {
         '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典，+1牌。你的传世经典还可以选择③+1存款，+2声望",
         '5209_effect': "仅剩1点行动力时，参考影片的最早时代执行【出牌】效果",
 
+        '6311_effect': "在本回合中，你工业奖励后，+1竞争力",
+        '6312_effect': "在本回合中，你工业奖励后，+1牌",
+        
 		Czechoslovakian_Film: "不能触发工业/美学等级为8的奖励效果。如果你的工业等级和美学等级差值小于等于2：每当你触发工业奖励或美学奖励，额外触发一次",
 		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励，并且所有人物牌对你的制片厂效果额外触发一次",
 		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为【指定所有本地区没有制片厂的公司（除你以外）。】",
@@ -770,6 +810,7 @@ const zh_CN: Locale = {
         none: "",
         breakthroughResDeduct: ["免费突破一次", argValue],
         handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
+        discardToAnyPlayer: ["把{{a}}张弃牌堆的牌交给任意公司", argValue],
         buyNoneEEFilm: "每当你购买东欧影片后，+1竞争力，+1声望",
         extraVp: ["额外支付{{a}}声望", argValue],
         inventionEraBreakthroughPrevent: "1时代不能突破",
@@ -836,15 +877,21 @@ const zh_CN: Locale = {
                         case SimpleEffectNames.addVp:
                             return `，然后+${e.a}声望`;
                         case ItrEffects.anyRegionShareCentral:
-                            return "，然后额外从中央牌列获得1个任意地区的份额";
+                            return "，然后+1任意地区的份额";
                         case ItrEffects.comment:
                             return `，然后评论${e.a}次,`;
                         case ItrEffects.anyRegionShare:
-                            return "，然后额外获得一个" + region[e.r as Region] + "地区份额"
+                            return "，然后+1" + region[e.r as Region] + "地区份额"
                         case SimpleEffectNames.shareNA:
-                            return `，然后获得${e.a}个北美份额`
+                            return `，然后+${e.a}北美份额`
                         case SimpleEffectNames.addCompetitionPower:
                             return `，然后+${e.a}竞争力`;
+                        case "industryAward":
+                            return `，然后工业奖励${e.a}次`;
+                        case "breakthroughResDeduct":
+                            return `，然后免费突破一次`;
+                        case "deposit":
+                            return `，然后+${e.a}存款`;
                         case ItrEffects.step:
                             let onWin = "，然后";
                             let onWinEffs : string[] = [];
@@ -852,7 +899,7 @@ const zh_CN: Locale = {
                             e.a.forEach((subEff)=>{
                                 switch (subEff.e) {
                                     case SimpleEffectNames.shareNA:
-                                        onWinEffs.push(`获得${subEff.a}北美份额`);
+                                        onWinEffs.push(`+${subEff.a}北美份额`);
                                         break;
                                     case SimpleEffectNames.addCompetitionPower:
                                         onWinEffs.push(`+${subEff.a}竞争力`);
@@ -861,7 +908,7 @@ const zh_CN: Locale = {
                                         onWinEffs.push(`+${subEff.a}牌`);
                                         break;
                                     case ItrEffects.anyRegionShareCentral:
-                                        onWinEffs.push(`从中央牌列获得${subEff.a}个任意地区的份额`);
+                                        onWinEffs.push(`+${subEff.a}任意地区份额`);
                                         break;
                                     case SimpleEffectNames.deposit:
                                         onWinEffs.push(`+${subEff.a}存款`);
@@ -912,21 +959,21 @@ const zh_CN: Locale = {
         res: ["{{a}}资源", {a: (value: number = 1): string => value <= 0 ? value.toString() : "+" + value.toString()}],
         addRes: ["+{{a}}资源", argValue],
         deposit: ["{{a}}存款", {a: (value: number = 1): string => value <= 0 ? value.toString() : "+" + value.toString()}],
-        loseAnyRegionShare: ["归还{{a}}个任意地区的份额，并-1竞争力", argValue],
+        loseAnyRegionShare: ["-{{a}}任意地区的份额，并-1竞争力", argValue],
         shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
-        share: ["获得{{a}}个{{r}}地区的份额", argValue],
-        shareNA: ["获得{{a}}个北美地区的份额", argValue],
-        shareWE: ["获得{{a}}个西欧地区的份额", argValue],
-        shareEE: ["获得{{a}}个东欧地区的份额", argValue],
-        shareASIA: ["获得{{a}}个亚洲地区的份额", argValue],
-        loseShareNA: ["失去{{a}}个北美地区的份额", argValue],
-        loseShareWE: ["失去{{a}}个西欧地区的份额", argValue],
-        loseShareEE: ["失去{{a}}个东欧地区的份额", argValue],
-        loseShareASIA: ["失去{{a}}个亚洲地区的份额", argValue],
-        anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
-        anyRegionShareCompetition: ["从被争夺方获得{{a}}个任意地区的份额", argValue],
+        share: ["+{{a}}{{r}}地区的份额", argValue],
+        shareNA: ["+{{a}}北美份额", argValue],
+        shareWE: ["+{{a}}西欧份额", argValue],
+        shareEE: ["+{{a}}东欧份额", argValue],
+        shareASIA: ["+{{a}}亚洲份额", argValue],
+        loseShareNA: ["-{{a}}北美份额", argValue],
+        loseShareWE: ["-{{a}}西欧份额", argValue],
+        loseShareEE: ["-{{a}}东欧份额", argValue],
+        loseShareASIA: ["-{{a}}亚洲份额", argValue],
+        anyRegionShare: ["+{{a}}任意地区的份额", argValue],
+        anyRegionShareCompetition: ["从被争夺方获得{{a}}任意地区的份额", argValue],
         newHollyWoodEff: "每回合仅限一次,获得1个任意地区的份额",
-        anyRegionShareCentral: ["从中央牌列获得{{a}}个任意地区的份额", argValue],
+        anyRegionShareCentral: ["+{{a}}任意地区的份额", argValue],
         deductRes: ["少花费{{a}}资源", argValue],
         buyAesthetics: "购买有美学标志的影片时，",
         extraEffect: "【流派】",
@@ -956,9 +1003,10 @@ const zh_CN: Locale = {
         comment: ["评论{{a}}次", argValue],
         industryBreakthrough: ["工业突破{{a}}次", argValue],
         aestheticsBreakthrough: ["美学突破{{a}}次", argValue],
-        buy: ["免费购买【 {{a}} 】", argCardName],
-        competitionLoserBuy: ["被争夺方免费购买【 {{a}} 】", argCardName],
-        buyCardToHand: ["免费购买【{{a}}】并加入手牌", argCardName],
+        buy: ["免费购买《{{a}}》", argCardName],
+        competitionLoserBuy: ["被争夺方免费购买《{{a}}》", argCardName],
+        buyCardToHand: ["免费购买《{{a}}》并加入手牌", argCardName],
+        buyCardToDeckTop: ["免费购买《{{a}}》并置于牌堆顶", argCardName],
         industryLevelUp: ["+{{a}}工业等级", argValue],
         industryLevelDown: ["-{{a}}工业等级", argValue],
         industryLevelUpCost: ["+{{a}}工业等级（根据目标等级支付额外费用）", argValue],
@@ -993,6 +1041,10 @@ const zh_CN: Locale = {
         },
         chooseHand: {
             title: "请选择一张牌执行效果",
+            toggleText: "选择卡牌",
+        },
+        chooseDiscard: {
+            title: "请选择一张弃牌堆的牌执行效果",
             toggleText: "选择卡牌",
         },
         peek: {

@@ -1,4 +1,5 @@
 import {PlayerID} from "boardgame.io";
+import { IG } from "./setup";
 
 
 export enum Region {
@@ -195,6 +196,7 @@ export enum MoveNames {
     chooseEffect = "chooseEffect",
     chooseEvent = "chooseEvent",
     chooseHand = "chooseHand",
+    chooseDiscard = "chooseDiscard",
     chooseRegion = "chooseRegion",
     updateSlot = "updateSlot",
     payAdditionalCost = "payAdditionalCost",
@@ -242,6 +244,7 @@ export enum SimpleEffectNames {
     draw = "draw",
     buy = "buy",
     buyCardToHand = "buyCardToHand",
+    buyCardToDeckTop = "buyCardToDeckTop",
     aestheticsLevelUp = "aestheticsLevelUp",
     industryLevelUp = "industryLevelUp",
     industryAward = "industryAward",
@@ -545,6 +548,10 @@ export enum SchoolCardID {
     'S6002' = 'S6002',
     'S6003' = 'S6003',
     'S6004' = 'S6004',
+
+    //乱世光影扩
+    'S6241' = 'S6241',
+    'S6342' = 'S6342',
 }
 
 export enum PersonCardID {
@@ -572,6 +579,13 @@ export enum PersonCardID {
     'P3401' = 'P3401',
     'P3402' = 'P3402',
     'P3403' = 'P3403',
+    'P6211' = 'P6211',
+    'P6221' = 'P6221',
+    'P6231' = 'P6231',
+    'P6311' = 'P6311',
+    'P6321' = 'P6321',
+    'P6331' = 'P6331',
+    'P6341' = 'P6341',
 }
 
 export enum FilmCardID {
@@ -669,6 +683,20 @@ export enum FilmCardID {
     // 'F3412' = 'F3412',
     'F3413' = 'F3413',
     'F3414' = 'F3414',
+    'F6111' = 'F6111',
+    'F6121' = 'F6121',
+    'F6131' = 'F6131',
+    'F6212' = 'F6212',
+    'F6222' = 'F6222',
+    'F6232' = 'F6232',
+    'F6242' = 'F6242',
+    'F6312' = 'F6312',
+    'F6313' = 'F6313',
+    'F6322' = 'F6322',
+    'F6323' = 'F6323',
+    'F6332' = 'F6332',
+    'F6333' = 'F6333',
+    'F6343' = 'F6343',
 }
 
 export const AllClassicCards = {
@@ -2370,6 +2398,263 @@ const NoneBasicCards = {
         aesthetics: 0,
     }),
 
+    // Chaos Media Extension - era I films
+    "F6111": filmCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "The Birth of a Nation",
+        cardId: FilmCardID.F6111,
+        cost: cost(3, 2, 1),
+        vp: 3,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "F6121": filmCard({
+        era: IEra.ONE,
+        region: Region.WE,
+        name: "Baby's Lunch",
+        cardId: FilmCardID.F6121,
+        cost: cost(3, 0, 1),
+        vp: 2,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "F6131": filmCard({
+        era: IEra.ONE,
+        region: Region.EE,
+        name: "The Cameraman's Revenge",
+        cardId: FilmCardID.F6131,
+        cost: cost(0, 1, 3),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+
+    // Chaos Media Extension - era II cards
+    "P6211": personCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Stanley Donen",
+        cardId: PersonCardID.P6211,
+        cost: cost(8, 3, 3),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6212": filmCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Touch of Evil",
+        cardId: FilmCardID.F6212,
+        cost: cost(5, 4, 1),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "P6221": personCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Jean Vigo",
+        cardId: PersonCardID.P6221,
+        cost: cost(7, 0, 6),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6222": filmCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Zero for Conduct",
+        cardId: FilmCardID.F6222,
+        cost: cost(5, 0, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "P6231": personCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Andrzej Wajda",
+        cardId: PersonCardID.P6231,
+        cost: cost(9, 3, 3),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6232": filmCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Knife in the Water",
+        cardId: FilmCardID.F6232,
+        cost: cost(5, 3, 3),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S6241": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Solitary Island",
+        cardId: SchoolCardID.S6241,
+        cost: cost(7, 4, 4),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6242": filmCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Floating Weeds",
+        cardId: FilmCardID.F6242,
+        cost: cost(4, 2, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "P6311": personCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Stanley Kubrick",
+        cardId: PersonCardID.P6311,
+        cost: cost(10, 7, 5),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6312": filmCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Alien",
+        cardId: FilmCardID.F6312,
+        cost: cost(9, 7, 4),
+        vp: 10,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "F6313": filmCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Jurassic Park",
+        cardId: FilmCardID.F6313,
+        cost: cost(12, 9, 0),
+        vp: 12,
+        category: CardCategory.NORMAL,
+        industry: 2,
+        aesthetics: 0,
+    }),
+    "P6321": personCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Jean-Pierre Melville",
+        cardId: PersonCardID.P6321,
+        cost: cost(10, 6, 7),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6322": filmCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "The Living Daylights",
+        cardId: FilmCardID.F6322,
+        cost: cost(6, 8, 3),
+        vp: 11,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "F6323": filmCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Wings of Desire",
+        cardId: FilmCardID.F6323,
+        cost: cost(7, 0, 11),
+        vp: 14,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 2,
+    }),
+    "P6331": personCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Emir Kusturica",
+        cardId: PersonCardID.P6331,
+        cost: cost(10, 5, 9),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6332": filmCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Love",
+        cardId: FilmCardID.F6332,
+        cost: cost(7, 3, 8),
+        vp: 11,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 2,
+    }),
+    "F6333": filmCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Ashes and Diamonds",
+        cardId: FilmCardID.F6333,
+        cost: cost(9, 6, 6),
+        vp: 9,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "P6341": personCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "Hou Hsiao-hsien",
+        cardId: PersonCardID.P6341,
+        cost: cost(9, 3, 8),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S6342": schoolCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "New Cinema",
+        cardId: SchoolCardID.S6342,
+        cost: cost(8, 3, 7),
+        vp: 10,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 2,
+    }),
+    "F6343": filmCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "Yellow Earth",
+        cardId: FilmCardID.F6343,
+        cost: cost(6, 4, 7),
+        vp: 10,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+
     //Muki Extension part 2
 
     // 布拉格电影学院
@@ -2378,7 +2663,7 @@ const NoneBasicCards = {
         region: Region.EE,
         name: "Prague Film School",
         cardId: SchoolCardID.S5201,
-        cost: cost(10, 5, 5),
+        cost: cost(7, 6, 6),
         vp: 8,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -2402,7 +2687,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Epic film",
         cardId: SchoolCardID.S5203,
-        cost: cost(12, 10, 2),
+        cost: cost(9, 10, 2),
         vp: 13,
         category: CardCategory.NORMAL,
         industry: 2,
@@ -3144,16 +3429,57 @@ export function filmCardsByEra(e: IEra) {
     return res.map(c => c[1]);
 }
 
-export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
+export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
+    const extensionCardIds = [
+        'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', //流派扩
+        'S5001', 'S5002', 'S5003', 'S5004', //Muki扩
+        'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
+        'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
+        'S6001', 'S6002', 'S6003', 'S6004' //QM扩
+    ];
+    let filterCardIds : string[] = [];
+    if(G.extensionMode === ExtensionMode.FIXED){
+        /*
+            混合：
+            一：
+            电影实验派 / 电影眼睛派
+            布莱顿学派 / 瑞典学派
+            默剧 / 淘金记, 贪婪
+            二：
+            平行电影 / 黑泽明 / 雷伊
+            三：
+            巨片 / 纽约派
+
+        */
+        filterCardIds = [
+            'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', //流派扩
+            'S5001', 'S5002', 'S5003', 'S5004', //Muki扩
+            'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
+            'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
+            'S6001', 'S6002', 'S6003', 'S6004' //QM扩
+        ];
+    }else{
+        filterCardIds = extensionCardIds;
+    }
+
+    if(!G.hasExtensionChaosMedia){
+        const chaosMediaCardIds = [
+            'F6111', 'F6121', 'F6131',
+            'P6211', 'F6212', 
+            'P6221', 'F6222', 
+            'P6231', 'F6232', 
+            'S6241', 'F6242',
+            'P6311', 'F6312', 'F6313',
+            'P6321', 'F6322', 'F6323',
+            'P6331', 'F6332', 'F6333',
+            'P6341', 'S6342', 'F6343',
+        ];
+        filterCardIds = filterCardIds.concat(chaosMediaCardIds);
+    }
+
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(
-        c => !([
-            'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008',
-            'S5001', 'S5002', 'S5003', 'S5004',
-            'S5201', 'S5202', 'S5203', 'S5204', 'S5205',
-            'S5206', 'S5207', 'S5208', 'S5209',
-            'S6001', 'S6002', 'S6003', 'S6004'
-        ].includes(c[1].cardId))
+        c => !(filterCardIds.includes(c[1].cardId))
     )
     if (isLegend) {
         res = res.filter(c => c[1].category === CardCategory.LEGEND)
