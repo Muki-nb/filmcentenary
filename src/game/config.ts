@@ -250,8 +250,8 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S6241) {
                 log.push(`|solitaryIsland|choosePeekType`);
-                G.e.choices.push({e: "peek", a: {count: 2, target: "hand", filter: {e: "industry", a: "all"}}});
-                G.e.choices.push({e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}});
+                G.e.choices.push({e: "peek", a: {count: 3, target: "hand", filter: {e: "industry", a: "all"}}});
+                G.e.choices.push({e: "peek", a: {count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}}});
                 logger.debug(`${G.matchID}|${log.join('')}`);
                 changePlayerStage(G, ctx, "chooseEffect", p);
             }
