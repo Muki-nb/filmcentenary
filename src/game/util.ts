@@ -1424,8 +1424,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             return true;
         } else {
             if (pub.school === SchoolCardID.S4003) {
-                pub.deposit += 1;
-                addVp(G, ctx, p, 1);
+                for(let card of validCardsToDiscard) {
+                    pub.deposit += 1;
+                    addVp(G, ctx, p, 1);
+                }
+            }
+            if (pub.school === SchoolCardID.S6342) {
+                for(let card of validCardsToDiscard) {
+                    for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
+                    for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
+                }
             }
             log.push(`|prev|${JSON.stringify(playerObj.hand)}|${JSON.stringify(pub.discard)}`);
             playerObj.hand = playerObj.hand.filter((handElm) => validCardsToDiscard.indexOf(handElm) === -1);
@@ -4186,6 +4194,8 @@ export const doNotLoseVpAfterCompetitionSchool = (school: SchoolCardID): boolean
         case SchoolCardID.S3304:
             return true;
         case SchoolCardID.S5202:
+            return true;
+        case SchoolCardID.S6342:
             return true;
         default:
             return false;

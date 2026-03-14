@@ -611,6 +611,7 @@ export const chooseHand: LongFormMove = {
         }
         const hand = G.player[parseInt(p)].hand;
         const card: IBasicCard | INormalOrLegendCard = getCardById(target);
+
         log.push(`|prev|hand|${JSON.stringify(hand)}|discard|${JSON.stringify(pub.discard)}`);
 
         switch (eff.e) {
@@ -705,6 +706,7 @@ export const chooseHand: LongFormMove = {
             case "archiveToEEBuildingVP":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                
                 //流派扩：波兰学派
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
@@ -734,6 +736,7 @@ export const chooseHand: LongFormMove = {
                     log.push(`|handNotInAllCards`);
                 }
                 hand.splice(arg.idx, 1);
+                
                 G.player[parseInt(G.c.players[0])].hand.push(arg.hand);
                 G.pub[parseInt(G.c.players[0])].allCards.push(arg.hand);
                 //流派扩：波兰学派
@@ -753,6 +756,7 @@ export const chooseHand: LongFormMove = {
             case "refactor":
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                
                 //流派扩：波兰学派
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
@@ -788,6 +792,7 @@ export const chooseHand: LongFormMove = {
                 log.push(`|archive|prev|${JSON.stringify(pub.archive)}`);
                 hand.splice(arg.idx, 1);
                 pub.archive.push(arg.hand);
+                
                 //流派扩：波兰学派
                 if (pub.school === SchoolCardID.S4004) {
                     drawCardForPlayer(G, ctx, p);
@@ -823,6 +828,7 @@ export const chooseHand: LongFormMove = {
                 log.push(`|discard|prev|${JSON.stringify(pub.discard)}`);
                 hand.splice(arg.idx, 1);
                 pub.discard.push(arg.hand);
+                
                 log.push(`|after|${JSON.stringify(pub.discard)}`);
                 if (eff.a > 1) {
                     log.push(`|multipleDiscard|prev:${eff.a}`);
@@ -833,6 +839,10 @@ export const chooseHand: LongFormMove = {
                 if (pub.school === SchoolCardID.S4003) {
                     pub.deposit += 1;
                     addVp(G, ctx, p, 1);
+                }
+                if (pub.school === SchoolCardID.S6342) {
+                    for(let i = 0; i < getCardById(arg.hand).industry; i++) addRes(G, ctx, p, 1);
+                    for(let i = 0; i < getCardById(arg.hand).aesthetics; i++) addVp(G, ctx, p, 1);
                 }
                 break;
             default:
@@ -874,6 +884,12 @@ export const chooseDiscard: LongFormMove = {
 
         switch (eff.e) {
             case "discardToAnyPlayer":
+                const allCardsIndex = pub.allCards.indexOf(arg.discard);
+                if (allCardsIndex !== -1) {
+                    pub.allCards.splice(allCardsIndex, 1);
+                } else {
+                    log.push(`|discardNotInAllCards`);
+                }
                 discard.splice(arg.idx, 1);
                 G.player[parseInt(G.c.players[0])].hand.push(arg.discard);
                 G.pub[parseInt(G.c.players[0])].allCards.push(arg.discard);
@@ -1147,6 +1163,10 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        if (pub.school === SchoolCardID.S6342) {
+                            for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
+                            for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -1169,6 +1189,10 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        if (pub.school === SchoolCardID.S6342) {
+                            for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
+                            for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -1190,6 +1214,10 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        if (pub.school === SchoolCardID.S6342) {
+                            for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
+                            for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
+                        }
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -1208,9 +1236,9 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
-                        if (pub.school === SchoolCardID.S4003) {
-                            pub.deposit += 1;
-                            addVp(G, ctx, p, 1);
+                       if (pub.school === SchoolCardID.S6342) {
+                            for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
+                            for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                         }
                     }
                 })
@@ -1255,6 +1283,10 @@ export const peek: LongFormMove = {
                         if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
+                        }
+                        if (pub.school === SchoolCardID.S6342) {
+                            for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
+                            for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                         }
                         log.push(`|${JSON.stringify(pub.discard)}`);
                     })

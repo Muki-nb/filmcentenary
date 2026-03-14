@@ -743,8 +743,8 @@ const zh_CN: Locale = {
         onAnyOneComment: "任何公司【评论】后，",
         onAnyOneUpdate: "任何公司【更新】后，",
         onAnyInTurnAesAward: "在你的行动阶段内：当你执行1次美学奖励时，立即",
-        industryToVp: "按照你的工业等级获得声望",
-        aestheticsToVp: "按照你的美学等级获得声望",
+        industryToVp: "按照工业等级获得声望",
+        aestheticsToVp: "按照美学等级获得声望",
         threeCards: "你的每张基础额外获得1声望",
         northAmericaFilm: "你的每张北美卡牌额外获得2声望",
         asiaFilm: "你的每张亚洲卡牌额外获得2声望",
@@ -773,9 +773,9 @@ const zh_CN: Locale = {
         American_Independent_Film_turnstart: "你每有1个完成建造的建筑，-1牌。每当你-1牌后：+1存款，+1声望",
         Polish_School: "每当你将1张牌置入档案馆(包括突破)或其他玩家的手牌时:+1牌。每当你得到1张基础牌后:+2声望",
         Modernist_Film: "被争夺后：美学奖励1次。若你打出的1张牌有X个美学标志：    X=1:+1资源，+2声望  X=2:+1资源，+2声望，+1牌    X=3:+1资源，+4声望，+2牌",
-        Third_Cinema: "被争夺后：+1牌，争夺方-5声望。回合开始时，若你的美学等级高于你的工业等级：+1牌，+2存款",
-        kitchen_sink_turnstart: "你每有1张手牌就-1声望，每有一个手牌数比你多的公司，你就+1牌。回合结束时：你的出牌区每有1张牌，你就+1声望",
-        High_Concept_Film: "你打出的牌每有1个工业标志：+1资源，+1声望。争夺后：+1竞争力，+1牌",
+        Third_Cinema: "被争夺后：+1牌，争夺方-5声望。每回合开始时，若你的美学等级高于你的工业等级：+1牌，+2存款",
+        kitchen_sink_turnstart: "你每有1张手牌就-1声望，每有一个手牌数比你多的公司，你就+1牌。每回合结束时：你的出牌区每有1张牌，你就+1声望",
+        High_Concept_Film: "你打出的牌每有1个工业标志：+1资源，+1声望。你争夺后：+1竞争力，+1牌",
 
 		West_Film: "建造建筑时，额外获得对应地区的一个份额",
 		Brighton_School: "美学等级为2的美学奖励效果改为【+1资源】",
@@ -800,9 +800,11 @@ const zh_CN: Locale = {
         '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典，+1牌。你的传世经典还可以选择③+1存款，+2声望",
         '5209_effect': "仅剩1点行动力时，参考影片的最早时代执行【出牌】效果",
 
-        '6311_effect': "在本回合中，你工业奖励后，+1竞争力",
-        '6312_effect': "在本回合中，你工业奖励后，+1牌",
+        '6311_effect': "在本次行动阶段中，你工业奖励后，+1竞争力。",
+        '6312_effect': "在本次行动阶段中，你工业奖励后，+1牌。",
         
+        '6342_effect': "任意公司【更新】后，+1牌，评论1次。你每-1牌，牌上的每个工业标志，+1资源，牌上的每个美学标志，+1声望",
+
 		Czechoslovakian_Film: "不能触发工业/美学等级为8的奖励效果。如果你的工业等级和美学等级差值小于等于2：每当你触发工业奖励或美学奖励，额外触发一次",
 		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励，并且所有人物牌对你的制片厂效果额外触发一次",
 		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为【指定所有本地区没有制片厂的公司（除你以外）。】",
@@ -865,7 +867,7 @@ const zh_CN: Locale = {
                 if (e.e !== "none") {
                     switch (e.e) {
                         case SimpleEffectNames.industryToVp:
-                            return `，然后按照你的工业等级获得声望`;
+                            return `，然后按照工业等级获得声望`;
                         case SimpleEffectNames.draw:
                             return `，然后+${e.a}牌`;
                         case ItrEffects.peek:
@@ -879,7 +881,7 @@ const zh_CN: Locale = {
                         case ItrEffects.anyRegionShareCentral:
                             return "，然后+1任意地区的份额";
                         case ItrEffects.comment:
-                            return `，然后评论${e.a}次,`;
+                            return `，然后评论${e.a}次`;
                         case ItrEffects.anyRegionShare:
                             return "，然后+1" + region[e.r as Region] + "地区份额"
                         case SimpleEffectNames.shareNA:
@@ -934,15 +936,15 @@ const zh_CN: Locale = {
             }
         }],
         loseVp: ["-{{a}}声望", argValue],
-        loseVpForLevelDiff: "按照等级差值失去声望",
+        loseVpForLevelDiff: "按照其自身工业等级和美学等级的差值失去声望",
         loseDeposit: ["-{{a}}存款", argValue],
         beforeCompetition: "争夺开始前，",
         competitionStart: "争夺开始时，",
         competitionWon: "你发起争夺后，",
         competitionBonus: ["+{{a}}竞争力", argValue],
         archive: ["将{{a}}张手牌置入档案馆", argValue],
-        resFromIndustry: "按照你的工业等级获得资源",
-        resFromAesthetics: "按照你的美学等级获得资源",
+        resFromIndustry: "按照工业等级获得资源",
+        resFromAesthetics: "按照美学等级获得资源",
         afterBreakthrough: "你突破后，",
         aesAward: ["美学奖励{{a}}次", argValue],
         industryAward: ["工业奖励{{a}}次", argValue],
@@ -961,7 +963,7 @@ const zh_CN: Locale = {
         addRes: ["+{{a}}资源", argValue],
         deposit: ["{{a}}存款", {a: (value: number = 1): string => value <= 0 ? value.toString() : "+" + value.toString()}],
         loseAnyRegionShare: ["-{{a}}任意地区的份额，并-1竞争力", argValue],
-        shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
+        shareToVp: ["按照当前持有的{{a}}份额获得声望", argRegion],
         share: ["+{{a}}{{r}}地区的份额", argValue],
         shareNA: ["+{{a}}北美份额", argValue],
         shareWE: ["+{{a}}西欧份额", argValue],

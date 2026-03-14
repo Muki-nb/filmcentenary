@@ -543,8 +543,17 @@ export const effName = (eff: any): string => {
         return r.join("。");
     }
     if (eff.e === "step") {
-        // @ts-ignore
-        return eff.a.map(e => effName(e)).join("，");
+        let strList = eff.a.map((e: any) => effName(e));
+        let str = "";
+        for (let i = 0; i < strList.length; i++) {
+            let s = strList[i];
+            if(s[s.length - 1] === "。" || i === strList.length - 1){
+                str += s;
+            }else{
+                str += s + "，";
+            }
+        }
+        return str;
     }
     if (eff.e === "choice") {
         const numberIcon = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨", "⑩"];
@@ -630,13 +639,14 @@ export const getEffectTextById = (cid: CardID): string => {
     const lineList : string[] = [];
     for(let text of textList){
         if(text === "") continue;
+        let addpoint = text[text.length - 1] !== "。";
         if(text == schoolBasic){lineList.push(text);}
-        else if(lineList.length === 0){lineList.push(text + "。");}
+        else if(lineList.length === 0){lineList.push(text + (addpoint?"。":""));}
         else{
             if(text.length + lineList[lineList.length - 1].length <= 20){
-                lineList[lineList.length - 1] += text + "。";
+                lineList[lineList.length - 1] += text + (addpoint?"。":"");
             }else{
-                lineList.push(text + "。");
+                lineList.push(text + (addpoint?"。":""));
             }
         }
     }

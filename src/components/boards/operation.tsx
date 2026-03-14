@@ -118,7 +118,9 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     // const effType = hasCurEffect ? G.e.stack.slice(-1)[0] : "";
     const searchChoiceCards = [
         PersonCardID.P2401, FilmCardID.F2404, FilmCardID.F2410,
-        PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414]
+        PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414,
+        FilmCardID.F6343
+    ]
     const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
     // @ts-ignore
     const peekChoicesDisabled = G.e.card === null ? true : !searchChoiceCards.includes(G.e.card);
