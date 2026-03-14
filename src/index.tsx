@@ -8,6 +8,7 @@ import Local2p from "./components/single/2p";
 import MUICreateMatch from "./components/create-match";
 import JoinPage from "./components/join";
 import DenseTable from "./components/card-table";
+import CardViewTable from "./components/card-view-table";
 import AboutPage from "./components/about-page";
 import Lobby from "./components/lobby";
 import Local from "./songJinn/components/local";
@@ -37,6 +38,9 @@ render(
                     <MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
                 </Route>
                 <Route exact path="/cards">
+                    <CardViewTable/>
+                </Route>
+                <Route exact path="/cards-table">
                     <DenseTable/>
                 </Route>
                 <Route exact path="/about">
