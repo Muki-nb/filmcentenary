@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
@@ -38,6 +39,44 @@ const server = process.env.REDIS_URL ? Server({
 
 const PORT = process.env.PORT || "3002";
 const {app} = server;
+
+const resolveStatsPath = (): string => {
+    const configured = process.env.FILM_MATCH_STATS_PATH;
+    if (configured && configured.trim().length > 0) {
+        return configured;
+    }
+    const cwd = process.cwd();
+    const cwdDataPath = path.resolve(cwd, 'data', 'film-match-stats.jsonl');
+    const parentDataPath = path.resolve(cwd, '..', 'data', 'film-match-stats.jsonl');
+    if (fs.existsSync(cwdDataPath)) {
+        return cwdDataPath;
+    }
+    if (fs.existsSync(parentDataPath)) {
+        return parentDataPath;
+    }
+    const cwdBaseName = path.basename(path.resolve(cwd));
+    if (cwdBaseName.toLowerCase() === 'src') {
+        return parentDataPath;
+    }
+    return cwdDataPath;
+}
+
+app.use(async (ctx: Koa.Context, next: Koa.Next) => {
+    if (ctx.method === 'GET' && ctx.path === '/api/match-stats') {
+        const statsPath = resolveStatsPath();
+        if (!fs.existsSync(statsPath)) {
+            ctx.status = 200;
+            ctx.type = 'text/plain; charset=utf-8';
+            ctx.body = '';
+            return;
+        }
+        ctx.status = 200;
+        ctx.type = 'text/plain; charset=utf-8';
+        ctx.body = fs.readFileSync(statsPath, {encoding: 'utf8'});
+        return;
+    }
+    await next();
+});
 
 const FRONTEND_PATH = path.join(__dirname);
 app.use(

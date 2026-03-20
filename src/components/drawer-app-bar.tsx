@@ -100,6 +100,7 @@ const DrawerAppBar = () => {
             <List>
                 <ListItem><Button><Link to={'/'}>{i18n.drawer.lobby}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
+                <ListItem><Button><Link to={'/match-stats'}>对局数据</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
                 <ListItem><Button><Link to={'/about'}>{i18n.drawer.about}</Link></Button></ListItem>
             </List>

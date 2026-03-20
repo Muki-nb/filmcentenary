@@ -12,6 +12,7 @@ import CardViewTable from "./components/card-view-table";
 import AboutPage from "./components/about-page";
 import Lobby from "./components/lobby";
 import Local from "./songJinn/components/local";
+import MatchStatsPage from "./components/match-stats";
 import {ThemeProvider, createTheme} from '@material-ui/core/styles';
 
 
@@ -45,6 +46,9 @@ render(
                 </Route>
                 <Route exact path="/about">
                     <AboutPage/>
+                </Route>
+                <Route exact path="/match-stats">
+                    <MatchStatsPage/>
                 </Route>
                 <Route exact path="/join/film/:matchID/:player/:credential">
                     <JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
