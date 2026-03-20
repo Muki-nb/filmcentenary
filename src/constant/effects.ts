@@ -3186,7 +3186,7 @@ export const effects = {
             e: "step", a: [
                 {e: "draw", a: 1},
                 {e: "vp", a: 3},
-                {e: "noStudio", a: {e: "loseDeposit", a: 2}},
+                {e: "noStudio", a: {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04}},
                 {e: "studio", a: {e: "step", a: [{e: ItrEffects.comment, a: 1}, {e: "deposit", a: 1}] }},
             ]
         },
@@ -3500,7 +3500,7 @@ export const effects = {
             e: "step", a: [
                 {e: "draw", a: 1},
                 {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
-                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 2}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
+                {e: "noStudio", a: {e: "step", a: [{e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
                 {e: "studio", a: {e: "deposit", a: 2}},
             ]
         },

@@ -276,7 +276,10 @@ export const setupGameMode: LongFormMove = {
 
             
             let era2Cards = shuffle(ctx, [
-                SchoolCardID.S5206, SchoolCardID.S5207, SchoolCardID.S5208, SchoolCardID.S5209
+                //SchoolCardID.S5206,
+                SchoolCardID.S5207,
+                SchoolCardID.S5208,
+                //SchoolCardID.S5209
             ]).slice(0, 2);
             cardsMukiEx2.push(...era2Cards);
         }
@@ -305,7 +308,12 @@ export const setupGameMode: LongFormMove = {
             if(args.enableSchoolExtensionMuki) cards_era1.push(SchoolCardID.S5001, SchoolCardID.S5002, SchoolCardID.S5003, SchoolCardID.S5004);
             let cards_era2 = [];
             if(args.enableSchoolExtension) cards_era2.push(SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004);
-            if(args.enableSchoolExtensionMuki2) cards_era2.push(SchoolCardID.S5206, SchoolCardID.S5207, SchoolCardID.S5208, SchoolCardID.S5209);
+            if(args.enableSchoolExtensionMuki2) cards_era2.push(
+                //SchoolCardID.S5206,
+                SchoolCardID.S5207,
+                SchoolCardID.S5208,
+                //SchoolCardID.S5209
+            );
             if(args.enableSchoolExtensionQM) cards_era2.push(SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003, /*SchoolCardID.S6004*/);
             let cards_era3 = [];
             if(args.enableSchoolExtension) cards_era3.push(SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008);
@@ -447,6 +455,7 @@ export const drawCard: LongFormMove = {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.drawCard(${p})`);
         curPub(G, ctx).action--;
+        curPub(G, ctx).actionused = true;
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
     },
 }

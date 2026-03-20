@@ -50,6 +50,7 @@ import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 import {logger} from "./logger";
+import {appendServerMatchStats} from "./serverStatsStorage";
 
 export const curPid = (_G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -4406,6 +4407,8 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
         PersonCardID.P3107,
         PersonCardID.P3302,
         PersonCardID.P3401,
+
+        PersonCardID.P6311,
     ]
     for (let iCard of industryEffIDS) {
         if (validID.includes(iCard)) {
@@ -4421,6 +4424,10 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
         PersonCardID.P3301,
         PersonCardID.P3402,
         PersonCardID.P3403,
+
+        PersonCardID.P6321,
+        PersonCardID.P6331,
+        PersonCardID.P6341,
     ]
     for (let aCard of aesEffIDS) {
         if (validID.includes(aCard)) {
@@ -4502,6 +4509,7 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
     }
     const rankFunc = (a: number, b: number) => rank(G, ctx, a, b, true);
     let finalRank = pid.sort(rankFunc);
+    appendServerMatchStats(G, ctx, VictoryType.finalScoring, finalRank[0].toString());
     ctx?.events?.endGame?.({
         winner: finalRank[0].toString(),
         reason: VictoryType.finalScoring,
