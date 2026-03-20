@@ -617,12 +617,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // // @ts-ignore
     // // G.pub[3].school = "S5204";
     // if(ctx.numPlayers === 4){
-    //     // @ts-ignore
-    //     G.pub[0].school = "S6342";
-    //     G.player[0].hand = [FilmCardID.F6332, FilmCardID.F6343, PersonCardID.P2202, BasicCardID.B04, BasicCardID.B01];
-    //     // @ts-ignore
-    //     G.pub[1].school = "S6241";
-    //     G.player[1].hand = [PersonCardID.P1101];
+    //     G.pub[0].vp = 149;
+    //     // // @ts-ignore
+    //     // G.pub[0].school = "S6342";
+    //     // G.player[0].hand = [FilmCardID.F6332, FilmCardID.F6343, PersonCardID.P2202, BasicCardID.B04, BasicCardID.B01];
+    //     // // @ts-ignore
+    //     // G.pub[1].school = "S6241";
+    //     // G.player[1].hand = [PersonCardID.P1101];
     //     // // @ts-ignore
     //     // G.pub[1].school = "S5207";
     //     // // @ts-ignore
