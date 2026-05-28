@@ -17,6 +17,8 @@ import {getColor} from "./icons";
 interface IPlayerStatsRecord {
     playerID: string,
     seat: number,
+    industry?: number,
+    aesthetics?: number,
     finalScore?: number,
     allCards: string[],
 }
@@ -45,6 +47,7 @@ interface ISeatStatsRow {
     wins: number,
     winRate: number,
     avgRank: number,
+    rankStdDev: number,
 }
 
 interface ICardStatsRow {
@@ -53,6 +56,30 @@ interface ICardStatsRow {
     wins: number,
     winRate: number,
     avgRank: number,
+    rankStdDev: number,
+}
+
+interface ILevelThresholdRow {
+    threshold: number,
+    games: number,
+    wins: number,
+    winRate: number,
+    avgRank: number,
+    rankStdDev: number,
+}
+
+interface ILevelRelationStatsRow {
+    relation: "industry_gt_aesthetics" | "aesthetics_gt_industry" | "industry_eq_aesthetics",
+    label: string,
+    games: number,
+    wins: number,
+    winRate: number,
+    avgRank: number,
+    rankStdDev: number,
+    avgIndustryLevel?: number,
+    avgAestheticsLevel?: number,
+    winAvgIndustryLevel?: number,
+    winAvgAestheticsLevel?: number,
 }
 
 type CardStatsFilterMode = "all" | "school" | "era1";
@@ -60,9 +87,12 @@ type RegionFilter = "all" | "EE" | "WE" | "NA" | "ASIA";
 type EraFilter = "all" | "1" | "2" | "3";
 type CardTypeFilter = "all" | "film" | "school" | "person";
 type CardSortMode = "winRate" | "avgRank" | "games";
+type StatsPanel = "turn" | "seat" | "level" | "card";
 const NO_SCHOOL_CARD_ID = "__NO_SCHOOL__";
 
 const seatLabels = ["1位", "2位", "3位", "4位"];
+const levelThresholds = [5, 6, 7, 8, 9, 10];
+const levelThresholdMin = 5;
 const statsUrls = ["/api/match-stats", "/data/film-match-stats.jsonl"];
 const sectionPaperStyle: React.CSSProperties = {
     padding: 12,
@@ -78,6 +108,19 @@ const topPanelStyle: React.CSSProperties = {
 };
 
 const formatRate = (value: number): string => `${(value * 100).toFixed(1)}%`;
+
+const calcStdDev = (sum: number, sqSum: number, n: number): number => {
+    if (n <= 0) {
+        return 0;
+    }
+    const mean = sum / n;
+    const meanSq = sqSum / n;
+    const variance = meanSq - mean * mean;
+    const v = variance > 0 ? variance : 0;
+    return Math.sqrt(v);
+}
+
+const formatStdDev = (value: number): string => `±${value.toFixed(3)}`;
 
 const normalizeCardId = (raw: string): string => {
     return (raw || "").trim().toUpperCase();
@@ -274,7 +317,9 @@ const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsRow[] => {
         wins: 0,
         winRate: 0,
         avgRank: 0,
+        rankStdDev: 0,
         rankSum: 0,
+        rankSqSum: 0,
         rankGames: 0,
     }));
 
@@ -289,6 +334,7 @@ const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsRow[] => {
                 const rank = rankMap.get(player.playerID);
                 if (typeof rank === "number") {
                     buckets[player.seat].rankSum += rank;
+                    buckets[player.seat].rankSqSum += rank * rank;
                     buckets[player.seat].rankGames += 1;
                 }
             }
@@ -299,11 +345,12 @@ const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsRow[] => {
         ...bucket,
         winRate: bucket.games > 0 ? bucket.wins / bucket.games : 0,
         avgRank: bucket.rankGames > 0 ? bucket.rankSum / bucket.rankGames : 0,
+        rankStdDev: calcStdDev(bucket.rankSum, bucket.rankSqSum, bucket.rankGames),
     }));
 };
 
 const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilterMode): ICardStatsRow[] => {
-    const cardMap = new Map<string, {games: number, wins: number, rankSum: number, rankGames: number}>();
+    const cardMap = new Map<string, {games: number, wins: number, rankSum: number, rankSqSum: number, rankGames: number}>();
 
     records.forEach(record => {
         const rankMap = buildRankMap(record);
@@ -318,7 +365,7 @@ const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilte
                 const targets = schoolCards.length > 0 ? schoolCards : [NO_SCHOOL_CARD_ID];
 
                 targets.forEach(cardID => {
-                    const current = cardMap.get(cardID) ?? {games: 0, wins: 0, rankSum: 0, rankGames: 0};
+                    const current = cardMap.get(cardID) ?? {games: 0, wins: 0, rankSum: 0, rankSqSum: 0, rankGames: 0};
                     current.games += 1;
                     if (player.playerID === record.winner) {
                         current.wins += 1;
@@ -326,6 +373,7 @@ const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilte
                     const rank = rankMap.get(player.playerID);
                     if (typeof rank === "number") {
                         current.rankSum += rank;
+                        current.rankSqSum += rank * rank;
                         current.rankGames += 1;
                     }
                     cardMap.set(cardID, current);
@@ -344,7 +392,7 @@ const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilte
                 if (filterMode === "era1" && !isFirstScoringCard(normalizedCardID)) {
                     return;
                 }
-                const current = cardMap.get(normalizedCardID) ?? {games: 0, wins: 0, rankSum: 0, rankGames: 0};
+                const current = cardMap.get(normalizedCardID) ?? {games: 0, wins: 0, rankSum: 0, rankSqSum: 0, rankGames: 0};
                 current.games += 1;
                 if (player.playerID === record.winner) {
                     current.wins += 1;
@@ -352,6 +400,7 @@ const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilte
                 const rank = rankMap.get(player.playerID);
                 if (typeof rank === "number") {
                     current.rankSum += rank;
+                    current.rankSqSum += rank * rank;
                     current.rankGames += 1;
                 }
                 cardMap.set(normalizedCardID, current);
@@ -366,6 +415,7 @@ const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilte
             wins: stat.wins,
             winRate: stat.games > 0 ? stat.wins / stat.games : 0,
             avgRank: stat.rankGames > 0 ? stat.rankSum / stat.rankGames : 0,
+            rankStdDev: calcStdDev(stat.rankSum, stat.rankSqSum, stat.rankGames),
         }))
         .sort((left, right) => {
             if (right.winRate !== left.winRate) {
@@ -419,6 +469,153 @@ const buildTurnDistribution = (records: IMatchStatsRecord[]): ITurnDistributionP
         .sort((a, b) => a.turnCount - b.turnCount);
 }
 
+const buildLevelThresholdStats = (
+    records: IMatchStatsRecord[],
+    selector: (player: IPlayerStatsRecord) => number | undefined,
+): ILevelThresholdRow[] => {
+    const entries: Array<{ value: number, isWin: boolean, rank?: number }> = [];
+    const winnerValues: number[] = [];
+
+    records.forEach(record => {
+        const rankMap = buildRankMap(record);
+        record.players.forEach(player => {
+            const value = selector(player);
+            if (typeof value !== "number" || !Number.isFinite(value)) {
+                return;
+            }
+            entries.push({
+                value,
+                isWin: player.playerID === record.winner,
+                rank: rankMap.get(player.playerID),
+            });
+
+            if (player.playerID === record.winner) {
+                winnerValues.push(value);
+            }
+        });
+    });
+
+    const totalGames = winnerValues.length;
+
+    return levelThresholds.map(threshold => {
+        let games = 0;
+        let wins = 0;
+        let rankSum = 0;
+        let rankSqSum = 0;
+        let rankGames = 0;
+
+        entries.forEach(entry => {
+            if (entry.value >= levelThresholdMin && entry.value <= threshold) {
+                games += 1;
+                if (entry.isWin) {
+                    wins += 1;
+                }
+                if (typeof entry.rank === "number") {
+                    rankSum += entry.rank;
+                    rankSqSum += entry.rank * entry.rank;
+                    rankGames += 1;
+                }
+            }
+        });
+
+        return {
+            threshold,
+            games,
+            wins,
+            // 使用统一分母（全部有效对局），保证“某等级冠军占比”的累计可加。
+            winRate: totalGames > 0
+                ? winnerValues.filter(value => value >= levelThresholdMin && value <= threshold).length / totalGames
+                : 0,
+            avgRank: rankGames > 0 ? rankSum / rankGames : 0,
+            rankStdDev: calcStdDev(rankSum, rankSqSum, rankGames),
+        };
+    });
+}
+
+const getIndustryAestheticsRelation = (player: IPlayerStatsRecord): ILevelRelationStatsRow["relation"] | null => {
+    if (typeof player.industry !== "number" || !Number.isFinite(player.industry)) {
+        return null;
+    }
+    if (typeof player.aesthetics !== "number" || !Number.isFinite(player.aesthetics)) {
+        return null;
+    }
+    if (player.industry > player.aesthetics) {
+        return "industry_gt_aesthetics";
+    }
+    if (player.aesthetics > player.industry) {
+        return "aesthetics_gt_industry";
+    }
+    return "industry_eq_aesthetics";
+}
+
+const buildIndustryAestheticsRelationStats = (records: IMatchStatsRecord[]): ILevelRelationStatsRow[] => {
+    const rows: ILevelRelationStatsRow[] = [
+        {relation: "industry_gt_aesthetics", label: "工业 > 美学", games: 0, wins: 0, winRate: 0, avgRank: 0, rankStdDev: 0, avgIndustryLevel: 0, avgAestheticsLevel: 0},
+        {relation: "aesthetics_gt_industry", label: "美学 > 工业", games: 0, wins: 0, winRate: 0, avgRank: 0, rankStdDev: 0, avgIndustryLevel: 0, avgAestheticsLevel: 0},
+        {relation: "industry_eq_aesthetics", label: "工业 = 美学", games: 0, wins: 0, winRate: 0, avgRank: 0, rankStdDev: 0, avgIndustryLevel: 0, avgAestheticsLevel: 0},
+    ];
+
+    const rowMap = new Map<ILevelRelationStatsRow["relation"], {games: number, rankSum: number, rankSqSum: number, rankGames: number, industrySum: number, aestheticsSum: number}>([
+        ["industry_gt_aesthetics", {games: 0, rankSum: 0, rankSqSum: 0, rankGames: 0, industrySum: 0, aestheticsSum: 0}],
+        ["aesthetics_gt_industry", {games: 0, rankSum: 0, rankSqSum: 0, rankGames: 0, industrySum: 0, aestheticsSum: 0}],
+        ["industry_eq_aesthetics", {games: 0, rankSum: 0, rankSqSum: 0, rankGames: 0, industrySum: 0, aestheticsSum: 0}],
+    ]);
+
+    const winnerRelations: ILevelRelationStatsRow["relation"][] = [];
+    const winnerLevelMap = new Map<ILevelRelationStatsRow["relation"], {winIndustrySum: number, winAestheticsSum: number, wins: number}>([
+        ["industry_gt_aesthetics", {winIndustrySum: 0, winAestheticsSum: 0, wins: 0}],
+        ["aesthetics_gt_industry", {winIndustrySum: 0, winAestheticsSum: 0, wins: 0}],
+        ["industry_eq_aesthetics", {winIndustrySum: 0, winAestheticsSum: 0, wins: 0}],
+    ]);
+
+    records.forEach(record => {
+        const rankMap = buildRankMap(record);
+        record.players.forEach(player => {
+            const relation = getIndustryAestheticsRelation(player);
+            if (!relation) {
+                return;
+            }
+            const bucket = rowMap.get(relation)!;
+            bucket.games += 1;
+            bucket.industrySum += player.industry as number;
+            bucket.aestheticsSum += player.aesthetics as number;
+            const rank = rankMap.get(player.playerID);
+            if (typeof rank === "number") {
+                bucket.rankSum += rank;
+                bucket.rankSqSum += rank * rank;
+                bucket.rankGames += 1;
+            }
+            if (player.playerID === record.winner) {
+                winnerRelations.push(relation);
+                const winnerBucket = winnerLevelMap.get(relation)!;
+                winnerBucket.wins += 1;
+                winnerBucket.winIndustrySum += player.industry as number;
+                winnerBucket.winAestheticsSum += player.aesthetics as number;
+            }
+        });
+    });
+
+    const totalGames = winnerRelations.length;
+
+    return rows.map(row => {
+        const bucket = rowMap.get(row.relation)!;
+        const wins = winnerRelations.filter(relation => relation === row.relation).length;
+        const winnerBucket = winnerLevelMap.get(row.relation)!;
+        return {
+            ...row,
+            games: bucket.games,
+            wins,
+            winRate: totalGames > 0 ? wins / totalGames : 0,
+            avgRank: bucket.rankGames > 0 ? bucket.rankSum / bucket.rankGames : 0,
+            rankStdDev: calcStdDev(bucket.rankSum, bucket.rankSqSum, bucket.rankGames),
+            avgIndustryLevel: bucket.games > 0 ? bucket.industrySum / bucket.games : 0,
+            avgAestheticsLevel: bucket.games > 0 ? bucket.aestheticsSum / bucket.games : 0,
+            winAvgIndustryLevel: winnerBucket.wins > 0 ? winnerBucket.winIndustrySum / winnerBucket.wins : 0,
+            winAvgAestheticsLevel: winnerBucket.wins > 0 ? winnerBucket.winAestheticsSum / winnerBucket.wins : 0,
+        };
+    });
+}
+
 const MatchStatsPage = () => {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
@@ -436,6 +633,7 @@ const MatchStatsPage = () => {
         recordedTurnGames: 0,
     });
     const [recordCount, setRecordCount] = React.useState(0);
+    const [activePanel, setActivePanel] = React.useState<StatsPanel>("turn");
 
     const loadStats = React.useCallback(async () => {
         setLoading(true);
@@ -568,6 +766,30 @@ const MatchStatsPage = () => {
         return buildTurnDistribution(records);
     }, [records]);
 
+    const industryThresholdStats = React.useMemo(() => {
+        return buildLevelThresholdStats(records, player => player.industry);
+    }, [records]);
+
+    const aestheticsThresholdStats = React.useMemo(() => {
+        return buildLevelThresholdStats(records, player => player.aesthetics);
+    }, [records]);
+
+    const industryAestheticsRelationStats = React.useMemo(() => {
+        return buildIndustryAestheticsRelationStats(records);
+    }, [records]);
+
+    const allIndustryAestheticsRelationStats = React.useMemo(() => {
+        return industryAestheticsRelationStats.map(row => {
+            if (row.relation === "industry_gt_aesthetics") {
+                return {...row, label: "工业>美学"};
+            }
+            if (row.relation === "aesthetics_gt_industry") {
+                return {...row, label: "美学>工业"};
+            }
+            return {...row, label: "美学=工业"};
+        });
+    }, [industryAestheticsRelationStats]);
+
     const turnDistributionChart = React.useMemo(() => {
         if (turnDistribution.length === 0) {
             return null;
@@ -629,6 +851,52 @@ const MatchStatsPage = () => {
             </Button>
         </Grid>
         <Grid item xs={12}>
+            <Paper>
+                <Grid container spacing={1} style={{padding: 12}}>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePanel === "turn" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePanel("turn")}
+                        >
+                            回合数据
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePanel === "seat" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePanel("seat")}
+                        >
+                            位次胜率
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePanel === "level" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePanel("level")}
+                        >
+                            等级数据
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePanel === "card" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePanel("card")}
+                        >
+                            卡牌数据
+                        </Button>
+                    </Grid>
+                </Grid>
+            </Paper>
+        </Grid>
+        {activePanel === "turn" ? <Grid item xs={12}>
             <Paper>
                 <Grid container spacing={1} style={{...sectionPaperStyle, padding: 16}}>
                     <Grid item xs={12}>
@@ -707,7 +975,7 @@ const MatchStatsPage = () => {
                     </Grid>
                 </Grid>
             </Paper>
-        </Grid>
+        </Grid> : <></>}
         {error ? <Grid item xs={12}>
             <Paper>
                 <Grid container style={{padding: 16}}>
@@ -717,7 +985,7 @@ const MatchStatsPage = () => {
                 </Grid>
             </Paper>
         </Grid> : <></>}
-        <Grid item xs={12}>
+        {activePanel === "seat" ? <Grid item xs={12}>
             <Paper>
                 <Grid container style={sectionPaperStyle}>
                     <Grid item xs={12}>
@@ -731,6 +999,7 @@ const MatchStatsPage = () => {
                                 <TableCell>位次</TableCell>
                                 <TableCell>胜率</TableCell>
                                 <TableCell>平均名次</TableCell>
+                                <TableCell>位次标准差</TableCell>
                                 <TableCell>胜场</TableCell>
                                 <TableCell>样本</TableCell>
                             </TableRow>
@@ -740,6 +1009,7 @@ const MatchStatsPage = () => {
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
                                 <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
+                                <TableCell>{row.games > 0 ? formatStdDev(row.rankStdDev) : "-"}</TableCell>
                                 <TableCell>{row.wins}</TableCell>
                                 <TableCell>{row.games}</TableCell>
                             </TableRow>)}
@@ -747,8 +1017,111 @@ const MatchStatsPage = () => {
                     </Table>
                 </TableContainer>
             </Paper>
-        </Grid>
-        <Grid item xs={12}>
+        </Grid> : <></>}
+        {activePanel === "level" ? <Grid item xs={12}>
+            <Paper>
+                <Grid container style={sectionPaperStyle}>
+                    <Grid item xs={12}>
+                        <Typography variant="h6" component="h2">工美等级统计（5~X）</Typography>
+                    </Grid>
+                </Grid>
+                <TableContainer>
+                    <Table size="small" aria-label="industry aesthetics threshold stats">
+                        <TableHead>
+                            <TableRow style={tableHeadRowStyle}>
+                                <TableCell>区间</TableCell>
+                                <TableCell>工业胜率</TableCell>
+                                <TableCell>工业平均顺位</TableCell>
+                                <TableCell>工业位次标准差</TableCell>
+                                <TableCell>工业场次</TableCell>
+                                <TableCell>美学胜率</TableCell>
+                                <TableCell>美学平均顺位</TableCell>
+                                <TableCell>美学位次标准差</TableCell>
+                                <TableCell>美学场次</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {levelThresholds.map((threshold, idx) => {
+                                const industryRow = industryThresholdStats[idx];
+                                const aestheticsRow = aestheticsThresholdStats[idx];
+                                return <TableRow key={`lv-${threshold}`} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                    <TableCell>{`5~${threshold}`}</TableCell>
+                                    <TableCell>{industryRow.games > 0 ? formatRate(industryRow.winRate) : "-"}</TableCell>
+                                    <TableCell>{industryRow.games > 0 ? industryRow.avgRank.toFixed(2) : "-"}</TableCell>
+                                    <TableCell>{industryRow.games > 0 ? formatStdDev(industryRow.rankStdDev) : "-"}</TableCell>
+                                    <TableCell>{industryRow.games}</TableCell>
+                                    <TableCell>{aestheticsRow.games > 0 ? formatRate(aestheticsRow.winRate) : "-"}</TableCell>
+                                    <TableCell>{aestheticsRow.games > 0 ? aestheticsRow.avgRank.toFixed(2) : "-"}</TableCell>
+                                    <TableCell>{aestheticsRow.games > 0 ? formatStdDev(aestheticsRow.rankStdDev) : "-"}</TableCell>
+                                    <TableCell>{aestheticsRow.games}</TableCell>
+                                </TableRow>;
+                            })}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+
+                <Grid container style={{...sectionPaperStyle, paddingTop: 0}}>
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>所有工美统计</Typography>
+                    </Grid>
+                </Grid>
+                <TableContainer>
+                    <Table size="small" aria-label="all industry aesthetics relation stats">
+                        <TableHead>
+                            <TableRow style={tableHeadRowStyle}>
+                                <TableCell>关系</TableCell>
+                                <TableCell>样本量</TableCell>
+                                <TableCell>获胜场次</TableCell>
+                                <TableCell>平均工业等级</TableCell>
+                                <TableCell>平均美学等级</TableCell>
+                                <TableCell>获胜平均工业等级</TableCell>
+                                <TableCell>获胜平均美学等级</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {allIndustryAestheticsRelationStats.map((row, idx) => <TableRow key={`all-${row.relation}`} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                <TableCell>{row.label}</TableCell>
+                                <TableCell>{row.games}</TableCell>
+                                <TableCell>{row.wins}</TableCell>
+                                <TableCell>{row.relation === "industry_eq_aesthetics" || row.games <= 0 ? "-" : (row.avgIndustryLevel as number).toFixed(2)}</TableCell>
+                                <TableCell>{row.relation === "industry_eq_aesthetics" || row.games <= 0 ? "-" : (row.avgAestheticsLevel as number).toFixed(2)}</TableCell>
+                                <TableCell>{row.relation === "industry_eq_aesthetics" || row.wins <= 0 ? "-" : (row.winAvgIndustryLevel as number).toFixed(2)}</TableCell>
+                                <TableCell>{row.relation === "industry_eq_aesthetics" || row.wins <= 0 ? "-" : (row.winAvgAestheticsLevel as number).toFixed(2)}</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+
+                <Grid container style={{...sectionPaperStyle, paddingTop: 0}}>
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>最终工美关系统计</Typography>
+                    </Grid>
+                </Grid>
+                <TableContainer>
+                    <Table size="small" aria-label="industry aesthetics relation stats">
+                        <TableHead>
+                            <TableRow style={tableHeadRowStyle}>
+                                <TableCell>关系</TableCell>
+                                <TableCell>胜率</TableCell>
+                                <TableCell>平均顺位</TableCell>
+                                <TableCell>位次标准差</TableCell>
+                                <TableCell>场次</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {industryAestheticsRelationStats.map((row, idx) => <TableRow key={row.relation} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                <TableCell>{row.label}</TableCell>
+                                <TableCell>{formatRate(row.winRate)}</TableCell>
+                                <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
+                                <TableCell>{row.games > 0 ? formatStdDev(row.rankStdDev) : "-"}</TableCell>
+                                <TableCell>{row.games}</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+        </Grid> : <></>}
+        {activePanel === "card" ? <Grid item xs={12}>
             <Paper>
                 <Grid container style={sectionPaperStyle}>
                     <Grid item xs={12} sm={6}>
@@ -852,6 +1225,7 @@ const MatchStatsPage = () => {
                                 <TableCell>卡牌</TableCell>
                                 <TableCell>胜率</TableCell>
                                 <TableCell>平均名次</TableCell>
+                                <TableCell>位次标准差</TableCell>
                                 <TableCell>胜场</TableCell>
                                 <TableCell>样本</TableCell>
                             </TableRow>
@@ -865,6 +1239,7 @@ const MatchStatsPage = () => {
                                 </TableCell>
                                 <TableCell>{formatRate(row.winRate)}</TableCell>
                                 <TableCell>{row.avgRank > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
+                                <TableCell>{row.games > 0 ? formatStdDev(row.rankStdDev) : "-"}</TableCell>
                                 <TableCell>{row.wins}</TableCell>
                                 <TableCell>{row.games}</TableCell>
                             </TableRow>)}
@@ -872,7 +1247,7 @@ const MatchStatsPage = () => {
                     </Table>
                 </TableContainer>
             </Paper>
-        </Grid>
+        </Grid> : <></>}
     </Grid>;
 };
 

@@ -224,6 +224,8 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     <FormControlLabel
                         disabled={ctx.numPlayers === 2}
                         value={GameTurnOrder.ALL_RANDOM} control={<Radio/>} label={i18n.setting.allRandom}/>
+                    <FormControlLabel
+                        value={GameTurnOrder.ANONYMOUS_RANDOM} control={<Radio/>} label={i18n.setting.anonymousRandom}/>
                 </RadioGroup>
             </FormControl>
             <FormControl component="fieldset">

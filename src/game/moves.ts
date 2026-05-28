@@ -80,7 +80,7 @@ import {
     startCompetition,
     studioSlotsAvailable,
 } from "./util";
-import {changePlayerStage, changeStage, signalEndPhase, signalEndStage} from "./logFix";
+import {changePlayerStage, changeStage, signalEndPhase, signalEndStage, stopTimingForGameEnd} from "./logFix";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {logger} from "./logger";
 
@@ -98,6 +98,52 @@ export interface ISetupGameModeArgs {
     enableExtensionChaosMedia: boolean,
     extensionMode: ExtensionMode,
     disableUndo: boolean
+}
+
+// Reserved for future curated company names.
+const Companies: string[] = [
+    "派拉蒙",
+    "华纳兄弟",
+    "爱迪生电影",
+    "索尼",
+    "东映",
+    "环球影片",
+    "联美电影",
+    "米高梅",
+    "狮门",
+    "百代",
+    "莫斯科电影",
+    "嘉禾",
+    "哥伦比亚",
+    "邵氏",
+    "巴兰多夫",
+    "东宝",
+    "二十世纪",
+    "印度斯坦"
+];
+
+const assignVpByOrder = (G: IG, order: PlayerID[], numPlayers: number) => {
+    for (let i = 0; i < G.pub.length; i++) {
+        G.pub[i].vp = 0;
+    }
+    G.pub[parseInt(order[0])].vp = 0;
+    G.pub[parseInt(order[1])].vp = 1;
+    if (numPlayers >= 3) {
+        G.pub[parseInt(order[2])].vp = 3;
+    }
+    if (numPlayers >= 4) {
+        G.pub[parseInt(order[3])].vp = 5;
+    }
+}
+
+const assignAnonymousCompanyNames = (ctx: Ctx, order: PlayerID[], numPlayers: number): string[] => {
+    const assignedNames = Array.from({length: numPlayers}, () => "");
+    const shuffledCompanies = shuffle(ctx, [...Companies]);
+    for (let i = 0; i < order.length; i++) {
+        const playerId = parseInt(order[i]);
+        assignedNames[playerId] = shuffledCompanies[i] ?? `Company_${i + 1}`;
+    }
+    return assignedNames;
 }
 
 const undoCheck = (G: IG, log: string[]) => {
@@ -131,6 +177,9 @@ export const setupGameMode: LongFormMove = {
         for (let i = 0; i < ctx.numPlayers; i++) {
             order.push(i.toString())
         }
+        G.anonymousRandomMode = args.order === GameTurnOrder.ANONYMOUS_RANDOM;
+        G.anonymousRandomRevealed = false;
+        G.anonymousPlayerNames = order.map(() => "");
         switch (args.order) {
             case GameTurnOrder.ALL_RANDOM:
                 log.push(`|ALL_RANDOM`);
@@ -162,6 +211,10 @@ export const setupGameMode: LongFormMove = {
                 }
                 log.push(`|FIRST_RANDOM`);
                 break;
+            case GameTurnOrder.ANONYMOUS_RANDOM:
+                log.push(`|ANONYMOUS_RANDOM`);
+                initOrder = order;
+                break;
             case GameTurnOrder.FIXED:
                 log.push(`|FIXED`);
                 initOrder = order;
@@ -171,14 +224,7 @@ export const setupGameMode: LongFormMove = {
         log.push(`|turnOrder|${JSON.stringify(initOrder)}`);
         G.order = initOrder;
         G.initialOrder = initOrder;
-        G.pub[parseInt(initOrder[0])].vp = 0;
-        G.pub[parseInt(initOrder[1])].vp = 1;
-        if (ctx.numPlayers >= 3) {
-            G.pub[parseInt(initOrder[2])].vp = 3;
-        }
-        if (ctx.numPlayers >= 4) {
-            G.pub[parseInt(initOrder[3])].vp = 5;
-        }
+        assignVpByOrder(G, initOrder, ctx.numPlayers);
         if (args.enableSchoolExtension) {
             log.push(`|drawForSchoolExtension`)
 			
@@ -276,10 +322,10 @@ export const setupGameMode: LongFormMove = {
 
             
             let era2Cards = shuffle(ctx, [
-                //SchoolCardID.S5206,
+                SchoolCardID.S5206,
                 SchoolCardID.S5207,
                 SchoolCardID.S5208,
-                //SchoolCardID.S5209
+                SchoolCardID.S5209
             ]).slice(0, 2);
             cardsMukiEx2.push(...era2Cards);
         }
@@ -309,10 +355,10 @@ export const setupGameMode: LongFormMove = {
             let cards_era2 = [];
             if(args.enableSchoolExtension) cards_era2.push(SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004);
             if(args.enableSchoolExtensionMuki2) cards_era2.push(
-                //SchoolCardID.S5206,
+                SchoolCardID.S5206,
                 SchoolCardID.S5207,
                 SchoolCardID.S5208,
-                //SchoolCardID.S5209
+                SchoolCardID.S5209
             );
             if(args.enableSchoolExtensionQM) cards_era2.push(SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003, /*SchoolCardID.S6004*/);
             let cards_era3 = [];
@@ -667,17 +713,33 @@ export const chooseHand: LongFormMove = {
                     if (eff.e !== "none") {
                         if (eff.e === "era") {
                             // 武侠电影
-                            if(pub.school === SchoolCardID.S5209 && pub.action == 1){
-                                let era;
-                                for(era = 0; era < 3; era++){
-                                    if(eff.a[era].e !== 'none') break;
+                            if (pub.school === SchoolCardID.S5209 && pub.action == 1) {
+                                const isObsoleteFilm = card.type === CardType.F && card.region !== Region.NONE &&
+                                    card.era < G.regions[card.region].era;
+                                if (isObsoleteFilm) {
+                                    if (pub.deposit >= 1) {
+                                        pub.deposit -= 1;
+                                        let era;
+                                        for (era = 0; era < 3; era++) {
+                                            if (eff.a[era].e !== 'none') break;
+                                        }
+                                        log.push(`|era|${era}|payDeposit`);
+                                        eff = {...eff.a[era]};
+                                        if (eff.hasOwnProperty("target")) {
+                                            eff.target = eff.target
+                                        }
+                                    } else {
+                                        eff = getEraEffectByRegion(G, ctx, eff, card.region);
+                                        eff.target = arg.p;
+                                        G.e.stack.push(eff);
+                                        log.push(`|noDeposit|wuxia`);
+                                        addVp(G, ctx, p, 1);
+                                        break;
+                                    }
+                                } else {
+                                    eff = getEraEffectByRegion(G, ctx, eff, card.region);
                                 }
-                                log.push(`|era|${era}`);
-                                eff = {...eff.a[era]};
-                                if (eff.hasOwnProperty("target")) {
-                                    eff.target = eff.target
-                                }
-                            }else{
+                            } else {
                                 eff = getEraEffectByRegion(G, ctx, eff, card.region);
                             }
                         }
@@ -849,10 +911,12 @@ export const chooseHand: LongFormMove = {
                     pub.deposit += 1;
                     addVp(G, ctx, p, 1);
                 }
+                /*
                 if (pub.school === SchoolCardID.S6342) {
                     for(let i = 0; i < getCardById(arg.hand).industry; i++) addRes(G, ctx, p, 1);
                     for(let i = 0; i < getCardById(arg.hand).aesthetics; i++) addVp(G, ctx, p, 1);
                 }
+                */
                 break;
             default:
                 throw new Error();
@@ -1172,10 +1236,12 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        /*
                         if (pub.school === SchoolCardID.S6342) {
                             for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
                             for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                         }
+                        */
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -1198,10 +1264,12 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        /*
                         if (pub.school === SchoolCardID.S6342) {
                             for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
                             for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                         }
+                        */
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -1223,10 +1291,12 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        /*
                         if (pub.school === SchoolCardID.S6342) {
                             for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
                             for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                         }
+                            */
                     }
                 })
                 playerObj.cardsToPeek = []
@@ -1245,10 +1315,12 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         pub.discard.push(card);
                         log.push(`|${JSON.stringify(pub.discard)}`);
+                        /*
                        if (pub.school === SchoolCardID.S6342) {
                             for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
                             for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                         }
+                        */
                     }
                 })
                 playerObj.cardsToPeek = [];
@@ -1293,10 +1365,11 @@ export const peek: LongFormMove = {
                             pub.deposit += 1;
                             addVp(G, ctx, p, 1);
                         }
+                        /*
                         if (pub.school === SchoolCardID.S6342) {
                             for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
                             for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
-                        }
+                        }*/
                         log.push(`|${JSON.stringify(pub.discard)}`);
                     })
                     playerObj.cardsToPeek = [];
@@ -1537,6 +1610,7 @@ export const concedeMove: LongFormMove = {
                 const winner = G.order[0];
                 log.push(`|onePlayerLeft|endGame|winner|${winner}`);
                 logger.debug(`${G.matchID}|${log.join('')}`);
+                stopTimingForGameEnd(G, ctx);
                 ctx?.events?.endGame?.({
                     winner: winner,
                     reason: VictoryType.othersConceded
@@ -1938,6 +2012,14 @@ export const showBoardStatus: LongFormMove = {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${args.matchID}|p${ctx.playerID}.moves.showBoardStatus(${JSON.stringify(args)})`);
         if (ctx.phase === "InitPhase") {
+            if (G.anonymousRandomMode && !G.anonymousRandomRevealed) {
+                const shuffledOrder = shuffle(ctx, [...G.order]);
+                G.order = shuffledOrder;
+                G.initialOrder = shuffledOrder;
+                assignVpByOrder(G, shuffledOrder, ctx.numPlayers);
+                G.anonymousPlayerNames = assignAnonymousCompanyNames(ctx, shuffledOrder, ctx.numPlayers);
+                G.anonymousRandomRevealed = true;
+            }
             G.matchID = args.matchID;
             signalEndPhase(G, ctx);
         } else {

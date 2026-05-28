@@ -121,6 +121,19 @@ export const FilmCentenaryBoard = ({
         if (playerID === null) {
             return i18n.playerName.spectator
         } else {
+            if (G.anonymousRandomMode) {
+                const anonymousName = G.anonymousPlayerNames[parseInt(playerID)] || "";
+                if (G.anonymousRandomRevealed && anonymousName !== "") {
+                    name = anonymousName;
+                } else if (matchData !== undefined) {
+                    let arr = matchData.filter(m => m.id.toString() === playerID)
+                    const hasJoinedPlayer = arr.length > 0 && arr[0].name !== undefined && arr[0].name !== null;
+                    name = hasJoinedPlayer ? "！！！" : "？？？";
+                } else {
+                    name = "？？？";
+                }
+                return `${name}${curSuffix}${activeSuffix}${markSuffix}`
+            }
             if (matchData === undefined) {
                 name = fallbackName
             } else {
@@ -231,6 +244,7 @@ export const FilmCentenaryBoard = ({
     const [open, setOpen] = React.useState(true);
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
+    const [showSpectatorTrend, setShowSpectatorTrend] = React.useState(true);
 
     const disconnectNotice = isConnected ? <></> :
         <>
@@ -289,6 +303,29 @@ export const FilmCentenaryBoard = ({
                 </DialogContent>
             </Dialog>
         </>
+
+    const spectatorTrendPanel = playerID === null && ctx.gameover === undefined ?
+        <Grid item xs={12}>
+            <Paper variant="elevation">
+                <div style={{padding: 8}}>
+                    <Grid container justifyContent="space-between" alignItems="center">
+                        <Grid item>
+                            <Typography variant="h6" component="h2">对局趋势（观战）</Typography>
+                        </Grid>
+                        <Grid item>
+                            <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => setShowSpectatorTrend(v => !v)}
+                            >
+                                {showSpectatorTrend ? "隐藏" : "显示"}
+                            </Button>
+                        </Grid>
+                    </Grid>
+                    {showSpectatorTrend ? <FinalScoreTable G={G} ctx={ctx} getName={getName} showFinalScoreTable={false}/> : <></>}
+                </div>
+            </Paper>
+        </Grid> : <></>
     const upperPanel = playerID !== null ? <>
             {ctx.phase === "InitPhase" ?
                 isActive ? <Grid item xs={12}>
@@ -371,7 +408,10 @@ export const FilmCentenaryBoard = ({
                     </ErrorBoundary>
                 </Grid>
             )}
-            <FinalScoreTable G={G} ctx={ctx} getName={getName}/>
+            <Grid item xs={12}>
+                <FinalScoreTable G={G} ctx={ctx} getName={getName} showStatsSection={false}/>
+            </Grid>
+            {spectatorTrendPanel}
         </Grid>
     </ErrorBoundary>
 }

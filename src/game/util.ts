@@ -47,7 +47,7 @@ import {
 import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {Stage} from "boardgame.io/core";
-import {changePlayerStage, changeStage, signalEndStage, signalEndTurn} from "./logFix";
+import {changePlayerStage, changeStage, signalEndStage, signalEndTurn, stopTimingForGameEnd} from "./logFix";
 import {getCardEffect} from "../constant/effects";
 import {logger} from "./logger";
 import {appendServerMatchStats} from "./serverStatsStorage";
@@ -442,6 +442,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             } else {
                 logger.debug(`${G.matchID}|${log.join('')}`)
             }
+            return;
+        case SimpleEffectNames.competitionLoserLoseVp:
+            loseVp(G, ctx, G.competitionInfo.def, eff.a);
             return;
         case "buy":
             card = getCardById(eff.a);
@@ -1430,12 +1433,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     addVp(G, ctx, p, 1);
                 }
             }
+            /*
             if (pub.school === SchoolCardID.S6342) {
                 for(let card of validCardsToDiscard) {
                     for(let i = 0; i < getCardById(card).industry; i++) addRes(G, ctx, p, 1);
                     for(let i = 0; i < getCardById(card).aesthetics; i++) addVp(G, ctx, p, 1);
                 }
             }
+            */
             log.push(`|prev|${JSON.stringify(playerObj.hand)}|${JSON.stringify(pub.discard)}`);
             playerObj.hand = playerObj.hand.filter((handElm) => validCardsToDiscard.indexOf(handElm) === -1);
             pub.discard = pub.discard.concat(validCardsToDiscard);
@@ -1515,19 +1520,34 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "era":
             // 武侠电影
-            if(pub.school === SchoolCardID.S5209 && pub.action == 1){
-                let era;
-                for(era = 0; era < 3; era++){
-                    if(eff.a[era].e !== 'none') break;
+            if (pub.school === SchoolCardID.S5209 && pub.action == 1 && G.e.card !== null) {
+                const cardObj = curCard(G);
+                const isObsoleteFilm = cardObj.type === CardType.F && cardObj.region !== Region.NONE &&
+                    cardObj.era < G.regions[cardObj.region].era;
+                if (isObsoleteFilm) {
+                    if (pub.deposit >= 1) {
+                        pub.deposit -= 1;
+                        let era;
+                        for (era = 0; era < 3; era++) {
+                            if (eff.a[era].e !== 'none') break;
+                        }
+                        log.push(`|era|${era}|payDeposit`);
+                        subEffect = {...eff.a[era]}
+                        if (eff.hasOwnProperty("target")) {
+                            subEffect.target = eff.target
+                        }
+                        G.e.stack.push(subEffect);
+                        log.push(`|era|${JSON.stringify(G.e.stack)}`);
+                        break;
+                    } else {
+                        log.push(`|noDeposit|wuxia`);
+                        addVp(G, ctx, p, 1);
+                        subEffect = getEraEffectByRegion(G, ctx, eff, region);
+                        G.e.stack.push(subEffect);
+                        log.push(`|era|${JSON.stringify(G.e.stack)}`);
+                        break;
+                    }
                 }
-                log.push(`|era|${era}`);
-                subEffect = {...eff.a[era]}
-                if (eff.hasOwnProperty("target")) {
-                    subEffect.target = eff.target
-                }
-                G.e.stack.push(subEffect);
-                log.push(`|era|${JSON.stringify(G.e.stack)}`);
-                break;
             }
             subEffect = getEraEffectByRegion(G, ctx, eff, region);
             G.e.stack.push(subEffect);
@@ -2601,7 +2621,10 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             }
             break;
         case SchoolCardID.S5201:
-            if(G.regions[Region.EE].era !== IEra.THREE){
+            if (G.regions[Region.EE].era !== IEra.THREE &&
+                G.regions[Region.WE].era !== IEra.THREE &&
+                G.regions[Region.NA].era !== IEra.THREE &&
+                G.regions[Region.ASIA].era !== IEra.THREE) {
                 resRequired = 1000;
             }
             if (pub.bought_extension) {
@@ -4510,6 +4533,7 @@ export const finalScoring = (G: IG, ctx: Ctx) => {
     const rankFunc = (a: number, b: number) => rank(G, ctx, a, b, true);
     let finalRank = pid.sort(rankFunc);
     appendServerMatchStats(G, ctx, VictoryType.finalScoring, finalRank[0].toString());
+    stopTimingForGameEnd(G, ctx);
     ctx?.events?.endGame?.({
         winner: finalRank[0].toString(),
         reason: VictoryType.finalScoring,

@@ -68,6 +68,11 @@ export interface IPubPanelProps {
 export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     useI18n(i18n);
     const classes = useStyles();
+    const [, setTick] = React.useState(0);
+    React.useEffect(() => {
+        const timer = window.setInterval(() => setTick(v => v + 1), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
     const inferHand = (): CardID[] => getPlayerInferredHand(G, idx.toString());
     const playerID = idx.toString()
     const legendCount = (r: ValidRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
@@ -96,6 +101,24 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     const reverseLog = cloneLog.filter(l => l.action.payload.playerID === playerID).reverse().slice(0, 40);
     const playerLogText = reverseLog.map(l => getLogText(l, getName, G)).join('\n');
     const schoolTitle = i.school !== null ? `${getCardName(i.school)}` : "";
+
+    const formatDuration = (ms: number): string => {
+        const totalSeconds = Math.max(0, Math.floor((ms || 0) / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    const getTimeText = (): string => {
+        const tracking = G.timeTracking;
+        const baseRound = tracking?.roundTimeMsByPlayer?.[playerID] || 0;
+        const baseTotal = tracking?.totalTimeMsByPlayer?.[playerID] || 0;
+        if (tracking?.currentTurnPlayer === playerID && (tracking.currentTurnStartedAtMs || 0) > 0) {
+            const running = Math.max(0, Date.now() - tracking.currentTurnStartedAtMs);
+            return `${formatDuration(baseRound + running)} / ${formatDuration(baseTotal + running)}`;
+        }
+        return `${formatDuration(baseRound)} / ${formatDuration(baseTotal)}`;
+    }
 
     return <Grid container item
                  justifyContent="center" alignItems="center"
@@ -148,6 +171,11 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 <Typography aria-label={`${i18n.pub.competitionPower}${i.resource}`} className={classes.iconAlign}>
                      {i18n.pub.competitionPower}
                      {i.competitionPower}
+                </Typography>
+            </Grid>
+            <Grid item>
+                <Typography className={classes.iconAlign} style={{fontSize: 12, color: "#5f6b7a"}}>
+                    {`用时(${getTimeText()})`}
                 </Typography>
             </Grid>
         </Grid>
