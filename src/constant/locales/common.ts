@@ -45,6 +45,7 @@ export interface LocaleSettings {
     randomFirst: string,
     fixedFirst: string,
     allRandom: string,
+    anonymousRandom: string,
     order: string,
     changeSetting: string,
     disableUndo: string,
@@ -75,6 +76,9 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
             switch (arg.order) {
                 case GameTurnOrder.ALL_RANDOM:
                     t += setting.allRandom;
+                    break;
+                case GameTurnOrder.ANONYMOUS_RANDOM:
+                    t += setting.anonymousRandom;
                     break;
                 case GameTurnOrder.FIRST_RANDOM:
                     t += setting.randomFirst

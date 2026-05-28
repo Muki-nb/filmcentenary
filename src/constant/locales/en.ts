@@ -307,6 +307,7 @@ const setting: LocaleSettings = {
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
+    anonymousRandom: "Anonymous Random",
     order: "Turn Order",
     changeSetting: "Change Game Setting",
     disableUndo: "Disable Undo",
@@ -738,34 +739,34 @@ const en = {
         High_Concept_Film: "Each industrial symbol for your played card: +1 resource, +1 vp. After competition :+1 competition power, +1 card.",
         schoolExtNonePre: "",
 
-		West_Film: "建造建筑时，额外获得对应地区的一个份额",
-		Brighton_School: "美学等级为2的美学奖励效果改为【资源+1】",
-		Experimental_Film: "每当你购买等级需求比你的等级高的影片后，+1存款，+1声望。购买东欧地区流派后，+1工业等级，+1存款，+1声望",
-		Czechoslovakian_Film: "如果你的工业等级和美学等级差值小于等于1，你执行工业奖励和美学奖励后再执行一次",
-		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励；所有人物牌对你的制片厂效果额外触发一次",
-		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为指定【除你以外，所有本地区没有制片厂的公司。】",
+        West_Film: "When building, gain 1 extra share in the corresponding region.",
+        Brighton_School: "When your aesthetics level is 2, your aesthetics reward becomes [Resource +1].",
+        Experimental_Film: "Whenever you buy a film whose level requirement is higher than your level: +1 deposit, +1 prestige. After buying an East Europe school: +1 industry level, +1 deposit, +1 prestige.",
+        Czechoslovakian_Film: "If the difference between your industry and aesthetics levels is 1 or less, resolve your industry and aesthetics rewards one additional time.",
+        Czechoslovakian_Film_2: "If the difference between your industry and aesthetics levels is 2 or less: at end of turn, trigger industry and aesthetics rewards one additional time; all your person-card studio effects trigger one additional time.",
+        Auteur_film: "After buying a person card: +1 action point, +1 deposit, +1 prestige. Your person-card effect [choose one company in this region without a studio] becomes [choose all other companies in this region without a studio].",
 
-        '5201_effect': "购买影片时，忽略较低的等级需求（之一）",
-        '5202_effect': "你+1牌后，+1声望。被争夺后，不会失去声望。",
-        '5203_effect': "购买影片时，多获得一个份额",
-        '5204_effect': "你+1牌前，如果牌库为空，+2资源，+4声望。被争夺后，不会失去声望",
-        '5205_effect': "如果【最后一轮】已被触发，购买对应牌获得对应奖励：\n" +
-            "传奇牌：+1行动力；\n" +
-            "普通牌：+4资源；\n" +
-            "基础牌：+6声望；\n" +
-            "影片牌：+1牌；\n" +
-            "人物牌：根据人物牌的等级需求获得声望"
+        '5201_effect': "When buying a film, ignore one of the lower level requirements.",
+        '5202_effect': "After you gain +1 card, gain +1 prestige. After being competed, you do not lose prestige.",
+        '5203_effect': "When buying a film, gain 1 extra share.",
+        '5204_effect': "Before you gain +1 card, if your deck is empty: +2 resources, +4 prestige. After being competed, you do not lose prestige.",
+        '5205_effect': "If [Final Round] has been triggered, buying different card types gives different rewards:\n" +
+            "Legend card: +1 action point;\n" +
+            "Normal card: +4 resources;\n" +
+            "Basic card: +6 prestige;\n" +
+            "Film card: +1 card;\n" +
+            "Person card: gain prestige based on that person card's level requirement"
         ,
-        '5206_effect': "在你的回合中，每当你增加声望并超过其他公司后，+1牌。你打出或突破一张基础牌时，支付1声望，+1存款。",
-        '5207_effect': "每回合开始时，如果手牌数≤工业等级，+1行动力。每回合结束时，如果出牌区牌数≥工业等级，+1存款，+1声望。",
-        '5208_buy': "任意地区处于2时代时可以购买。如果东欧处于1/2时代，获得所有/1个东欧份额。",
-        '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典，+1牌。你的传世经典还可以选择③+1存款，+2声望。",
-        '5209_effect': "仅剩1点行动力时，参考影片的最早时代执行【出牌】效果。",
+        '5206_effect': "During your turn, whenever your prestige increases and surpasses another company, +1 card. When you play or breakthrough a basic card, pay 1 prestige to gain +1 deposit.",
+        '5207_effect': "At the start of each turn, if hand size <= industry level: +1 action point. At end of each turn, if cards in your play area >= industry level: +1 deposit, +1 prestige.",
+        '5208_buy': "Can be bought when any region is in Era II. If East Europe is in Era I/II, gain all/1 East Europe share(s).",
+        '5208_effect': "Whenever you archive an obsolete film or a bad film (including through breakthrough), buy 1 Classic Film for free and +1 card. Your Classic Film can also choose option 3: +1 deposit, +2 prestige.",
+        '5209_effect': "When you only have 1 action point left and play an obsolete film: pay 1 deposit to resolve the [Play] effect based on the film's era; if you can't pay, +1 prestige.",
 
-        '6311_effect': "在本次行动阶段中，你工业奖励后，+1竞争力",
-        '6312_effect': "在本次行动阶段中，你工业奖励后，+1牌",
+        '6311_effect': "During this action phase, after your industry reward: +1 competition power.",
+        '6312_effect': "During this action phase, after your industry reward: +1 card.",
 
-        '6342_effect': "任意公司【更新】后，+1牌，评论1次。你每-1牌，牌上的每个工业标志，+1资源，牌上的每个美学标志，+1声望。被争夺后，不会失去声望。",
+        '6342_effect': "After any company [Updates]: +1 card and Comment once. Each time you lose 1 card, gain +1 resource for each industry icon on that card and +1 prestige for each aesthetics icon on that card. After being competed, you do not lose prestige.",
 
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
@@ -910,6 +911,7 @@ const en = {
         aestheticsBreakthrough: ["Aesthetics breakthrough{{a}}", argTimes],
         buy: ["Buy 【{{a}}】 for free", argCardName],
         competitionLoserBuy: ["The loser buy [{{a}} ]", argCardName],
+        competitionLoserLoseVp: ["The loser lose {{a}} vp", argValue],
         buyCardToHand: ["Buy 【{{a}}】 for free, and add to hand.", argCardName],
         buyCardToDeckTop: ["Buy 【{{a}}】 for free, and put it on top of deck.", argCardName],
         industryLevelUp: ["Upgrade industry level {{a}}", argTimes],

@@ -307,6 +307,7 @@ const setting = {
     randomFirst: "随机首位",
     fixedFirst: "固定首位",
     allRandom: "完全随机",
+    anonymousRandom: "匿名随机",
     order: "行动顺序",
     changeSetting: "更改设置",
     disableUndo: "禁止撤回",
@@ -798,12 +799,12 @@ const zh_CN: Locale = {
         '5207_effect': "每回合开始时，如果手牌数≤工业等级，+1行动力。每回合结束时，如果出牌区牌数≥工业等级，+1存款，+1声望",
         '5208_buy': "任意地区进入2时代后可以购买。如果东欧处于1/2时代，获得所有/1个东欧份额",
         '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典，+1牌。你的传世经典还可以选择③+1存款，+2声望",
-        '5209_effect': "仅剩1点行动力时，参考影片的最早时代执行【出牌】效果",
+        '5209_effect': "仅剩1点行动力，执行影片的过时【出牌】效果时：支付1存款，然后才能按照影片的时代执行【出牌】效果；如果不能支付，+1声望",
 
         '6311_effect': "在本次行动阶段中，你工业奖励后，+1竞争力。",
         '6312_effect': "在本次行动阶段中，你工业奖励后，+1牌。",
         
-        '6342_effect': "任意公司【更新】后，+1牌，评论1次。你每-1牌，牌上的每个工业标志，+1资源，牌上的每个美学标志，+1声望",
+        '6342_effect': "任意公司【更新】后，+1牌，评论1次",
 
 		Czechoslovakian_Film: "不能触发工业/美学等级为8的奖励效果。如果你的工业等级和美学等级差值小于等于2：每当你触发工业奖励或美学奖励，额外触发一次",
 		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：回合结束时额外触发一次工业奖励和美学奖励，并且所有人物牌对你的制片厂效果额外触发一次",
@@ -875,6 +876,8 @@ const zh_CN: Locale = {
                         case SimpleEffectNames.competitionLoserBuy:
                             // @ts-ignore
                             return `，然后对方免费购买1张${cards[e.a]}`;
+                        case SimpleEffectNames.competitionLoserLoseVp:
+                            return `，然后被争夺方-${e.a}声望`;
                         case SimpleEffectNames.vp:
                         case SimpleEffectNames.addVp:
                             return `，然后+${e.a}声望`;
@@ -917,6 +920,9 @@ const zh_CN: Locale = {
                                         break;
                                     case SimpleEffectNames.vp:
                                         onWinEffs.push(`+${subEff.a}声望`);
+                                        break;
+                                    case SimpleEffectNames.competitionLoserLoseVp:
+                                        onWinEffs.push(`被争夺方-${subEff.a}声望`);
                                         break;
                                     default:
                                         onWinEffs.push(JSON.stringify(subEff));
@@ -1008,6 +1014,7 @@ const zh_CN: Locale = {
         aestheticsBreakthrough: ["美学突破{{a}}次", argValue],
         buy: ["免费购买《{{a}}》", argCardName],
         competitionLoserBuy: ["被争夺方免费购买《{{a}}》", argCardName],
+        competitionLoserLoseVp: ["被争夺方-{{a}}声望", argValue],
         buyCardToHand: ["免费购买《{{a}}》并加入手牌", argCardName],
         buyCardToDeckTop: ["免费购买《{{a}}》并置于牌堆顶", argCardName],
         industryLevelUp: ["+{{a}}工业等级", argValue],
