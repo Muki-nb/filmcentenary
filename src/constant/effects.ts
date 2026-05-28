@@ -3105,7 +3105,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
         canArchive: (G: IG, ctx: Ctx) => true,
-        archive: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 3}]},
+        archive: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
         response: noResponse,
     },
     "6131": {
@@ -3137,7 +3137,7 @@ export const effects = {
             e: "step", a: [
                 {e: "deposit", a: 1},
                 {e: ItrEffects.update, a: 1},
-                {e: "noStudio", a: {e: "loseVp", a: 3}},
+                {e: "noStudio", a: {e: "step", a: [{e: ItrEffects.discardBasic, a: 1}, {e: "loseVp", a: 3}] }},
                 {e: "studio", a: {e: "step", a: [{e: "draw", a: 1}, {e: SimpleEffectNames.addCompetitionPower, a: 1}] }},
             ]
         },
@@ -3147,7 +3147,12 @@ export const effects = {
     },
     "6212": {
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "step", a: [{e: "loseVp", a: 2}, {e: SimpleEffectNames.addCompetitionPower, a: 2}]},
+        buy: {
+            e: "choice", a: [
+                {e: "shareNA", a: 1},
+                {e: "step", a: [{e: "loseVp", a: 2}, {e: SimpleEffectNames.addCompetitionPower, a: 2}]},
+            ]
+        },
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "era", a: [
@@ -3160,7 +3165,7 @@ export const effects = {
                             e: "optional", a: {
                                 e: "competition", a: {
                                     bonus: 0,
-                                    onWin: {e: "deposit", a: 1},
+                                    onWin: {e: "step", a: [{e: "deposit", a: 1}, {e: SimpleEffectNames.competitionLoserLoseVp, a: 2}]},
                                 }
                             }
                         },
@@ -3206,7 +3211,6 @@ export const effects = {
                         {
                             e: "step", a: [
                                 {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04},
-                                {e: "vp", a: 2},
                                 {e: "draw", a: 3},
                             ]
                         },
@@ -3270,8 +3274,8 @@ export const effects = {
             pre: {e: "turnStart"},
             effect: {
                 e: "choice", a: [
-                    {e: "peek", a: {count: 3, target: "hand", filter: {e: "industry", a: "all"}}},
-                    {e: "peek", a: {count: 3, target: "hand", filter: {e: "aesthetics", a: "all"}}},
+                    {e: "peek", a: {count: 2, target: "hand", filter: {e: "industry", a: "all"}}},
+                    {e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}},
                 ]
             }
         },
@@ -3303,8 +3307,16 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "draw", a: 1},
+                {
+                    e: "optional", a: {
+                        e: "competition", a: {
+                            bonus: 0,
+                            onWin: noEff,
+                        }
+                    }
+                },
                 {e: "6311_effect"},
-                {e: "noStudio", a: {e: "step", a: [{e: "loseDeposit", a: 2}, {e: "loseVp", a: 3}] }},
+                {e: "noStudio", a: {e: "step", a: [{e: SimpleEffectNames.loseCompetitionPower, a: 1}, {e: "loseDeposit", a: 2}, {e: "loseVp", a: 3}] }},
                 {e: "studio", a: {e: "industryToVp", a: 1}},
             ]
         },
@@ -3374,8 +3386,8 @@ export const effects = {
                 {e: "loseVp", a: 2},
                 {e: "draw", a: 1},
                 {e: ItrEffects.breakthroughResDeduct, a: 1},
-                {e: "noStudio", a: {e: "loseVp", a: 4}},
-                {e: "studio", a: {e: "step", a: [{e: "deposit", a: 2}, {e: "vp", a: 2}] }},
+                {e: "noStudio", a: {e: "discardNormalOrLegend", a: 1}},
+                {e: "studio", a: {e: "step", a: [{e: "deposit", a: 2}, {e: "vp", a: 2}, {e: "draw", a: 1}] }},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3498,10 +3510,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "draw", a: 1},
                 {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
-                {e: "noStudio", a: {e: "step", a: [{e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
-                {e: "studio", a: {e: "deposit", a: 2}},
+                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "deposit", a: 2}] }},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3511,11 +3522,11 @@ export const effects = {
     },
     "6342": {
         school: {
-            hand: 5,
+            hand: 6,
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: "shareASIA", a: 1},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3591,7 +3602,7 @@ export const effects = {
     },
     "5204": {
         "school": {
-            hand: 5,
+            hand: 4,
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -3619,11 +3630,11 @@ export const effects = {
     //Muki Extension 2 - era 2
     "5206": {
         "school": {
-            hand: 5,
+            hand: 4,
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: "step", a: [{e: "loseVp", a: 5}, {e: "loseDeposit", a: 2}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
