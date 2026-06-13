@@ -4339,7 +4339,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
     }
     if (p.aesthetics === 10) {
         log.push(`|vp|${p.vp}|before|${f.aestheticsAward}`);
-        f.aestheticsAward += Math.round(p.vp / 5);
+        f.aestheticsAward += Math.floor(p.vp / 5);
         log.push(`|after|${f.aestheticsAward}`);
     }
     log.push(`|archive`);
