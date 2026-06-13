@@ -738,11 +738,9 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 }
 
                 if (school == SchoolCardID.S5004) {
-                    if(card.region === Region.EE){
-                        if(pub.industry < 10) pub.industry++;
-                        pub.deposit += 1;
-                        addVp(G, ctx, p, 1);
-                    }
+                    if(pub.industry < 10) pub.industry++;
+                    pub.deposit += 1;
+                    addVp(G, ctx, p, 1);
                 }
 
                 log.push(`|archive|${school}`);
@@ -2338,9 +2336,6 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
             //addVp(G, ctx, p, 1);
         }
     }
-    if(pub.playedCardInTurn.includes(PersonCardID.P6311)){
-        addCompetitionPower(G, ctx, p, 1);
-    }
     if(pub.playedCardInTurn.includes(FilmCardID.F6312)){
         drawCardForPlayer(G, ctx, p);
     }
@@ -2671,6 +2666,7 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             break;
         case SchoolCardID.S5206:
             if(G.regions[Region.NA].era === IEra.ONE) resRequired = 1000;
+            if(pub.archive.includes(BasicCardID.B07)) resRequired = 1000;
             if (pub.bought_extension) {
                 resRequired = 1000;
             }
@@ -4014,6 +4010,14 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
                 log.push(`|schoolID|${atkSchoolID}`)
                 break;
         }
+        
+        // P6311 Kubrick: after contest, +1 deposit, +1 competition power
+        const atkPub = G.pub[parseInt(i.atk)];
+        if(atkPub.playedCardInTurn.includes(PersonCardID.P6311)){
+            atkPub.deposit += 1;
+            addCompetitionPower(G, ctx, i.atk, 1);
+        }
+        
         //此处添加流派扩防守方相关内容
         const defSchoolID = G.pub[parseInt(i.def)].school;
         switch (defSchoolID) {

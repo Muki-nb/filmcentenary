@@ -757,13 +757,14 @@ const en = {
             "Film card: +1 card;\n" +
             "Person card: gain prestige based on that person card's level requirement"
         ,
+        '5206_buy': "Can be bought when the archive has no funds.",
         '5206_effect': "During your turn, whenever your prestige increases and surpasses another company, +1 card. When you play or breakthrough a basic card, pay 1 prestige to gain +1 deposit.",
         '5207_effect': "At the start of each turn, if hand size <= industry level: +1 action point. At end of each turn, if cards in your play area >= industry level: +1 deposit, +1 prestige.",
         '5208_buy': "Can be bought when any region is in Era II. If East Europe is in Era I/II, gain all/1 East Europe share(s).",
         '5208_effect': "Whenever you archive an obsolete film or a bad film (including through breakthrough), buy 1 Classic Film for free and +1 card. Your Classic Film can also choose option 3: +1 deposit, +2 prestige.",
         '5209_effect': "When you only have 1 action point left and play an obsolete film: pay 1 deposit to resolve the [Play] effect based on the film's era; if you can't pay, +1 prestige.",
 
-        '6311_effect': "During this action phase, after your industry reward: +1 competition power.",
+        '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
         '6312_effect': "During this action phase, after your industry reward: +1 card.",
 
         '6342_effect': "After any company [Updates]: +1 card and Comment once. Each time you lose 1 card, gain +1 resource for each industry icon on that card and +1 prestige for each aesthetics icon on that card. After being competed, you do not lose prestige.",

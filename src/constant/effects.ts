@@ -1893,7 +1893,17 @@ export const effects = {
             pre: {e: "multiple", a: 2}, effect: [
                 {
                     pre: {e: "turnStart"},
-                    effect: {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                    effect: {
+                        e: ItrEffects.choice, a: [
+                            {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                            {e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: noEff,
+                                }
+                            }}
+                        ]
+                    },
                 }, {
                     pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.res, a: 2},
                 }
@@ -3306,6 +3316,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
+                {e: "6311_effect"},
                 {e: "draw", a: 1},
                 {
                     e: "optional", a: {
@@ -3315,8 +3326,7 @@ export const effects = {
                         }
                     }
                 },
-                {e: "6311_effect"},
-                {e: "noStudio", a: {e: "step", a: [{e: SimpleEffectNames.loseCompetitionPower, a: 1}, {e: "loseDeposit", a: 2}, {e: "loseVp", a: 3}] }},
+                {e: "noStudio", a: {e: "step", a: [{e: "loseDeposit", a: 2}, {e: SimpleEffectNames.loseCompetitionPower, a: 2}] }},
                 {e: "studio", a: {e: "industryToVp", a: 1}},
             ]
         },
@@ -3634,7 +3644,7 @@ export const effects = {
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "step", a: [{e: "loseVp", a: 5}, {e: "loseDeposit", a: 2}]},
+        buy: {e: "step", a: [{e: "5206_buy", a: 1}, {e: "loseVp", a: 5}, {e: "loseDeposit", a: 2}, {e: SimpleEffectNames.shareNA, a: 1}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3647,7 +3657,7 @@ export const effects = {
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: SimpleEffectNames.shareWE, a: 1},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
