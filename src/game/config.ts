@@ -153,7 +153,17 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
-                addCompetitionPower(G, ctx, p, 1);
+                log.push(`|newHollywood|addChoice`);
+
+                G.e.choices.push({e: "addCompetitionPower", a: 1});
+                G.e.choices.push({e: "competition", a: 
+                    {
+                        bonus: 0,
+                        onWin: noEff
+                    }
+                });
+                
+                changePlayerStage(G, ctx, "chooseEffect", p);
             }
             if (pub.school === SchoolCardID.S3105) {
                 log.push(`|newYork`);
