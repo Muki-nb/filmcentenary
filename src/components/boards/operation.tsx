@@ -172,8 +172,16 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
     const discardChoices = getChooseHandChoice(G, playerID, getCardName);
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
+        const idx = parseInt(choice);
+        const hasCurEffect = G.e.stack.length > 0;
+        const effE = hasCurEffect ? G.e.stack.slice(-1)[0].e : null;
+        
+        const cardId = (effE === "playedCardInTurnEffect")
+        ? G.pub[parseInt(playerID)].playedCardInTurn[idx] // Blue
+        : hand[idx];
+
         moves.chooseHand({
-            hand: hand[parseInt(choice)],
+            hand: cardId,
             idx: parseInt(choice),
             p: playerID,
         })
