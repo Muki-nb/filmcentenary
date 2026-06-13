@@ -237,9 +237,10 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                     <FormControlLabel
                         disabled={ctx.numPlayers < 3}
                         value={ExtensionMode.FOUR} control={<Radio/>} label={i18n.setting.extensionMode_four}/>
-                    <FormControlLabel
+                    {/* 暂时隐藏"随机取代原有卡牌"选项 */}
+                    {/* <FormControlLabel
                         disabled={true}
-                        value={ExtensionMode.FIXED} control={<Radio/>} label={i18n.setting.extensionMode_fixed}/>
+                        value={ExtensionMode.FIXED} control={<Radio/>} label={i18n.setting.extensionMode_fixed}/> */}
                 </RadioGroup>
             </FormControl>
         </Grid>
