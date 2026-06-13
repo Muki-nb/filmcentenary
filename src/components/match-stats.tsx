@@ -29,11 +29,17 @@ interface IMatchStatsRecord {
     players: IPlayerStatsRecord[],
 }
 
-interface ITurnStatsSummary {
+interface ITurnStatsGroup {
     averageTurnCount: number,
     maxTurnCount: number,
     minTurnCount: number,
     recordedTurnGames: number,
+}
+
+interface ITurnStatsSummary {
+    all: ITurnStatsGroup,
+    p3: ITurnStatsGroup,
+    p4: ITurnStatsGroup,
 }
 
 interface ITurnDistributionPoint {
@@ -48,6 +54,11 @@ interface ISeatStatsRow {
     winRate: number,
     avgRank: number,
     rankStdDev: number,
+}
+
+interface ISeatStatsGroup {
+    p3: ISeatStatsRow[],
+    p4: ISeatStatsRow[],
 }
 
 interface ICardStatsRow {
@@ -80,6 +91,16 @@ interface ILevelRelationStatsRow {
     avgAestheticsLevel?: number,
     winAvgIndustryLevel?: number,
     winAvgAestheticsLevel?: number,
+}
+
+interface IMatchCompositionStatsRow {
+    composition: "3i1a" | "2i2a" | "1i3a",
+    label: string,
+    games: number,
+    indWins: number,
+    indWinRate: number,
+    aesWins: number,
+    aesWinRate: number,
 }
 
 type CardStatsFilterMode = "all" | "school" | "era1";
@@ -310,9 +331,23 @@ const buildRankMap = (record: IMatchStatsRecord): Map<string, number> => {
     return rankMap;
 }
 
-const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsRow[] => {
-    const buckets = seatLabels.map((label) => ({
-        label,
+const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsGroup => {
+    const buckets3 = [0, 1, 2].map((seat) => ({
+        label: `${seat + 1}位`,
+        seat,
+        games: 0,
+        wins: 0,
+        winRate: 0,
+        avgRank: 0,
+        rankStdDev: 0,
+        rankSum: 0,
+        rankSqSum: 0,
+        rankGames: 0,
+    }));
+
+    const buckets4 = [0, 1, 2, 3].map((seat) => ({
+        label: `${seat + 1}位`,
+        seat,
         games: 0,
         wins: 0,
         winRate: 0,
@@ -325,6 +360,11 @@ const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsRow[] => {
 
     records.forEach(record => {
         const rankMap = buildRankMap(record);
+        const playerCount = record.players.length;
+        const buckets = playerCount === 3 ? buckets3 : (playerCount === 4 ? buckets4 : null);
+        
+        if (!buckets) return;
+
         record.players.forEach(player => {
             if (player.seat >= 0 && player.seat < buckets.length) {
                 buckets[player.seat].games += 1;
@@ -341,12 +381,20 @@ const buildSeatStats = (records: IMatchStatsRecord[]): ISeatStatsRow[] => {
         });
     });
 
-    return buckets.map(bucket => ({
-        ...bucket,
-        winRate: bucket.games > 0 ? bucket.wins / bucket.games : 0,
-        avgRank: bucket.rankGames > 0 ? bucket.rankSum / bucket.rankGames : 0,
-        rankStdDev: calcStdDev(bucket.rankSum, bucket.rankSqSum, bucket.rankGames),
-    }));
+    return {
+        p3: buckets3.map(bucket => ({
+            ...bucket,
+            winRate: bucket.games > 0 ? bucket.wins / bucket.games : 0,
+            avgRank: bucket.rankGames > 0 ? bucket.rankSum / bucket.rankGames : 0,
+            rankStdDev: calcStdDev(bucket.rankSum, bucket.rankSqSum, bucket.rankGames),
+        })),
+        p4: buckets4.map(bucket => ({
+            ...bucket,
+            winRate: bucket.games > 0 ? bucket.wins / bucket.games : 0,
+            avgRank: bucket.rankGames > 0 ? bucket.rankSum / bucket.rankGames : 0,
+            rankStdDev: calcStdDev(bucket.rankSum, bucket.rankSqSum, bucket.rankGames),
+        })),
+    };
 };
 
 const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilterMode): ICardStatsRow[] => {
@@ -431,11 +479,7 @@ const buildCardStats = (records: IMatchStatsRecord[], filterMode: CardStatsFilte
         });
 };
 
-const buildTurnStats = (records: IMatchStatsRecord[]): ITurnStatsSummary => {
-    const turnCounts = records
-        .map(record => record.turnCount)
-        .filter((turnCount): turnCount is number => typeof turnCount === "number" && turnCount > 0);
-
+const buildTurnStatsGroup = (turnCounts: number[]): ITurnStatsGroup => {
     if (turnCounts.length === 0) {
         return {
             averageTurnCount: 0,
@@ -452,9 +496,45 @@ const buildTurnStats = (records: IMatchStatsRecord[]): ITurnStatsSummary => {
         minTurnCount: Math.min(...turnCounts),
         recordedTurnGames: turnCounts.length,
     };
+}
+
+const buildTurnStats = (records: IMatchStatsRecord[]): ITurnStatsSummary => {
+    const defaultStats: ITurnStatsSummary = {
+        all: buildTurnStatsGroup([]),
+        p3: buildTurnStatsGroup([]),
+        p4: buildTurnStatsGroup([]),
+    };
+
+    const allTurnCounts: number[] = [];
+    const p3TurnCounts: number[] = [];
+    const p4TurnCounts: number[] = [];
+
+    records.forEach(record => {
+        const turnCount = record.turnCount;
+        if (typeof turnCount === "number" && turnCount > 0) {
+            allTurnCounts.push(turnCount);
+            if (record.players.length === 3) {
+                p3TurnCounts.push(turnCount);
+            } else if (record.players.length === 4) {
+                p4TurnCounts.push(turnCount);
+            }
+        }
+    });
+
+    return {
+        all: buildTurnStatsGroup(allTurnCounts),
+        p3: buildTurnStatsGroup(p3TurnCounts),
+        p4: buildTurnStatsGroup(p4TurnCounts),
+    };
 };
 
-const buildTurnDistribution = (records: IMatchStatsRecord[]): ITurnDistributionPoint[] => {
+interface ITurnDistributionGroup {
+    all: ITurnDistributionPoint[],
+    p3: ITurnDistributionPoint[],
+    p4: ITurnDistributionPoint[],
+}
+
+const buildTurnDistributionList = (records: IMatchStatsRecord[]): ITurnDistributionPoint[] => {
     const counter = new Map<number, number>();
     records.forEach(record => {
         const t = record.turnCount;
@@ -467,6 +547,14 @@ const buildTurnDistribution = (records: IMatchStatsRecord[]): ITurnDistributionP
     return Array.from(counter.entries())
         .map(([turnCount, sampleCount]) => ({turnCount, sampleCount}))
         .sort((a, b) => a.turnCount - b.turnCount);
+}
+
+const buildTurnDistribution = (records: IMatchStatsRecord[]): ITurnDistributionGroup => {
+    return {
+        all: buildTurnDistributionList(records),
+        p3: buildTurnDistributionList(records.filter(r => r.players.length === 3)),
+        p4: buildTurnDistributionList(records.filter(r => r.players.length === 4)),
+    };
 }
 
 const buildLevelThresholdStats = (
@@ -616,21 +704,88 @@ const buildIndustryAestheticsRelationStats = (records: IMatchStatsRecord[]): ILe
     });
 }
 
+const buildCompositionStats = (records: IMatchStatsRecord[]): IMatchCompositionStatsRow[] => {
+    const defaultStats: Record<string, {games: number, indWins: number, aesWins: number}> = {
+        "3i1a": {games: 0, indWins: 0, aesWins: 0},
+        "2i2a": {games: 0, indWins: 0, aesWins: 0},
+        "1i3a": {games: 0, indWins: 0, aesWins: 0},
+    };
+
+    records.forEach(record => {
+        let indCount = 0;
+        let aesCount = 0;
+        let winnerRelation: "ind" | "aes" | "eq" | null = null;
+        for (const player of record.players) {
+            const rel = getIndustryAestheticsRelation(player);
+            if (rel === "industry_gt_aesthetics") {
+                indCount++;
+            } else if (rel === "aesthetics_gt_industry") {
+                aesCount++;
+            }
+            if (player.playerID === record.winner) {
+                if (rel === "industry_gt_aesthetics") {
+                    winnerRelation = "ind";
+                } else if (rel === "aesthetics_gt_industry") {
+                    winnerRelation = "aes";
+                } else if (rel === "industry_eq_aesthetics") {
+                    winnerRelation = "eq";
+                }
+            }
+        }
+
+        let comp: string | null = null;
+        if (indCount === 3 && aesCount === 1) {
+            comp = "3i1a";
+        } else if (indCount === 2 && aesCount === 2) {
+            comp = "2i2a";
+        } else if (indCount === 1 && aesCount === 3) {
+            comp = "1i3a";
+        }
+
+        if (comp) {
+            defaultStats[comp].games++;
+            if (winnerRelation === "ind") {
+                defaultStats[comp].indWins++;
+            } else if (winnerRelation === "aes") {
+                defaultStats[comp].aesWins++;
+            }
+        }
+    });
+
+    const toRow = (comp: "3i1a" | "2i2a" | "1i3a", label: string): IMatchCompositionStatsRow => {
+        const stats = defaultStats[comp];
+        return {
+            composition: comp,
+            label,
+            games: stats.games,
+            indWins: stats.indWins,
+            indWinRate: stats.games > 0 ? stats.indWins / stats.games : 0,
+            aesWins: stats.aesWins,
+            aesWinRate: stats.games > 0 ? stats.aesWins / stats.games : 0,
+        };
+    };
+
+    return [
+        toRow("3i1a", "3工1美"),
+        toRow("2i2a", "2工2美"),
+        toRow("1i3a", "1工3美"),
+    ];
+}
+
 const MatchStatsPage = () => {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
     const [records, setRecords] = React.useState<IMatchStatsRecord[]>([]);
-    const [seatStats, setSeatStats] = React.useState<ISeatStatsRow[]>([]);
+    const [seatStats, setSeatStats] = React.useState<ISeatStatsGroup>({p3: [], p4: []});
     const [cardStatsFilterMode, setCardStatsFilterMode] = React.useState<CardStatsFilterMode>("all");
     const [cardRegionFilter, setCardRegionFilter] = React.useState<RegionFilter>("all");
     const [cardEraFilter, setCardEraFilter] = React.useState<EraFilter>("all");
     const [cardTypeFilter, setCardTypeFilter] = React.useState<CardTypeFilter>("all");
     const [cardSortMode, setCardSortMode] = React.useState<CardSortMode>("winRate");
     const [turnStats, setTurnStats] = React.useState<ITurnStatsSummary>({
-        averageTurnCount: 0,
-        maxTurnCount: 0,
-        minTurnCount: 0,
-        recordedTurnGames: 0,
+        all: buildTurnStatsGroup([]),
+        p3: buildTurnStatsGroup([]),
+        p4: buildTurnStatsGroup([]),
     });
     const [recordCount, setRecordCount] = React.useState(0);
     const [activePanel, setActivePanel] = React.useState<StatsPanel>("turn");
@@ -670,12 +825,11 @@ const MatchStatsPage = () => {
         } catch (err) {
             setRecords([]);
             setRecordCount(0);
-            setSeatStats([]);
+            setSeatStats({p3: [], p4: []});
             setTurnStats({
-                averageTurnCount: 0,
-                maxTurnCount: 0,
-                minTurnCount: 0,
-                recordedTurnGames: 0,
+                all: buildTurnStatsGroup([]),
+                p3: buildTurnStatsGroup([]),
+                p4: buildTurnStatsGroup([]),
             });
             setError(`暂无可用数据`);
         } finally {
@@ -778,6 +932,10 @@ const MatchStatsPage = () => {
         return buildIndustryAestheticsRelationStats(records);
     }, [records]);
 
+    const compositionStats = React.useMemo(() => {
+        return buildCompositionStats(records);
+    }, [records]);
+
     const allIndustryAestheticsRelationStats = React.useMemo(() => {
         return industryAestheticsRelationStats.map(row => {
             if (row.relation === "industry_gt_aesthetics") {
@@ -790,11 +948,69 @@ const MatchStatsPage = () => {
         });
     }, [industryAestheticsRelationStats]);
 
-    const turnDistributionChart = React.useMemo(() => {
-        if (turnDistribution.length === 0) {
-            return null;
-        }
+    const renderDistributionChart = (chart: ReturnType<typeof buildChart>, title: string) => {
+        return <Grid item xs={12}>
+            <Typography variant="body2" color="textSecondary" style={{marginTop: 16, marginBottom: 4}}>
+                {title}
+            </Typography>
+            {chart ? <div style={{width: "100%", overflowX: "auto"}}>
+                <svg
+                    viewBox={`0 0 ${chart.width} ${chart.height}`}
+                    preserveAspectRatio="xMidYMid meet"
+                    style={{width: "100%", height: "auto", minWidth: 420, aspectRatio: `${chart.width} / ${chart.height}`, background: "#fbfcff", border: "1px solid #eef2f7", borderRadius: 8}}
+                >
+                    {chart.yTicks.map((tick, idx) => <g key={`yt-${idx}`}>
+                        <line
+                            x1={chart.left}
+                            y1={tick.y}
+                            x2={chart.width - chart.right}
+                            y2={tick.y}
+                            stroke="#e7ecf4"
+                            strokeWidth="1"
+                        />
+                        <text
+                            x={chart.left - 8}
+                            y={tick.y + 4}
+                            textAnchor="end"
+                            fill="#a8b5c9"
+                            fontSize="11"
+                        >
+                            {tick.value}
+                        </text>
+                    </g>)}
 
+                    <polyline
+                        fill="none"
+                        stroke="#4a8bf5"
+                        strokeWidth="3"
+                        strokeLinejoin="round"
+                        points={chart.polyline}
+                    />
+
+                    {chart.points.map(point => <g key={`p-${point.turnCount}`}>
+                        <circle cx={point.x} cy={point.y} r="4" fill="#ffffff" stroke="#4a8bf5" strokeWidth="2" />
+                        <title>{point.turnCount} 回合: {point.sampleCount} 局</title>
+                    </g>)}
+
+                    <text x={chart.left} y={chart.height - 8} fill="#7f8da3" fontSize="11">
+                        {chart.minX} 回合
+                    </text>
+                    <text
+                        x={chart.width - chart.right}
+                        y={chart.height - 8}
+                        textAnchor="end"
+                        fill="#7f8da3"
+                        fontSize="11"
+                    >
+                        {chart.maxX} 回合
+                    </text>
+                </svg>
+            </div> : <Typography color="textSecondary">暂无回合样本。</Typography>}
+        </Grid>;
+    };
+
+    const buildChart = (dist: ITurnDistributionPoint[]) => {
+        if (dist.length === 0) return null;
         const width = 880;
         const height = 220;
         const left = 44;
@@ -804,14 +1020,14 @@ const MatchStatsPage = () => {
         const plotWidth = width - left - right;
         const plotHeight = height - top - bottom;
 
-        const minX = turnDistribution[0].turnCount;
-        const maxX = turnDistribution[turnDistribution.length - 1].turnCount;
-        const maxY = Math.max(...turnDistribution.map(p => p.sampleCount));
+        const minX = dist[0].turnCount;
+        const maxX = dist[dist.length - 1].turnCount;
+        const maxY = Math.max(...dist.map(p => p.sampleCount));
 
         const xRange = Math.max(1, maxX - minX);
         const yRange = Math.max(1, maxY);
 
-        const points = turnDistribution.map(p => {
+        const points = dist.map(p => {
             const x = left + ((p.turnCount - minX) / xRange) * plotWidth;
             const y = top + (1 - p.sampleCount / yRange) * plotHeight;
             return {...p, x, y};
@@ -824,6 +1040,14 @@ const MatchStatsPage = () => {
         }));
 
         return {width, height, left, right, top, bottom, points, polyline, yTicks, minX, maxX};
+    };
+
+    const turnDistributionCharts = React.useMemo(() => {
+        return {
+            all: buildChart(turnDistribution.all),
+            p3: buildChart(turnDistribution.p3),
+            p4: buildChart(turnDistribution.p4),
+        };
     }, [turnDistribution]);
 
     const resetCardFilters = React.useCallback(() => {
@@ -902,77 +1126,42 @@ const MatchStatsPage = () => {
                     <Grid item xs={12}>
                         <Typography variant="h6" component="h2">回合统计</Typography>
                     </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>平均回合数：{turnStats.recordedTurnGames > 0 ? turnStats.averageTurnCount.toFixed(2) : "-"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>最短回合：{turnStats.recordedTurnGames > 0 ? turnStats.minTurnCount.toFixed(2) : "-"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>最长回合：{turnStats.recordedTurnGames > 0 ? turnStats.maxTurnCount.toFixed(2) : "-"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>含回合数据对局：{turnStats.recordedTurnGames}</Typography>
-                    </Grid>
+
                     <Grid item xs={12}>
-                        <Typography variant="body2" color="textSecondary" style={{marginTop: 8, marginBottom: 4}}>
-                            回合分布图（X=回合数，Y=样本数）
-                        </Typography>
-                        {turnDistributionChart ? <div style={{width: "100%", overflowX: "auto"}}>
-                            <svg
-                                viewBox={`0 0 ${turnDistributionChart.width} ${turnDistributionChart.height}`}
-                                preserveAspectRatio="xMidYMid meet"
-                                style={{width: "100%", height: "auto", minWidth: 420, aspectRatio: `${turnDistributionChart.width} / ${turnDistributionChart.height}`, background: "#fbfcff", border: "1px solid #eef2f7", borderRadius: 8}}
-                            >
-                                {turnDistributionChart.yTicks.map((tick, idx) => <g key={`yt-${idx}`}>
-                                    <line
-                                        x1={turnDistributionChart.left}
-                                        y1={tick.y}
-                                        x2={turnDistributionChart.width - turnDistributionChart.right}
-                                        y2={tick.y}
-                                        stroke="#e7ecf4"
-                                        strokeWidth="1"
-                                    />
-                                    <text
-                                        x={turnDistributionChart.left - 8}
-                                        y={tick.y + 4}
-                                        textAnchor="end"
-                                        fill="#7f8da3"
-                                        fontSize="11"
-                                    >
-                                        {tick.value}
-                                    </text>
-                                </g>)}
-
-                                <polyline
-                                    fill="none"
-                                    stroke="#3f51b5"
-                                    strokeWidth="2"
-                                    points={turnDistributionChart.polyline}
-                                />
-
-                                {turnDistributionChart.points.map(point => <g key={`p-${point.turnCount}`}>
-                                    <circle cx={point.x} cy={point.y} r="2.8" fill="#3f51b5" />
-                                    <text x={point.x} y={point.y - 6} textAnchor="middle" fill="#5f6b7a" fontSize="10">
-                                        {point.sampleCount}
-                                    </text>
-                                </g>)}
-
-                                <text x={turnDistributionChart.left} y={turnDistributionChart.height - 8} fill="#7f8da3" fontSize="11">
-                                    {turnDistributionChart.minX} 回合
-                                </text>
-                                <text
-                                    x={turnDistributionChart.width - turnDistributionChart.right}
-                                    y={turnDistributionChart.height - 8}
-                                    textAnchor="end"
-                                    fill="#7f8da3"
-                                    fontSize="11"
-                                >
-                                    {turnDistributionChart.maxX} 回合
-                                </text>
-                            </svg>
-                        </div> : <Typography color="textSecondary">暂无回合样本。</Typography>}
+                        <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>4人局</Typography>
                     </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>平均回合数：{turnStats.p4.recordedTurnGames > 0 ? turnStats.p4.averageTurnCount.toFixed(2) : "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>最短回合：{turnStats.p4.recordedTurnGames > 0 ? turnStats.p4.minTurnCount.toFixed(2) : "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>最长回合：{turnStats.p4.recordedTurnGames > 0 ? turnStats.p4.maxTurnCount.toFixed(2) : "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>含回合数据对局：{turnStats.p4.recordedTurnGames}</Typography>
+                    </Grid>
+
+                    {renderDistributionChart(turnDistributionCharts.p4, "4人局回合分布图")}
+
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>3人局</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>平均回合数：{turnStats.p3.recordedTurnGames > 0 ? turnStats.p3.averageTurnCount.toFixed(2) : "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>最短回合：{turnStats.p3.recordedTurnGames > 0 ? turnStats.p3.minTurnCount.toFixed(2) : "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>最长回合：{turnStats.p3.recordedTurnGames > 0 ? turnStats.p3.maxTurnCount.toFixed(2) : "-"}</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Typography>含回合数据对局：{turnStats.p3.recordedTurnGames}</Typography>
+                    </Grid>
+
+                    {renderDistributionChart(turnDistributionCharts.p3, "3人局回合分布图")}
                 </Grid>
             </Paper>
         </Grid> : <></>}
@@ -989,11 +1178,17 @@ const MatchStatsPage = () => {
             <Paper>
                 <Grid container style={sectionPaperStyle}>
                     <Grid item xs={12}>
-                        <Typography variant="h6" component="h2">位次胜率</Typography>
+                        <Typography variant="h6" component="h2" style={{marginBottom: 8}}>位次胜率</Typography>
+                    </Grid>
+                </Grid>
+                
+                <Grid container style={{...sectionPaperStyle, paddingTop: 0}}>
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>4人局位次胜率</Typography>
                     </Grid>
                 </Grid>
                 <TableContainer>
-                    <Table size="small" aria-label="seat win rates">
+                    <Table size="small" aria-label="4 player seat win rates">
                         <TableHead>
                             <TableRow style={tableHeadRowStyle}>
                                 <TableCell>位次</TableCell>
@@ -1005,7 +1200,37 @@ const MatchStatsPage = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {seatStats.map((row, idx) => <TableRow key={row.label} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                            {seatStats.p4.map((row, idx) => <TableRow key={row.label} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                <TableCell>{row.label}</TableCell>
+                                <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
+                                <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
+                                <TableCell>{row.games > 0 ? formatStdDev(row.rankStdDev) : "-"}</TableCell>
+                                <TableCell>{row.wins}</TableCell>
+                                <TableCell>{row.games}</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+
+                <Grid container style={{...sectionPaperStyle, paddingTop: 16}}>
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>3人局位次胜率</Typography>
+                    </Grid>
+                </Grid>
+                <TableContainer>
+                    <Table size="small" aria-label="3 player seat win rates">
+                        <TableHead>
+                            <TableRow style={tableHeadRowStyle}>
+                                <TableCell>位次</TableCell>
+                                <TableCell>胜率</TableCell>
+                                <TableCell>平均名次</TableCell>
+                                <TableCell>位次标准差</TableCell>
+                                <TableCell>胜场</TableCell>
+                                <TableCell>样本</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {seatStats.p3.map((row, idx) => <TableRow key={row.label} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
                                 <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
@@ -1115,6 +1340,36 @@ const MatchStatsPage = () => {
                                 <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
                                 <TableCell>{row.games > 0 ? formatStdDev(row.rankStdDev) : "-"}</TableCell>
                                 <TableCell>{row.games}</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+
+                <Grid container style={{...sectionPaperStyle, paddingTop: 0}}>
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>对局工美环境划分</Typography>
+                    </Grid>
+                </Grid>
+                <TableContainer>
+                    <Table size="small" aria-label="match composition stats">
+                        <TableHead>
+                            <TableRow style={tableHeadRowStyle}>
+                                <TableCell>对局类型</TableCell>
+                                <TableCell>对局数</TableCell>
+                                <TableCell>工业获胜次数</TableCell>
+                                <TableCell>美学获胜次数</TableCell>
+                                <TableCell>工业胜率</TableCell>
+                                <TableCell>美学胜率</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {compositionStats.map((row, idx) => <TableRow key={row.composition} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                <TableCell>{row.label}</TableCell>
+                                <TableCell>{row.games}</TableCell>
+                                <TableCell>{row.indWins}</TableCell>
+                                <TableCell>{row.aesWins}</TableCell>
+                                <TableCell>{row.games > 0 ? formatRate(row.indWinRate) : "-"}</TableCell>
+                                <TableCell>{row.games > 0 ? formatRate(row.aesWinRate) : "-"}</TableCell>
                             </TableRow>)}
                         </TableBody>
                     </Table>

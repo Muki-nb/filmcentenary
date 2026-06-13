@@ -2,14 +2,17 @@ import React from "react";
 import {BoardProps} from "boardgame.io/react";
 import {IG} from "../types/setup";
 import {BoardCardSlot, BoardRegion, SchoolRegion} from "./region";
-import {activePlayer} from "../game/util";
+import {activePlayer, canAfford} from "../game/util";
 import i18n from "../constant/i18n";
 import {PlayerID} from "boardgame.io";
 import Button from "@material-ui/core/Button";
 import PubPanel from "./pub";
 import {
     BasicCardID,
+    BuildingType,
     EventCardID,
+    ExtensionMode,
+    IBuildingSlot,
     ICardSlot,
     Region,
     SimpleRuleNumPlayers,
@@ -22,6 +25,8 @@ import LogView from './log-view';
 import DeckIcon from '@material-ui/icons/Layers';
 import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
+import StudioIcon from '@material-ui/icons/Business';
+import TheatersIcon from '@material-ui/icons/Theaters';
 import {useI18n} from "@i18n-chain/react";
 import OperationPanel from "./boards/operation";
 import FinalScoreTable from "./boards/final";
@@ -34,7 +39,7 @@ import SetupPanel from "./boards/setup-game-mode";
 import disconnectedSfx from './media/connect.mp3'
 // @ts-ignore
 import playerTurnSfx from './media/turn.mp3';
-import {ChampionIcon, DrawnShareIcon} from "./icons";
+import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import Dialog from "@material-ui/core/Dialog";
 import ErrorBoundary from "./error";
 
@@ -181,6 +186,174 @@ export const FilmCentenaryBoard = ({
 
     const endPhase = () => events?.endPhase?.();
 
+    const [open, setOpen] = React.useState(true);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
+    const [showSpectatorTrend, setShowSpectatorTrend] = React.useState(true);
+    const [filterRegion, setFilterRegion] = React.useState<Region | null>(null);
+
+    // 切换地区后，仅当筛选栏不在视口内时才滚动到筛选栏顶部
+    React.useEffect(() => {
+        if (filterRegion !== null) {
+            requestAnimationFrame(() => {
+                const el = document.getElementById('regionFilter');
+                if (!el) return;
+                const rect = el.getBoundingClientRect();
+                // 筛选栏顶部被 sticky AppBar 遮挡（约80px），或已滚出视口上方时，才需要滚动
+                const isVisible = rect.top >= 80 && rect.bottom <= window.innerHeight;
+                if (!isVisible) {
+                    el.scrollIntoView({ block: 'start' });
+                }
+            });
+        }
+    }, [filterRegion]);
+
+    const isRegionVisible = (r: Region): boolean => {
+        if (r === Region.EXTENSION) {
+            if (ExtensionMode.FIXED === G.extensionMode) return false;
+            if (G.extensionMode === ExtensionMode.FOUR) return true;
+            return G.hasSchoolExtension;
+        }
+        if (r === Region.EXTENSION1) {
+            if (ExtensionMode.FIXED === G.extensionMode) return false;
+            if (G.extensionMode === ExtensionMode.FOUR) return false;
+            return G.hasSchoolExtensionMuki || G.hasSchoolExtensionQM;
+        }
+        if (r === Region.EXTENSION2) {
+            if (ExtensionMode.FIXED === G.extensionMode) return false;
+            if (G.extensionMode === ExtensionMode.FOUR) return false;
+            return G.hasSchoolExtensionMuki2;
+        }
+        // 主地区始终可见
+        return true;
+    };
+
+    const allRegions: Region[] = [
+        Region.NA, Region.WE, Region.EE, Region.ASIA,
+        Region.EXTENSION, Region.EXTENSION1, Region.EXTENSION2
+    ];
+
+    const visibleDisplayRegions: Region[] = allRegions.filter(r => isRegionVisible(r));
+
+    // 键盘 A/D 左右切换地区
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+            if (ctx.phase === "InitPhase") return;
+            if (ctx.numPlayers === SimpleRuleNumPlayers) return;
+            if (visibleDisplayRegions.length === 0) return;
+
+            const currentIndex = filterRegion === null ? -1 : visibleDisplayRegions.indexOf(filterRegion);
+
+            if (e.key === 'a' || e.key === 'A') {
+                e.preventDefault();
+                const newIndex = currentIndex <= 0 ? visibleDisplayRegions.length - 1 : currentIndex - 1;
+                setFilterRegion(visibleDisplayRegions[newIndex]);
+            } else if (e.key === 'd' || e.key === 'D') {
+                e.preventDefault();
+                const newIndex = currentIndex >= visibleDisplayRegions.length - 1 ? 0 : currentIndex + 1;
+                setFilterRegion(visibleDisplayRegions[newIndex]);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [filterRegion, visibleDisplayRegions, ctx.phase, ctx.numPlayers]);
+
+    const isExtensionRegion = (r: Region): boolean =>
+        r === Region.EXTENSION || r === Region.EXTENSION1 || r === Region.EXTENSION2;
+
+    const renderRegionButtonContent = (r: Region, selected: boolean): React.ReactNode => {
+        // @ts-ignore
+        const regionInfo = G.regions[r];
+        const color = getColor(r);
+        const textColor = selected ? '#fff' : color;
+
+        // 建筑槽位显示（参考地区组件的显示方式）
+        const activeSlots = regionInfo.buildings.filter((slot: IBuildingSlot) => slot.activated);
+        const buildingNodes: React.ReactNode[] = activeSlots.map((slot: IBuildingSlot, idx: number) => {
+            const ownerName = slot.owner === "" ? i18n.pub.emptyBuildingSlot : getName(slot.owner);
+            if (slot.owner === "") {
+                // 激活但无拥有者：显示 电影院/制片厂 图标 + "空"
+                return (
+                    <span key={idx} style={{display: 'inline-flex', alignItems: 'center'}}>
+                        <TheatersIcon style={{fontSize: 16}}/>/<StudioIcon style={{fontSize: 16}}/>
+                        {ownerName}
+                    </span>
+                );
+            }
+            // 激活且有拥有者：显示对应建筑图标 + 拥有者名
+            return (
+                <span key={idx} style={{display: 'inline-flex', alignItems: 'center'}}>
+                    {slot.building === BuildingType.cinema ? <TheatersIcon style={{fontSize: 16}}/> : <StudioIcon style={{fontSize: 16}}/>}
+                    {ownerName}
+                </span>
+            );
+        });
+        const buildingDisplay: React.ReactNode = buildingNodes.length > 0
+            ? buildingNodes.map((node, i) =>
+                <React.Fragment key={i}>{i > 0 && <span>, </span>}{node}</React.Fragment>
+            )
+            : <span>{i18n.pub.emptyBuildingSlot}</span>;
+
+        // 卡牌信息
+        const allCards: { name: string; affordable: boolean }[] = [];
+        const addCard = (slot: ICardSlot) => {
+            if (slot.card !== null) {
+                const cardName = getCardName(slot.card);
+                const afford = playerID !== null && canAfford(G, ctx, slot.card, playerID);
+                allCards.push({ name: cardName, affordable: afford });
+            }
+        };
+        addCard(regionInfo.legend);
+        regionInfo.normal.forEach(addCard);
+
+        // 卡牌分行（每行2个）
+        const cardColor = (affordable: boolean): string => {
+            if (selected) return '#fff';
+            return affordable ? '#4caf50' : 'inherit';
+        };
+        const cardRows: React.ReactNode[] = [];
+        for (let i = 0; i < allCards.length; i += 2) {
+            const pair = allCards.slice(i, i + 2);
+            cardRows.push(
+                <span key={i} style={{lineHeight: 1.4}}>
+                    {pair.map((c, j) =>
+                        <React.Fragment key={j}>
+                            {j > 0 && <span style={{color: selected ? '#fff' : 'inherit'}}> | </span>}
+                            <span style={{color: cardColor(c.affordable)}}>{c.name}{c.affordable ? ' ✓' : ''}</span>
+                        </React.Fragment>
+                    )}
+                </span>
+            );
+        }
+
+        // 流派扩不显示份额和建筑
+        if (isExtensionRegion(r)) {
+            return (
+                <span style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1}}>
+                    <span style={{color: textColor}}>{i18n.region[r]}</span>
+                    {cardRows}
+                </span>
+            );
+        }
+
+        return (
+            <span style={{display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1}}>
+                <span style={{display: 'inline-flex', alignItems: 'center', gap: 2}}>
+                    <span style={{color: textColor}}>{i18n.region[r]}{i18n.era[regionInfo.era as 0 | 1 | 2]}</span>
+                    <span> (</span>
+                    <DrawnShareIcon r={r}/>
+                    <span>×{regionInfo.share}</span>
+                    <span>, </span>
+                    {buildingDisplay}
+                    <span>)</span>
+                </span>
+                {cardRows}
+            </span>
+        );
+    };
+
     const cardBoard = ctx.numPlayers === SimpleRuleNumPlayers ?
         <Grid item container xs={12} sm={7}>
             <Grid item xs={12} sm={6}>
@@ -224,27 +397,57 @@ export const FilmCentenaryBoard = ({
             </Grid>
         </Grid> :
 
-        <Grid item container xs={12} sm={7}>
-            <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[Region.NA]} G={G} ctx={ctx}
-                         playerID={playerID}/>
-            <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[Region.WE]} G={G} ctx={ctx}
-                         playerID={playerID}/>
-            <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[Region.EE]} G={G} ctx={ctx}
-                         playerID={playerID}/>
-            <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[Region.ASIA]} G={G} ctx={ctx}
-                         playerID={playerID}/>
-            <SchoolRegion getPlayerName={getName} r={Region.EXTENSION} moves={moves} region={G.regions[Region.EXTENSION]} G={G} ctx={ctx}
-                          playerID={playerID}/>
-            <SchoolRegion getPlayerName={getName} r={Region.EXTENSION1} moves={moves} region={G.regions[Region.EXTENSION1]} G={G} ctx={ctx}
-                          playerID={playerID}/>
-            <SchoolRegion getPlayerName={getName} r={Region.EXTENSION2} moves={moves} region={G.regions[Region.EXTENSION2]} G={G} ctx={ctx}
-                          playerID={playerID}/>
+        <Grid item container xs={12} sm={7} style={{flexDirection: 'column', flexWrap: 'nowrap', alignContent: 'flex-start'}}>
+            <Grid item id="regionFilter" style={{flexShrink: 0, width: '100%', scrollMarginTop: 80}}>
+                <Grid container spacing={1} justifyContent="center" style={{padding: 4}}>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={filterRegion === null ? "contained" : "outlined"}
+                            color={filterRegion === null ? "primary" : "default"}
+                            onClick={() => setFilterRegion(null)}
+                        >
+                            {i18n._.getLocaleName() === 'en' ? 'All Regions' : '所有地区'}
+                        </Button>
+                    </Grid>
+                    {visibleDisplayRegions.map(r => (
+                        <Grid item key={r}>
+                            <Button
+                                size="small"
+                                variant={filterRegion === r ? "contained" : "outlined"}
+                                color={filterRegion === r ? "primary" : "default"}
+                                onClick={() => setFilterRegion(r)}
+                            >
+                                {renderRegionButtonContent(r, filterRegion === r)}
+                            </Button>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Grid>
+            <Grid item style={{flex: 1, overflowY: 'auto', width: '100%'}}>
+                {(filterRegion === null || filterRegion === Region.NA) &&
+                    <BoardRegion getPlayerName={getName} r={Region.NA} moves={moves} region={G.regions[Region.NA]} G={G} ctx={ctx}
+                                 playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.WE) &&
+                    <BoardRegion getPlayerName={getName} r={Region.WE} moves={moves} region={G.regions[Region.WE]} G={G} ctx={ctx}
+                                 playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.EE) &&
+                    <BoardRegion getPlayerName={getName} r={Region.EE} moves={moves} region={G.regions[Region.EE]} G={G} ctx={ctx}
+                                 playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.ASIA) &&
+                    <BoardRegion getPlayerName={getName} r={Region.ASIA} moves={moves} region={G.regions[Region.ASIA]} G={G} ctx={ctx}
+                                 playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.EXTENSION) &&
+                    <SchoolRegion getPlayerName={getName} r={Region.EXTENSION} moves={moves} region={G.regions[Region.EXTENSION]} G={G} ctx={ctx}
+                                  playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.EXTENSION1) &&
+                    <SchoolRegion getPlayerName={getName} r={Region.EXTENSION1} moves={moves} region={G.regions[Region.EXTENSION1]} G={G} ctx={ctx}
+                                  playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.EXTENSION2) &&
+                    <SchoolRegion getPlayerName={getName} r={Region.EXTENSION2} moves={moves} region={G.regions[Region.EXTENSION2]} G={G} ctx={ctx}
+                                  playerID={playerID}/>}
+            </Grid>
         </Grid>
-
-    const [open, setOpen] = React.useState(true);
-    const handleOpen = () => setOpen(true);
-    const handleClose = () => setOpen(false);
-    const [showSpectatorTrend, setShowSpectatorTrend] = React.useState(true);
 
     const disconnectNotice = isConnected ? <></> :
         <>
