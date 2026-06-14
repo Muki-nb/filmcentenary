@@ -32,9 +32,6 @@ render(
             <CssBaseline/>
             <DrawerAppBar/>
             <Switch>
-                <Route exact path="/lobby">
-                    <Lobby/>
-                </Route>
                 <Route exact path="/">
                     <MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>
                 </Route>
