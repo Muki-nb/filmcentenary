@@ -2671,8 +2671,8 @@ const NoneBasicCards = {
         cost: cost(9, 6, 6),
         vp: 9,
         category: CardCategory.NORMAL,
-        industry: 2,
-        aesthetics: 2,
+        industry: 1,
+        aesthetics: 1,
     }),
     // 通心粉西部电影
     "S5202": schoolCard({
@@ -2695,8 +2695,8 @@ const NoneBasicCards = {
         cost: cost(9, 10, 2),
         vp: 13,
         category: CardCategory.NORMAL,
-        industry: 3,
-        aesthetics: 0,
+        industry: 2,
+        aesthetics: 1,
     }),
     // 剧影派
     "S5204": schoolCard({
