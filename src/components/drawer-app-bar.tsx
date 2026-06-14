@@ -62,7 +62,7 @@ const DrawerAppBar = () => {
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(false);
-    const [checked, setChecked] = React.useState(true);
+    const [checked, setChecked] = React.useState(false);
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
