@@ -1,6 +1,6 @@
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {VictoryType} from "../types/core";
+import {Region, VictoryType, valid_regions} from "../types/core";
 
 interface IPlayerEndSnapshot {
     playerID: PlayerID,
@@ -11,6 +11,16 @@ interface IPlayerEndSnapshot {
     vp: number,
     finalScore: number,
     allCards: string[],
+    cinemaBuilt: boolean,
+    studioBuilt: boolean,
+}
+
+interface IBuildingSnapshot {
+    region: string,
+    slotIndex: number,
+    building: string | null,
+    owner: PlayerID | "",
+    activated: boolean,
 }
 
 interface IMatchStatsRecord {
@@ -34,6 +44,7 @@ interface IMatchStatsRecord {
         finalOrder: PlayerID[],
     },
     players: IPlayerEndSnapshot[],
+    buildings: IBuildingSnapshot[],
 }
 
 let loggedResolvedPath = false;
@@ -128,8 +139,28 @@ const buildPlayersSnapshot = (G: IG): IPlayerEndSnapshot[] => {
             vp: p.vp,
             finalScore: p.finalScoring.total,
             allCards: mergedAllCards,
+            cinemaBuilt: p.building.cinemaBuilt,
+            studioBuilt: p.building.studioBuilt,
         };
     });
+}
+
+const buildBuildingsSnapshot = (G: IG): IBuildingSnapshot[] => {
+    const result: IBuildingSnapshot[] = [];
+    valid_regions.forEach((region) => {
+        const regionInfo = G.regions[region];
+        if (!regionInfo) return;
+        regionInfo.buildings.forEach((slot, idx) => {
+            result.push({
+                region: Region[region],
+                slotIndex: idx,
+                building: slot.building ?? null,
+                owner: slot.owner,
+                activated: slot.activated,
+            });
+        });
+    });
+    return result;
 }
 
 const normalizeTurnCount = (turn: number | undefined): number => {
@@ -151,7 +182,7 @@ export const appendServerMatchStats = (G: IG, ctx: Ctx, reason: VictoryType, win
             console.info(`[match-stats] resolved path -> ${filePath}`);
         }
         const record: IMatchStatsRecord = {
-            version: 1,
+            version: 2,
             matchID: G.matchID,
             finishedAt: new Date().toISOString(),
             turnCount: normalizeTurnCount(ctx.turn),
@@ -171,6 +202,7 @@ export const appendServerMatchStats = (G: IG, ctx: Ctx, reason: VictoryType, win
                 finalOrder: [...G.order],
             },
             players: buildPlayersSnapshot(G),
+            buildings: buildBuildingsSnapshot(G),
         };
         const serialized = JSON.stringify(record);
         appendLineToFile(filePath, serialized);
