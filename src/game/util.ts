@@ -3044,6 +3044,10 @@ export const doReturnSlotCard = (G: IG, ctx: Ctx, slot: ICardSlot): void => {
         // let oldCard = slot.card;
         return;
     }
+    if (slot.region === Region.EXTENSION1 ||
+        slot.region === Region.EXTENSION2) {
+        return;
+    }
     log.push(`|comment${slot.comment}`);
     if (slot.card === null) {
         log.push(`|emptySlot`);
