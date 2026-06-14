@@ -3287,7 +3287,7 @@ export const regionRanker = (G: IG, ctx: Ctx, r: ValidRegion, era: IEra) => {
             return 1;
         }
         log.push(`|sameLegendCount`);
-        const curPos = seqFromActivePlayer(G, ctx);
+        const curPos = seqFromCurrentPlayer(G, ctx);
         const posA = curPos.indexOf(a);
         const posB = curPos.indexOf(b);
         log.push(`|pos|${posA}|${posB}`);
