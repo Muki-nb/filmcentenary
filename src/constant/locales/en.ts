@@ -598,6 +598,7 @@ const en = {
         lobby: "Remote multiplayer lobby",
         cards: "Card list",
         about: "Rules & Help",
+        playerNamePlaceholder: "Whose name is remembered?",
     },
     title: "Film Centenary - Muki Server",
     lobby: {

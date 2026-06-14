@@ -625,6 +625,7 @@ const zh_CN: Locale = {
         lobby: "多人大厅",
         cards: "卡表",
         about: "规则和帮助",
+        playerNamePlaceholder: "何人被铭记？",
     },
     eventName: eventName,
     region: region,

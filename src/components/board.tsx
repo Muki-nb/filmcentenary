@@ -125,35 +125,62 @@ export const FilmCentenaryBoard = ({
         let name = "";
         if (playerID === null) {
             return i18n.playerName.spectator
-        } else {
-            if (G.anonymousRandomMode) {
+        }
+
+        // 从 matchData 获取基础名称（joinMatch 时敲定的名字）
+        const getMatchDataName = (): string | null => {
+            if (matchData === undefined) return null;
+            const arr = matchData.filter(m => m.id.toString() === playerID);
+            if (arr.length === 0) return null;
+            const n = arr[0].name;
+            if (n === undefined || n === null) return null;
+            return n;
+        };
+
+        const matchDataName = getMatchDataName();
+
+        // 匿名随机模式
+        if (G.anonymousRandomMode) {
+            // 游戏进行中（非初始化阶段、非终局）：使用匿名公司名
+            const isGameActive = ctx.phase !== "InitPhase" && ctx.gameover === undefined;
+            if (isGameActive) {
                 const anonymousName = G.anonymousPlayerNames[parseInt(playerID)] || "";
                 if (G.anonymousRandomRevealed && anonymousName !== "") {
                     name = anonymousName;
-                } else if (matchData !== undefined) {
-                    let arr = matchData.filter(m => m.id.toString() === playerID)
-                    const hasJoinedPlayer = arr.length > 0 && arr[0].name !== undefined && arr[0].name !== null;
+                } else {
+                    const hasJoinedPlayer = matchDataName !== null;
                     name = hasJoinedPlayer ? "！！！" : "？？？";
-                } else {
-                    name = "？？？";
                 }
-                return `${name}${curSuffix}${activeSuffix}${markSuffix}`
+                return `${name}${curSuffix}${activeSuffix}${markSuffix}`;
             }
-            if (matchData === undefined) {
-                name = fallbackName
-            } else {
-                let arr = matchData.filter(m => m.id.toString() === playerID)
-                if (arr.length === 0) {
-                    name = fallbackName
-                } else {
-                    if (arr[0].name === undefined) {
-                        name = fallbackName;
-                    } else {
-                        name = arr[0].name
-                    }
+            // 游戏开始前 / 游戏结束时：使用自定义名称（走下面的普通名称逻辑）
+        }
+
+        // 普通名称逻辑
+        if (matchDataName === null) {
+            name = fallbackName;
+        } else {
+            name = matchDataName;
+        }
+
+        // 重名处理：同一局中如有重复名称，按 playerID 顺序追加 -1, -2, -3, -4
+        if (matchData !== undefined && ctx.gameover === undefined && matchDataName !== null) {
+            const sameNamePlayers: string[] = [];
+            for (const m of matchData) {
+                if (m.name === matchDataName) {
+                    sameNamePlayers.push(m.id.toString());
+                }
+            }
+            if (sameNamePlayers.length > 1) {
+                // 按 playerID 排序，确定当前玩家是第几个
+                sameNamePlayers.sort((a, b) => parseInt(a) - parseInt(b));
+                const idx = sameNamePlayers.indexOf(playerID);
+                if (idx >= 0) {
+                    name = `${name}-${idx + 1}`;
                 }
             }
         }
+
         return `${name}${curSuffix}${activeSuffix}${markSuffix}`
     }
 
