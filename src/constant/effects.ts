@@ -3474,6 +3474,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
                 {e: "aestheticsLevelUp", a: 1},
                 {e: "buy", a: FilmCardID.F3306},
             ]
@@ -3481,10 +3482,10 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "deposit", a: 2},
-                {e: "vp", a: 2},
+                {e: "draw", a: 1},
+                {e: "handToAnyPlayer", a: 1},
                 {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: "loseVpForLevelDiff"}] }},
-                {e: "studio", a: {e: "step", a: [{e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B05}, {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B05}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "discard", a: 1}, {e: "discardToAnyPlayer", a: 1}] }},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3514,7 +3515,6 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
-                {e: "industryLevelUp", a: 1},
                 {e: "aestheticsLevelUp", a: 1},
                 {e: "buy", a: FilmCardID.F3413},
             ]
@@ -3522,16 +3522,15 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: "draw", a: 1},
-                {e: "handToAnyPlayer", a: 1},
-                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: SimpleEffectNames.loseVpForLevelDiff, a: 1}] }},
-                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "discard", a: 1}, {e: "discardToAnyPlayer", a: 1}] }},
+                {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
+                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "deposit", a: 2}] }},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.maxLevel, a: 1}
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
     },
     "6342": {
         school: {

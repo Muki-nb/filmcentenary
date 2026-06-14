@@ -4494,7 +4494,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
         PersonCardID.P3403,
 
         PersonCardID.P6321,
-        PersonCardID.P6331,
+        PersonCardID.P6341,
     ]
     for (let aCard of aesEffIDS) {
         if (validID.includes(aCard)) {
@@ -4503,9 +4503,9 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
             log.push(`|after|${f.events}`);
         }
     }
-    // P6341: 按照最高的等级计分
-    if (validID.includes(PersonCardID.P6341)) {
-        log.push(`|6341highest|before|${f.events}`);
+    // P6331: 按照最高的等级计分
+    if (validID.includes(PersonCardID.P6331)) {
+        log.push(`|6331highest|before|${f.events}`);
         f.events += Math.max(p.industry, p.aesthetics);
         log.push(`|after|${f.events}`);
     }
