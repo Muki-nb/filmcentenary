@@ -749,8 +749,8 @@ const en = {
         Czechoslovakian_Film_2: "If the difference between your industry and aesthetics levels is 2 or less: at end of turn, trigger industry and aesthetics rewards one additional time; all your person-card studio effects trigger one additional time.",
         Auteur_film: "After buying a person card: +1 action point, +1 deposit, +1 prestige. Your person-card effect [choose one company in this region without a studio] becomes [choose all other companies in this region without a studio].",
 
-        '5201_effect': "When buying, each insufficient level requirement costs only 1 extra resource. When buying this school, if East Europe is in Era I/II, gain all East Europe shares.",
-        '5201_buy': "Can be bought when any region enters Era III.",
+        '5201_effect': "When buying, each insufficient level requirement costs only 1 extra resource. When buying this school.",
+        '5201_buy': "Can be bought when any region enters Era III. If East Europe is in Era I/II, gain all East Europe shares.",
         //'5203_buy': "+1 share in any region.",
         '5202_effect': "After you gain +1 card, gain +1 prestige. After being competed, you do not lose prestige.",
         '5203_effect': "When buying or breaking through a film: +1 share in that region. During region scoring, each of your shares grants 1 extra prestige.",

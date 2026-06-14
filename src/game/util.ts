@@ -645,21 +645,21 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     share++;
                     if(pub.school === SchoolCardID.S5203){
                         share++;
-                        //所在地区每有一个不是你的电影院/制片厂，+1资源/+2声望。
-                        if(region !== Region.NONE){
-                            if(G.regions[region].buildings[0].building === BuildingType.cinema && G.regions[region].buildings[0].owner !== p){
-                                addRes(G, ctx, p, 1);
-                            }
-                            if(G.regions[region].buildings[0].building === BuildingType.studio && G.regions[region].buildings[0].owner !== p){
-                                addVp(G, ctx, p, 2);
-                            }
-                            if(G.regions[region].buildings[1].building === BuildingType.cinema && G.regions[region].buildings[1].owner !== p){
-                                addRes(G, ctx, p, 1);
-                            }
-                            if(G.regions[region].buildings[1].building === BuildingType.studio && G.regions[region].buildings[1].owner !== p){
-                                addVp(G, ctx, p, 2);
-                            }
-                        }
+                        // //所在地区每有一个不是你的电影院/制片厂，+1资源/+2声望。
+                        // if(region !== Region.NONE){
+                        //     if(G.regions[region].buildings[0].building === BuildingType.cinema && G.regions[region].buildings[0].owner !== p){
+                        //         addRes(G, ctx, p, 1);
+                        //     }
+                        //     if(G.regions[region].buildings[0].building === BuildingType.studio && G.regions[region].buildings[0].owner !== p){
+                        //         addVp(G, ctx, p, 2);
+                        //     }
+                        //     if(G.regions[region].buildings[1].building === BuildingType.cinema && G.regions[region].buildings[1].owner !== p){
+                        //         addRes(G, ctx, p, 1);
+                        //     }
+                        //     if(G.regions[region].buildings[1].building === BuildingType.studio && G.regions[region].buildings[1].owner !== p){
+                        //         addVp(G, ctx, p, 2);
+                        //     }
+                        // }
                     }
                 }
                 log.push(`|share${share}`);

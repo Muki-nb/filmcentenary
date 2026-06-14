@@ -3580,7 +3580,7 @@ export const effects = {
             action: 3,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: "5201_buy"},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
