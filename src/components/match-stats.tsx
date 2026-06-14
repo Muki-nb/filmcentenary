@@ -510,13 +510,15 @@ const buildTurnStats = (records: IMatchStatsRecord[]): ITurnStatsSummary => {
     const p4TurnCounts: number[] = [];
 
     records.forEach(record => {
-        const turnCount = record.turnCount;
-        if (typeof turnCount === "number" && turnCount > 0) {
-            allTurnCounts.push(turnCount);
+        const rawTurnCount = record.turnCount;
+        if (typeof rawTurnCount === "number" && rawTurnCount > 0) {
+            allTurnCounts.push(rawTurnCount);
             if (record.players.length === 3) {
-                p3TurnCounts.push(turnCount);
+                // 3人局：老数据统一按4人局归一化存储（turnCount = (turn-1)/4），
+                // 实际回合应为 (turn-1)/3，故需乘以 4/3 修正
+                p3TurnCounts.push(rawTurnCount * 4 / 3);
             } else if (record.players.length === 4) {
-                p4TurnCounts.push(turnCount);
+                p4TurnCounts.push(rawTurnCount);
             }
         }
     });
@@ -550,9 +552,13 @@ const buildTurnDistributionList = (records: IMatchStatsRecord[]): ITurnDistribut
 }
 
 const buildTurnDistribution = (records: IMatchStatsRecord[]): ITurnDistributionGroup => {
+    // 3人局：老数据统一按4人局归一化存储，需乘以 4/3 修正回合数
+    const adjustP3Records = (recs: IMatchStatsRecord[]): IMatchStatsRecord[] =>
+        recs.map(r => ({...r, turnCount: typeof r.turnCount === "number" && r.turnCount > 0 ? r.turnCount * 4 / 3 : r.turnCount}));
+
     return {
         all: buildTurnDistributionList(records),
-        p3: buildTurnDistributionList(records.filter(r => r.players.length === 3)),
+        p3: buildTurnDistributionList(adjustP3Records(records.filter(r => r.players.length === 3))),
         p4: buildTurnDistributionList(records.filter(r => r.players.length === 4)),
     };
 }
