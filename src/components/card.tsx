@@ -635,7 +635,7 @@ export const getEffectTextById = (cid: CardID): string => {
             action: eff.school.action
         }) : ""
     const schoolEffectTextStr = schoolEffectText(cid);
-    const textList = [buyEffText, playEffText, arch, score, schoolBasic, schoolEffectTextStr];
+    const textList = [buyEffText, playEffText, arch, schoolBasic, schoolEffectTextStr, score];
     const lineList : string[] = [];
     for(let text of textList){
         if(text === "") continue;

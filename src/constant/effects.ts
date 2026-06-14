@@ -3490,7 +3490,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
+        scoring: {e: ScoringEffectNames.maxLevel, a: 1}
     },
     "6332": {
         canBuy: (G: IG, ctx: Ctx) => true,
@@ -3737,6 +3737,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Czechoslovakian_Film"}},
+        scoring: {e: ScoringEffectNames.pairLevel, a: 4}
     },
     "6003": {
         "school": {
@@ -3763,7 +3764,6 @@ export const effects = {
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
-        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Auteur_film"}},
-        scoring: {e: ScoringEffectNames.pairLevel, a: 4}
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Auteur_film"}}
     },
 }

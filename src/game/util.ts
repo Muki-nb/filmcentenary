@@ -2689,7 +2689,7 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             break;
         case SchoolCardID.S5206:
             if(G.regions[Region.NA].era === IEra.ONE) resRequired = 1000;
-            if(pub.archive.includes(BasicCardID.B07)) resRequired = 1000;
+            //if(pub.archive.includes(BasicCardID.B07)) resRequired = 1000;
             if (pub.bought_extension) {
                 resRequired = 1000;
             }
