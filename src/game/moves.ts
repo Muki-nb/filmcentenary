@@ -1864,15 +1864,15 @@ export const playCard: LongFormMove = {
                 }
             }
         }
-        // 明星制
-        if(pub.school === SchoolCardID.S5206){
-            if(playCard.category === CardCategory.BASIC){
-                if(pub.vp > 0){
-                    loseVp(G, ctx, arg.playerID, 1);
-                    addRes(G, ctx, arg.playerID, 1);
-                }
-            }
-        }
+        // // 明星制
+        // if(pub.school === SchoolCardID.S5206){
+        //     if(playCard.category === CardCategory.BASIC){
+        //         if(pub.vp > 0){
+        //             loseVp(G, ctx, arg.playerID, 1);
+        //             addRes(G, ctx, arg.playerID, 1);
+        //         }
+        //     }
+        // }
     },
 
 }

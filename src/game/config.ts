@@ -226,6 +226,16 @@ export const NormalTurn: TurnConfig = {
                     pub.action++;
                 }
             }
+            // 明星制
+            if(pub.school === SchoolCardID.S5206) {
+                let vpGain = 0;
+                for(let otherP of G.order) {
+                    if(otherP !== p && G.pub[parseInt(otherP)].vp > pub.vp) {
+                        vpGain++;
+                    }
+                }
+                if(vpGain > 0) addVp(G, ctx, p, vpGain);
+            }
             // 奶油派
             if(pub.school === SchoolCardID.S5205) {
                 for(let Gpub of G.pub) {

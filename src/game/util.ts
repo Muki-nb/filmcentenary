@@ -770,6 +770,15 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     }
                 }
             }
+            // 布拉格电影学院: 购买时如果东欧处于1/2时代，获得所有东欧份额
+            if(pub.school === SchoolCardID.S5201){
+                if(G.regions[Region.EE].era === IEra.ONE || G.regions[Region.EE].era === IEra.TWO){
+                    // @ts-ignore
+                    pub.shares[Region.EE] += G.regions[Region.EE].share;
+                    // @ts-ignore
+                    G.regions[Region.EE].share = 0;
+                }
+            }
             switch (pub.school) {
                 case SchoolCardID.S4001:
                 case SchoolCardID.S4002:
@@ -1272,18 +1281,30 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         })
         log.push(`|after|${JSON.stringify(G.e.stack)}`);
     }
-    // 明星制
-    if (pub.school === SchoolCardID.S5206) {
-        if(c.category === CardCategory.BASIC){
-            log.push(`|starSystem`);
-            G.e.stack.push({
-                e: "pay", a: {
-                    cost: {e: "vp", a: 1},
-                    eff: {e: "res", a: 1}
-                }
-            });
+    // 巨片: 突破影片时，+1对应地区份额
+    if (pub.school === SchoolCardID.S5203 && c.type === CardType.F && c.region !== Region.NONE) {
+        log.push(`|EpicFilmBreakthrough|region${c.region}`);
+        const r = c.region as ValidRegion;
+        // @ts-ignore
+        if (G.regions[r].share > 0) {
+            // @ts-ignore
+            pub.shares[r] += 1;
+            // @ts-ignore
+            G.regions[r].share -= 1;
         }
     }
+    // // 明星制
+    // if (pub.school === SchoolCardID.S5206) {
+    //     if(c.category === CardCategory.BASIC){
+    //         log.push(`|starSystem`);
+    //         G.e.stack.push({
+    //             e: "pay", a: {
+    //                 cost: {e: "vp", a: 1},
+    //                 eff: {e: "res", a: 1}
+    //             }
+    //         });
+    //     }
+    // }
     if (c.cardId === FilmCardID.F1108) {
         const curDep = pub.deposit;
         if (curDep >= 1) {
@@ -2493,23 +2514,25 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
         log.push(`|i:${industry}|a:${aesthetics}`);
     }
 
-    // 布拉格电影
-    if(pub.school === SchoolCardID.S5201 && targetCard.type === CardType.F){
-        if(cost.aesthetics > cost.industry) industry = 0;
-        if(cost.industry > cost.aesthetics) aesthetics = 0;
-        if(cost.aesthetics === cost.industry){
-            if(aesthetics > industry)  aesthetics = 0;
-            if(industry >= aesthetics) industry = 0;
+    // 布拉格电影学院: 每个不足的等级需求，仅需额外花费1资源
+    if(pub.school === SchoolCardID.S5201){
+        if (aesthetics > 0) {
+            log.push(("Lack aesthetics " + aesthetics));
+            resRequired += aesthetics;
         }
-    }
-
-    if (aesthetics > 0) {
-        log.push(("Lack aesthetics " + aesthetics));
-        resRequired += aesthetics * 2;
-    }
-    if (industry > 0) {
-        log.push(("Lack industry " + industry));
-        resRequired += industry * 2;
+        if (industry > 0) {
+            log.push(("Lack industry " + industry));
+            resRequired += industry;
+        }
+    } else {
+        if (aesthetics > 0) {
+            log.push(("Lack aesthetics " + aesthetics));
+            resRequired += aesthetics * 2;
+        }
+        if (industry > 0) {
+            log.push(("Lack industry " + industry));
+            resRequired += industry * 2;
+        }
     }
     if (pub.school === SchoolCardID.S2201 && targetCard.type === CardType.F && targetCard.aesthetics > 0) {
         log.push(("|NewRealismDeduct"));
@@ -3363,6 +3386,9 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             if (G.pub[playerIdx].school === SchoolCardID.S4001)
                 if (playerShareCount * eraShareReturnVp >= 3)
                     addRes(G, ctx, i, 1);
+            // 巨片: 地区结算时，每个份额多获得1声望
+            if (G.pub[playerIdx].school === SchoolCardID.S5203)
+                addVp(G, ctx, i, playerShareCount);
             log.push(`|rank`);
         }
     });
@@ -3655,6 +3681,17 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
         if(pub.playedCardInTurn.length >= pub.industry){
             pub.deposit++;
             addVp(G, ctx, p, 1);
+        }
+    }
+    // 明星制
+    if (pub.school === SchoolCardID.S5206) {
+        for(let otherP of G.order) {
+            if(otherP !== p && pub.vp > G.pub[parseInt(otherP)].vp) {
+                if(pub.vp >= 1) {
+                    loseVp(G, ctx, p, 1);
+                    pub.resource++;
+                }
+            }
         }
     }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
@@ -4458,7 +4495,6 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
 
         PersonCardID.P6321,
         PersonCardID.P6331,
-        PersonCardID.P6341,
     ]
     for (let aCard of aesEffIDS) {
         if (validID.includes(aCard)) {
@@ -4467,6 +4503,19 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
             log.push(`|after|${f.events}`);
         }
     }
+    // P6341: 按照最高的等级计分
+    if (validID.includes(PersonCardID.P6341)) {
+        log.push(`|6341highest|before|${f.events}`);
+        f.events += Math.max(p.industry, p.aesthetics);
+        log.push(`|after|${f.events}`);
+    }
+    // S6002/S6003 思想电影/新思想电影: +4 / (工业等级 + 美学等级)
+    if (p.school === SchoolCardID.S6002 || p.school === SchoolCardID.S6003) {
+        log.push(`|thoughtFilm|before|${f.events}`);
+        f.events += 4 * (p.industry + p.aesthetics);
+        log.push(`|after|${f.events}`);
+    }
+
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
     log.push(`|total:${f.total}`);
     if (showLog) {

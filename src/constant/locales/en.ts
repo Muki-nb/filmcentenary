@@ -718,6 +718,8 @@ const en = {
         eastEuropeFilm: ["Gain {{a}} extra prestige for each of your east europe card.", argValue],
         industryLevel: ["Gain {{a}} extra prestige for each of your industry level", argValue],
         aestheticsLevel: ["Gain 2 extra prestige for each of your aesthetics level", argValue],
+        maxLevel: ["Gain {{a}} extra prestige for each of your max level", argValue],
+        pairLevel: ["Gain {{a}} extra prestige for each of your pair level", argValue],
         personCard: "Gain 4 extra prestige for each of your person card.",
         aesClassic: "Gain 2 extra prestige for each of your normal or legend card with aesthetics marker.",
         NewYorkSchool: " if your industry level is not less than your aesthetics level,execute your aesthetics level bonus once, if your industry level is not less than your aesthetics level execute your industry level bonus once",
@@ -742,14 +744,16 @@ const en = {
 
         West_Film: "When building, gain 1 extra share in the corresponding region.",
         Brighton_School: "When your aesthetics level is 2, your aesthetics reward becomes [Resource +1].",
-        Experimental_Film: "Whenever you buy a film whose level requirement is higher than your level: +1 deposit, +1 prestige. After buying an East Europe school: +1 industry level, +1 deposit, +1 prestige.",
+        Experimental_Film: "Whenever you buy a film whose level requirement is higher than your level: +1 deposit, +1 prestige. After losing Experimental Film: +1 industry level, +1 deposit, +1 prestige.",
         Czechoslovakian_Film: "If the difference between your industry and aesthetics levels is 1 or less, resolve your industry and aesthetics rewards one additional time.",
         Czechoslovakian_Film_2: "If the difference between your industry and aesthetics levels is 2 or less: at end of turn, trigger industry and aesthetics rewards one additional time; all your person-card studio effects trigger one additional time.",
         Auteur_film: "After buying a person card: +1 action point, +1 deposit, +1 prestige. Your person-card effect [choose one company in this region without a studio] becomes [choose all other companies in this region without a studio].",
 
-        '5201_effect': "When buying a film, ignore one of the lower level requirements.",
+        '5201_effect': "When buying, each insufficient level requirement costs only 1 extra resource. When buying this school, if East Europe is in Era I/II, gain all East Europe shares.",
+        '5201_buy': "Can be bought when any region enters Era III.",
+        //'5203_buy': "+1 share in any region.",
         '5202_effect': "After you gain +1 card, gain +1 prestige. After being competed, you do not lose prestige.",
-        '5203_effect': "When buying a film, gain 1 extra share.",
+        '5203_effect': "When buying or breaking through a film: +1 share in that region. During region scoring, each of your shares grants 1 extra prestige.",
         '5204_effect': "Before you gain +1 card, if your deck is empty: +2 resources, +4 prestige. After being competed, you do not lose prestige.",
         '5205_effect': "If [Final Round] has been triggered, buying different card types gives different rewards:\n" +
             "Legend card: +1 action point;\n" +
@@ -758,8 +762,8 @@ const en = {
             "Film card: +1 card;\n" +
             "Person card: gain prestige based on that person card's level requirement"
         ,
-        '5206_buy': "Can be bought when the archive has no funds.",
-        '5206_effect': "During your turn, whenever your prestige increases and surpasses another company, +1 card. When you play or breakthrough a basic card, pay 1 prestige to gain +1 deposit.",
+        //'5206_buy': "-3 prestige, +1 North America share.",
+        '5206_effect': "At the start of each turn, for each company with higher prestige than you: +1 prestige. During your turn, whenever your prestige increases and surpasses another company: +1 card. At the end of each turn, for each company with lower prestige than you: pay 1 prestige to gain +1 resource.",
         '5207_effect': "At the start of each turn, if hand size <= industry level: +1 action point. At end of each turn, if cards in your play area >= industry level: +1 deposit, +1 prestige.",
         '5208_buy': "Can be bought when any region is in Era II. If East Europe is in Era I/II, gain all/1 East Europe share(s).",
         '5208_effect': "Whenever you archive an obsolete film or a bad film (including through breakthrough), buy 1 Classic Film for free and +1 card. Your Classic Film can also choose option 3: +1 deposit, +2 prestige.",

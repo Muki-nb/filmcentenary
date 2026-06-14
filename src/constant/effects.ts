@@ -3200,7 +3200,7 @@ export const effects = {
         play: {
             e: "step", a: [
                 {e: "draw", a: 1},
-                {e: "vp", a: 3},
+                {e: "vp", a: 1},
                 {e: "noStudio", a: {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04}},
                 {e: "studio", a: {e: "step", a: [{e: ItrEffects.comment, a: 1}, {e: "deposit", a: 1}] }},
             ]
@@ -3245,6 +3245,7 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
+                {e: "deposit", a: 1},
                 {e: "buy", a: BasicCardID.B05},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 {e: "studio", a: {e: "discardToAnyPlayer", a: 1}},
@@ -3513,6 +3514,7 @@ export const effects = {
         canBuy: (G: IG, ctx: Ctx) => true,
         buy: {
             e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
                 {e: "aestheticsLevelUp", a: 1},
                 {e: "buy", a: FilmCardID.F3413},
             ]
@@ -3520,15 +3522,16 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
-                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
-                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "deposit", a: 2}] }},
+                {e: "draw", a: 1},
+                {e: "handToAnyPlayer", a: 1},
+                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: SimpleEffectNames.loseVpForLevelDiff, a: 1}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "discard", a: 1}, {e: "discardToAnyPlayer", a: 1}] }},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: noResponse,
-        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
+        scoring: {e: ScoringEffectNames.maxLevel, a: 1}
     },
     "6342": {
         school: {
@@ -3603,7 +3606,7 @@ export const effects = {
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: noEff,
+        buy: {e: "anyRegionShare", a: 1},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3644,7 +3647,7 @@ export const effects = {
             action: 2,
         },
         canBuy: (G: IG, ctx: Ctx) => true,
-        buy: {e: "step", a: [{e: "5206_buy", a: 1}, {e: "loseVp", a: 5}, {e: "loseDeposit", a: 2}, {e: SimpleEffectNames.shareNA, a: 1}]},
+        buy: {e: "step", a: [{e: "loseVp", a: 3}, {e: SimpleEffectNames.shareNA, a: 1}]},
         canPlay: (G: IG, ctx: Ctx) => false,
         play: noEff,
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -3747,6 +3750,7 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Czechoslovakian_Film_2"}},
+        scoring: {e: ScoringEffectNames.pairLevel, a: 4}
     },
     "6004": {
         "school": {
@@ -3760,5 +3764,6 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Auteur_film"}},
+        scoring: {e: ScoringEffectNames.pairLevel, a: 4}
     },
 }
