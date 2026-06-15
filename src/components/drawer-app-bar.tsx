@@ -82,10 +82,7 @@ const DrawerAppBar = () => {
         setChecked(event.target.checked);
     };
     const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        // 最多7个字符
-        const raw = event.target.value;
-        const name = raw.slice(0, 7);
-        setPlayerName(name);
+        setPlayerName(event.target.value);
         setNameEdited(true);
     };
     const handleNameBlur = () => {
