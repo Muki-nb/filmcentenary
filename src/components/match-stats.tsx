@@ -21,12 +21,25 @@ interface IPlayerStatsRecord {
     aesthetics?: number,
     finalScore?: number,
     allCards: string[],
+    cinemaBuilt?: boolean,
+    studioBuilt?: boolean,
+}
+
+interface IBuildingRecord {
+    region: string,
+    slotIndex: number,
+    building: string | null,
+    owner: string,
+    activated: boolean,
 }
 
 interface IMatchStatsRecord {
     turnCount?: number,
     winner: string,
     players: IPlayerStatsRecord[],
+    finishedAt?: string,
+    buildings?: IBuildingRecord[],
+    version?: number,
 }
 
 interface ITurnStatsGroup {
@@ -103,13 +116,88 @@ interface IMatchCompositionStatsRow {
     aesWinRate: number,
 }
 
+type PlayerStatsSubPanel = "leaderboard" | "detail";
+type PlayerLeaderboardSortMode = "winRate" | "avgRank" | "games";
+type PlayerLeaderboardScope = "all" | "weekly" | "monthly";
+
+interface IPlayerLeaderboardRow {
+    playerID: string;
+    games: number;
+    wins: number;
+    winRate: number;
+    avgRank: number;
+    rankStdDev: number;
+}
+
+interface IPlayerTopItem {
+    cardID: string;
+    count: number;
+    rate: number;
+}
+
+interface IPlayerTopRegion {
+    region: Region;
+    regionName: string;
+    count: number;
+    rate: number;
+}
+
+interface IPlayerDetailData {
+    playerID: string;
+    games: number;
+    wins: number;
+    topTwoGames: number;
+    winRate: number;
+    avgRank: number;
+    rankStdDev: number;
+    avgTurnCount: number;
+    indGames: number;
+    indWins: number;
+    indWinRate: number;
+    aesGames: number;
+    aesWins: number;
+    aesWinRate: number;
+    avgIndustry: number;
+    avgAesthetics: number;
+    avgLevelSum: number;
+    avgCinemaCount: number;
+    avgStudioCount: number;
+    avgPersonCount: number;
+    topEra1Films: IPlayerTopItem[];
+    topEra1Schools: IPlayerTopItem[];
+    topEra1Persons: IPlayerTopItem[];
+    topEra2Films: IPlayerTopItem[];
+    topEra2Schools: IPlayerTopItem[];
+    topEra2Persons: IPlayerTopItem[];
+    topEra3Films: IPlayerTopItem[];
+    topEra3Schools: IPlayerTopItem[];
+    topEra3Persons: IPlayerTopItem[];
+    topCinemaRegions: IPlayerTopRegion[];
+    topStudioRegions: IPlayerTopRegion[];
+}
+
 type CardStatsFilterMode = "all" | "school" | "era1";
 type RegionFilter = "all" | "EE" | "WE" | "NA" | "ASIA";
 type EraFilter = "all" | "1" | "2" | "3";
 type CardTypeFilter = "all" | "film" | "school" | "person";
 type CardSortMode = "winRate" | "avgRank" | "games";
-type StatsPanel = "turn" | "seat" | "level" | "card";
+type StatsPanel = "turn" | "seat" | "level" | "card" | "player";
 const NO_SCHOOL_CARD_ID = "__NO_SCHOOL__";
+
+const regionNameMap: Record<number, string> = {
+    [Region.NA]: "北美",
+    [Region.WE]: "西欧",
+    [Region.EE]: "东欧",
+    [Region.ASIA]: "亚洲",
+    [Region.NONE]: "无",
+};
+
+const regionStringToEnum: Record<string, Region> = {
+    "NA": Region.NA,
+    "WE": Region.WE,
+    "EE": Region.EE,
+    "ASIA": Region.ASIA,
+};
 
 const seatLabels = ["1位", "2位", "3位", "4位"];
 const levelThresholds = [5, 6, 7, 8, 9, 10];
@@ -778,6 +866,313 @@ const buildCompositionStats = (records: IMatchStatsRecord[]): IMatchCompositionS
     ];
 }
 
+const isPersonCard = (cardID: string): boolean => /^P\d+$/i.test(normalizeCardId(cardID));
+const isFilmCard = (cardID: string): boolean => /^F\d+$/i.test(normalizeCardId(cardID));
+const isScoringCard = (cardID: string): boolean => /^V\d+$/i.test(normalizeCardId(cardID));
+
+const filterRecordsByScope = (records: IMatchStatsRecord[], scope: PlayerLeaderboardScope): IMatchStatsRecord[] => {
+    if (scope === "all") return records;
+    const now = new Date();
+    let cutoff: number;
+    if (scope === "weekly") {
+        // 本周一 00:00:00
+        const dayOfWeek = now.getDay();
+        const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+        const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + mondayOffset);
+        cutoff = monday.getTime();
+    } else {
+        // 本月1日 00:00:00
+        const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        cutoff = firstOfMonth.getTime();
+    }
+    return records.filter(record => {
+        if (!record.finishedAt) return false;
+        const ts = new Date(record.finishedAt).getTime();
+        return !isNaN(ts) && ts >= cutoff;
+    });
+};
+
+const buildTopItems = (
+    cardCounts: Map<string, number>,
+    totalGames: number,
+    limit: number,
+): IPlayerTopItem[] => {
+    return Array.from(cardCounts.entries())
+        .map(([cardID, count]) => ({cardID, count, rate: totalGames > 0 ? count / totalGames : 0}))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit);
+};
+
+const buildTopRegions = (
+    regionCounts: Map<Region, number>,
+    totalGames: number,
+    limit: number,
+): IPlayerTopRegion[] => {
+    return Array.from(regionCounts.entries())
+        .map(([region, count]) => ({
+            region,
+            regionName: regionNameMap[region] ?? "未知",
+            count,
+            rate: totalGames > 0 ? count / totalGames : 0,
+        }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit);
+};
+
+const buildPlayerLeaderboard = (
+    records: IMatchStatsRecord[],
+    scope: PlayerLeaderboardScope,
+    sortMode: PlayerLeaderboardSortMode,
+): IPlayerLeaderboardRow[] => {
+    const filtered = filterRecordsByScope(records, scope);
+    const playerMap = new Map<string, {
+        games: number; wins: number; rankSum: number; rankSqSum: number; rankGames: number;
+    }>();
+
+    filtered.forEach(record => {
+        const rankMap = buildRankMap(record);
+        record.players.forEach(player => {
+            // 忽略无名玩家（playerID 为 0/1/2/3）
+            if (player.playerID === "0" || player.playerID === "1" || player.playerID === "2" || player.playerID === "3") return;
+            const entry = playerMap.get(player.playerID) ?? {
+                games: 0, wins: 0, rankSum: 0, rankSqSum: 0, rankGames: 0,
+            };
+            entry.games += 1;
+            if (player.playerID === record.winner) {
+                entry.wins += 1;
+            }
+            const rank = rankMap.get(player.playerID);
+            if (typeof rank === "number") {
+                entry.rankSum += rank;
+                entry.rankSqSum += rank * rank;
+                entry.rankGames += 1;
+            }
+            playerMap.set(player.playerID, entry);
+        });
+    });
+
+    return Array.from(playerMap.entries())
+        .map(([playerID, stat]) => ({
+            playerID,
+            games: stat.games,
+            wins: stat.wins,
+            winRate: stat.games > 0 ? stat.wins / stat.games : 0,
+            avgRank: stat.rankGames > 0 ? stat.rankSum / stat.rankGames : 0,
+            rankStdDev: calcStdDev(stat.rankSum, stat.rankSqSum, stat.rankGames),
+        }))
+        .sort((left, right) => {
+            if (sortMode === "avgRank") {
+                if (left.avgRank !== right.avgRank) return left.avgRank - right.avgRank;
+                if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+                return right.games - left.games;
+            }
+            if (sortMode === "games") {
+                if (right.games !== left.games) return right.games - left.games;
+                if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+                return left.avgRank - right.avgRank;
+            }
+            if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+            if (left.avgRank !== right.avgRank) return left.avgRank - right.avgRank;
+            return right.games - left.games;
+        })
+        .slice(0, 10);
+};
+
+const buildPlayerDetail = (
+    records: IMatchStatsRecord[],
+    playerID: string,
+): IPlayerDetailData | null => {
+    const playerRecords: Array<{record: IMatchStatsRecord; player: IPlayerStatsRecord}> = [];
+
+    // 忽略无名玩家（playerID 为 0/1/2/3）
+    if (playerID === "0" || playerID === "1" || playerID === "2" || playerID === "3") return null;
+
+    records.forEach(record => {
+        const player = record.players.find(p => p.playerID === playerID);
+        if (player) {
+            playerRecords.push({record, player});
+        }
+    });
+
+    if (playerRecords.length === 0) return null;
+
+    const games = playerRecords.length;
+    let wins = 0;
+    let topTwoGames = 0;
+    let rankSum = 0;
+    let rankSqSum = 0;
+    let rankGames = 0;
+    let turnSum = 0;
+    let turnGames = 0;
+    let indGames = 0;
+    let indWins = 0;
+    let aesGames = 0;
+    let aesWins = 0;
+    let industrySum = 0;
+    let industryGames = 0;
+    let aestheticsSum = 0;
+    let aestheticsGames = 0;
+    let levelSumTotal = 0;
+    let levelSumGames = 0;
+    let cinemaSum = 0;
+    let studioSum = 0;
+    let personSum = 0;
+
+    const era1FilmCounts = new Map<string, number>();
+    const era1SchoolCounts = new Map<string, number>();
+    const era1PersonCounts = new Map<string, number>();
+    const era2FilmCounts = new Map<string, number>();
+    const era2SchoolCounts = new Map<string, number>();
+    const era2PersonCounts = new Map<string, number>();
+    const era3FilmCounts = new Map<string, number>();
+    const era3SchoolCounts = new Map<string, number>();
+    const era3PersonCounts = new Map<string, number>();
+    const cinemaRegionCounts = new Map<Region, number>();
+    const studioRegionCounts = new Map<Region, number>();
+
+    playerRecords.forEach(({record, player}) => {
+        const rankMap = buildRankMap(record);
+
+        if (player.playerID === record.winner) wins++;
+
+        const rank = rankMap.get(player.playerID);
+        if (typeof rank === "number") {
+            rankSum += rank;
+            rankSqSum += rank * rank;
+            rankGames++;
+            if (rank <= 2) topTwoGames++;
+        }
+
+        if (typeof record.turnCount === "number" && record.turnCount > 0) {
+            const adjustedTurn = record.players.length === 3 ? record.turnCount * 4 / 3 : record.turnCount;
+            turnSum += adjustedTurn;
+            turnGames++;
+        }
+
+        const rel = getIndustryAestheticsRelation(player);
+        if (rel === "industry_gt_aesthetics") {
+            indGames++;
+            if (player.playerID === record.winner) indWins++;
+        } else if (rel === "aesthetics_gt_industry") {
+            aesGames++;
+            if (player.playerID === record.winner) aesWins++;
+        }
+
+        if (typeof player.industry === "number" && Number.isFinite(player.industry)) {
+            industrySum += player.industry;
+            industryGames++;
+        }
+        if (typeof player.aesthetics === "number" && Number.isFinite(player.aesthetics)) {
+            aestheticsSum += player.aesthetics;
+            aestheticsGames++;
+        }
+        if (typeof player.industry === "number" && Number.isFinite(player.industry)
+            && typeof player.aesthetics === "number" && Number.isFinite(player.aesthetics)) {
+            levelSumTotal += player.industry + player.aesthetics;
+            levelSumGames++;
+        }
+
+        const uniqueCards = Array.from(new Set(player.allCards || []));
+        let cinemaCount = 0;
+        let studioCount = 0;
+        let personCount = 0;
+
+        // 电影院/制片厂：从服务器端快照数据统计
+        if (player.cinemaBuilt) {
+            cinemaCount = 1;
+        }
+        if (player.studioBuilt) {
+            studioCount = 1;
+        }
+        // 从 buildings 快照中统计地区分布
+        if (record.buildings) {
+            record.buildings.forEach(b => {
+                if (!b.owner || b.owner !== playerID) return;
+                const regionEnum = regionStringToEnum[b.region];
+                if (regionEnum == null) return;
+                if (b.building === "cinema" || b.building === "Cinema") {
+                    cinemaRegionCounts.set(regionEnum, (cinemaRegionCounts.get(regionEnum) ?? 0) + 1);
+                } else if (b.building === "studio" || b.building === "Studio") {
+                    studioRegionCounts.set(regionEnum, (studioRegionCounts.get(regionEnum) ?? 0) + 1);
+                }
+            });
+        }
+
+        uniqueCards.forEach(cardID => {
+            const normalized = normalizeCardId(cardID);
+            if (!normalized || isBasicCard(normalized) || isScoringCard(normalized)) return;
+
+            const era = getCardEra(normalized);
+            if (era === "1") {
+                if (isFilmCard(normalized)) {
+                    era1FilmCounts.set(normalized, (era1FilmCounts.get(normalized) ?? 0) + 1);
+                } else if (isSchoolCard(normalized)) {
+                    era1SchoolCounts.set(normalized, (era1SchoolCounts.get(normalized) ?? 0) + 1);
+                } else if (isPersonCard(normalized)) {
+                    personCount++;
+                    era1PersonCounts.set(normalized, (era1PersonCounts.get(normalized) ?? 0) + 1);
+                }
+            } else if (era === "2") {
+                if (isFilmCard(normalized)) {
+                    era2FilmCounts.set(normalized, (era2FilmCounts.get(normalized) ?? 0) + 1);
+                } else if (isSchoolCard(normalized)) {
+                    era2SchoolCounts.set(normalized, (era2SchoolCounts.get(normalized) ?? 0) + 1);
+                } else if (isPersonCard(normalized)) {
+                    personCount++;
+                    era2PersonCounts.set(normalized, (era2PersonCounts.get(normalized) ?? 0) + 1);
+                }
+            } else if (era === "3") {
+                if (isFilmCard(normalized)) {
+                    era3FilmCounts.set(normalized, (era3FilmCounts.get(normalized) ?? 0) + 1);
+                } else if (isSchoolCard(normalized)) {
+                    era3SchoolCounts.set(normalized, (era3SchoolCounts.get(normalized) ?? 0) + 1);
+                } else if (isPersonCard(normalized)) {
+                    personCount++;
+                    era3PersonCounts.set(normalized, (era3PersonCounts.get(normalized) ?? 0) + 1);
+                }
+            }
+        });
+
+        cinemaSum += cinemaCount;
+        studioSum += studioCount;
+        personSum += personCount;
+    });
+
+    return {
+        playerID,
+        games,
+        wins,
+        topTwoGames,
+        winRate: games > 0 ? wins / games : 0,
+        avgRank: rankGames > 0 ? rankSum / rankGames : 0,
+        rankStdDev: calcStdDev(rankSum, rankSqSum, rankGames),
+        avgTurnCount: turnGames > 0 ? turnSum / turnGames : 0,
+        indGames,
+        indWins,
+        indWinRate: indGames > 0 ? indWins / indGames : 0,
+        aesGames,
+        aesWins,
+        aesWinRate: aesGames > 0 ? aesWins / aesGames : 0,
+        avgIndustry: industryGames > 0 ? industrySum / industryGames : 0,
+        avgAesthetics: aestheticsGames > 0 ? aestheticsSum / aestheticsGames : 0,
+        avgLevelSum: levelSumGames > 0 ? levelSumTotal / levelSumGames : 0,
+        avgCinemaCount: games > 0 ? cinemaSum / games : 0,
+        avgStudioCount: games > 0 ? studioSum / games : 0,
+        avgPersonCount: games > 0 ? personSum / games : 0,
+        topEra1Films: buildTopItems(era1FilmCounts, games, 3),
+        topEra1Schools: buildTopItems(era1SchoolCounts, games, 3),
+        topEra1Persons: buildTopItems(era1PersonCounts, games, 3),
+        topEra2Films: buildTopItems(era2FilmCounts, games, 3),
+        topEra2Schools: buildTopItems(era2SchoolCounts, games, 3),
+        topEra2Persons: buildTopItems(era2PersonCounts, games, 3),
+        topEra3Films: buildTopItems(era3FilmCounts, games, 3),
+        topEra3Schools: buildTopItems(era3SchoolCounts, games, 3),
+        topEra3Persons: buildTopItems(era3PersonCounts, games, 3),
+        topCinemaRegions: buildTopRegions(cinemaRegionCounts, games, 2),
+        topStudioRegions: buildTopRegions(studioRegionCounts, games, 2),
+    };
+};
+
 const MatchStatsPage = () => {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
@@ -795,6 +1190,11 @@ const MatchStatsPage = () => {
     });
     const [recordCount, setRecordCount] = React.useState(0);
     const [activePanel, setActivePanel] = React.useState<StatsPanel>("turn");
+    const [activePlayerSubPanel, setActivePlayerSubPanel] = React.useState<PlayerStatsSubPanel>("leaderboard");
+    const [playerLeaderboardScope, setPlayerLeaderboardScope] = React.useState<PlayerLeaderboardScope>("all");
+    const [playerLeaderboardSortMode, setPlayerLeaderboardSortMode] = React.useState<PlayerLeaderboardSortMode>("winRate");
+    const [playerDetailInput, setPlayerDetailInput] = React.useState("");
+    const [playerDetailSearchedID, setPlayerDetailSearchedID] = React.useState("");
 
     const loadStats = React.useCallback(async () => {
         setLoading(true);
@@ -941,6 +1341,15 @@ const MatchStatsPage = () => {
     const compositionStats = React.useMemo(() => {
         return buildCompositionStats(records);
     }, [records]);
+
+    const playerLeaderboard = React.useMemo(() => {
+        return buildPlayerLeaderboard(records, playerLeaderboardScope, playerLeaderboardSortMode);
+    }, [records, playerLeaderboardScope, playerLeaderboardSortMode]);
+
+    const playerDetail = React.useMemo(() => {
+        if (!playerDetailSearchedID) return null;
+        return buildPlayerDetail(records, playerDetailSearchedID);
+    }, [records, playerDetailSearchedID]);
 
     const allIndustryAestheticsRelationStats = React.useMemo(() => {
         return industryAestheticsRelationStats.map(row => {
@@ -1121,6 +1530,16 @@ const MatchStatsPage = () => {
                             onClick={() => setActivePanel("card")}
                         >
                             卡牌数据
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePanel === "player" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePanel("player")}
+                        >
+                            玩家数据
                         </Button>
                     </Grid>
                 </Grid>
@@ -1507,6 +1926,300 @@ const MatchStatsPage = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
+            </Paper>
+        </Grid> : <></>}
+        {activePanel === "player" ? <Grid item xs={12}>
+            <Paper>
+                <Grid container style={sectionPaperStyle}>
+                    <Grid item xs={12}>
+                        <Typography variant="h6" component="h2">玩家数据</Typography>
+                    </Grid>
+                </Grid>
+                <Grid container spacing={1} style={{padding: "0 12px 12px 12px"}}>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePlayerSubPanel === "leaderboard" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePlayerSubPanel("leaderboard")}
+                        >
+                            总榜单
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePlayerSubPanel === "detail" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePlayerSubPanel("detail")}
+                        >
+                            玩家详细数据
+                        </Button>
+                    </Grid>
+                </Grid>
+                {activePlayerSubPanel === "leaderboard" ? <>
+                    <Grid container spacing={1} style={{padding: "0 12px 12px 12px"}}>
+                        <Grid item xs={12} md={6}>
+                            <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <Typography variant="body2" color="textSecondary" style={{minWidth: 36, flexShrink: 0}}>范围：</Typography>
+                                <div style={{overflowX: "auto", whiteSpace: "nowrap", flex: 1}}>
+                                    <Button size="small" variant={playerLeaderboardScope === "all" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardScope("all")} style={{marginRight: 6}}>总榜</Button>
+                                    <Button size="small" variant={playerLeaderboardScope === "weekly" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardScope("weekly")} style={{marginRight: 6}}>周榜</Button>
+                                    <Button size="small" variant={playerLeaderboardScope === "monthly" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardScope("monthly")}>月榜</Button>
+                                </div>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <Typography variant="body2" color="textSecondary" style={{minWidth: 36, flexShrink: 0}}>排序：</Typography>
+                                <div style={{overflowX: "auto", whiteSpace: "nowrap", flex: 1}}>
+                                    <Button size="small" variant={playerLeaderboardSortMode === "winRate" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("winRate")} style={{marginRight: 6}}>胜率</Button>
+                                    <Button size="small" variant={playerLeaderboardSortMode === "avgRank" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("avgRank")} style={{marginRight: 6}}>名次</Button>
+                                    <Button size="small" variant={playerLeaderboardSortMode === "games" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("games")}>对局数</Button>
+                                </div>
+                            </div>
+                        </Grid>
+                    </Grid>
+                    <TableContainer>
+                        <Table size="small" aria-label="player leaderboard">
+                            <TableHead>
+                                <TableRow style={tableHeadRowStyle}>
+                                    <TableCell>玩家名</TableCell>
+                                    <TableCell>胜率</TableCell>
+                                    <TableCell>平均名次</TableCell>
+                                    <TableCell>胜局数</TableCell>
+                                    <TableCell>对局数</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {playerLeaderboard.map((row, idx) => <TableRow key={row.playerID} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                    <TableCell>{row.playerID}</TableCell>
+                                    <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
+                                    <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
+                                    <TableCell>{row.wins}</TableCell>
+                                    <TableCell>{row.games}</TableCell>
+                                </TableRow>)}
+                                {playerLeaderboard.length === 0 ? <TableRow>
+                                    <TableCell align="center">暂无数据</TableCell>
+                                    <TableCell></TableCell>
+                                    <TableCell></TableCell>
+                                    <TableCell></TableCell>
+                                    <TableCell></TableCell>
+                                </TableRow> : null}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </> : <></>}
+                {activePlayerSubPanel === "detail" ? <>
+                    <Grid container spacing={1} style={{padding: "0 12px 12px 12px"}}>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                <Typography variant="body2" style={{flexShrink: 0}}>玩家名：</Typography>
+                                <input
+                                    type="text"
+                                    value={playerDetailInput}
+                                    onChange={e => setPlayerDetailInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === "Enter") setPlayerDetailSearchedID(playerDetailInput.trim()); }}
+                                    placeholder="输入玩家名后回车"
+                                    style={{flex: 1, padding: "6px 8px", border: "1px solid #ccc", borderRadius: 4, fontSize: 14}}
+                                />
+                                <Button size="small" variant="contained" color="primary" onClick={() => setPlayerDetailSearchedID(playerDetailInput.trim())}>
+                                    查询
+                                </Button>
+                            </div>
+                        </Grid>
+                    </Grid>
+                    {playerDetail ? <Grid container spacing={2} style={{padding: "0 12px 12px 12px"}}>
+                        <Grid item xs={12}>
+                            <Typography variant="h6">
+                                玩家 {playerDetail.playerID}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">对局数</Typography>
+                                <Typography variant="h5">{playerDetail.games}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">胜局数</Typography>
+                                <Typography variant="h5">{playerDetail.wins}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">前二局数</Typography>
+                                <Typography variant="h5">{playerDetail.topTwoGames}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">胜率</Typography>
+                                <Typography variant="h5">{formatRate(playerDetail.winRate)}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均名次</Typography>
+                                <Typography variant="h5">{playerDetail.avgRank.toFixed(2)}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均回合数</Typography>
+                                <Typography variant="h5">{playerDetail.avgTurnCount > 0 ? playerDetail.avgTurnCount.toFixed(1) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">工业对局数</Typography>
+                                <Typography variant="h5">{playerDetail.indGames}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">工业胜局数</Typography>
+                                <Typography variant="h5">{playerDetail.indWins}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">工业胜率</Typography>
+                                <Typography variant="h5">{playerDetail.indGames > 0 ? formatRate(playerDetail.indWinRate) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">美学对局数</Typography>
+                                <Typography variant="h5">{playerDetail.aesGames}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">美学胜局数</Typography>
+                                <Typography variant="h5">{playerDetail.aesWins}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">美学胜率</Typography>
+                                <Typography variant="h5">{playerDetail.aesGames > 0 ? formatRate(playerDetail.aesWinRate) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均电影院数</Typography>
+                                <Typography variant="h5">{playerDetail.avgCinemaCount > 0 ? playerDetail.avgCinemaCount.toFixed(2) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均制片厂数</Typography>
+                                <Typography variant="h5">{playerDetail.avgStudioCount > 0 ? playerDetail.avgStudioCount.toFixed(2) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均人物牌数</Typography>
+                                <Typography variant="h5">{playerDetail.avgPersonCount > 0 ? playerDetail.avgPersonCount.toFixed(2) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均等级总和</Typography>
+                                <Typography variant="h5">{playerDetail.avgLevelSum > 0 ? playerDetail.avgLevelSum.toFixed(2) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均工业等级</Typography>
+                                <Typography variant="h5">{playerDetail.avgIndustry > 0 ? playerDetail.avgIndustry.toFixed(2) : "-"}</Typography>
+                            </div>
+                        </Grid>
+                        <Grid item xs={12} sm={6} md={4}>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
+                                <Typography variant="body2" color="textSecondary">平均美学等级</Typography>
+                                <Typography variant="h5">{playerDetail.avgAesthetics > 0 ? playerDetail.avgAesthetics.toFixed(2) : "-"}</Typography>
+                            </div>
+                        </Grid>
+
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买1时代影片</Typography>
+                            {playerDetail.topEra1Films.length > 0 ? playerDetail.topEra1Films.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买1时代流派</Typography>
+                            {playerDetail.topEra1Schools.length > 0 ? playerDetail.topEra1Schools.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买1时代人物</Typography>
+                            {playerDetail.topEra1Persons.length > 0 ? playerDetail.topEra1Persons.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买2时代影片</Typography>
+                            {playerDetail.topEra2Films.length > 0 ? playerDetail.topEra2Films.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买2时代流派</Typography>
+                            {playerDetail.topEra2Schools.length > 0 ? playerDetail.topEra2Schools.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买2时代人物</Typography>
+                            {playerDetail.topEra2Persons.length > 0 ? playerDetail.topEra2Persons.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买3时代影片</Typography>
+                            {playerDetail.topEra3Films.length > 0 ? playerDetail.topEra3Films.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买3时代流派</Typography>
+                            {playerDetail.topEra3Schools.length > 0 ? playerDetail.topEra3Schools.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买3时代人物</Typography>
+                            {playerDetail.topEra3Persons.length > 0 ? playerDetail.topEra3Persons.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
+                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常电影院位置</Typography>
+                            {playerDetail.topCinemaRegions.length > 0 ? playerDetail.topCinemaRegions.map(item => <Typography key={item.region} variant="body2" style={{color: getColor(item.region)}}>
+                                {item.regionName}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常制片厂位置</Typography>
+                            {playerDetail.topStudioRegions.length > 0 ? playerDetail.topStudioRegions.map(item => <Typography key={item.region} variant="body2" style={{color: getColor(item.region)}}>
+                                {item.regionName}（{formatRate(item.rate)}）
+                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                        </Grid>
+                    </Grid> : (playerDetailSearchedID ? <Grid container style={{padding: 16}}>
+                        <Grid item xs={12}>
+                            <Typography color="error">未找到玩家 "{playerDetailSearchedID}" 的数据</Typography>
+                        </Grid>
+                    </Grid> : <Grid container style={{padding: 16}}>
+                        <Grid item xs={12}>
+                            <Typography color="textSecondary">请输入玩家名进行查询</Typography>
+                        </Grid>
+                    </Grid>)}
+                </> : <></>}
             </Paper>
         </Grid> : <></>}
     </Grid>;
