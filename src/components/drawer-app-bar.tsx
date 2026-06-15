@@ -139,7 +139,7 @@ const DrawerAppBar = () => {
                     ),
                     style: { color: '#fff' },
                 }}
-                style={{ marginLeft: 'auto', marginRight: 16, maxWidth: 200 }}
+                style={{ marginLeft: 'auto', marginRight: 4, maxWidth: 200 }}
             />
         </Toolbar>
     </AppBar>
