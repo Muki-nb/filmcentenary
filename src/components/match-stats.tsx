@@ -919,6 +919,8 @@ const buildTopRegions = (
         .slice(0, limit);
 };
 
+const ignoredPlayerIDs = new Set(["0", "1", "2", "3", "P1", "P2", "P3", "P4", ""]);
+
 const buildPlayerLeaderboard = (
     records: IMatchStatsRecord[],
     scope: PlayerLeaderboardScope,
@@ -932,8 +934,8 @@ const buildPlayerLeaderboard = (
     filtered.forEach(record => {
         const rankMap = buildRankMap(record);
         record.players.forEach(player => {
-            // 忽略无名玩家（playerID 为 0/1/2/3）
-            if (player.playerID === "0" || player.playerID === "1" || player.playerID === "2" || player.playerID === "3") return;
+            // 忽略无名/测试玩家
+            if (ignoredPlayerIDs.has(player.playerID)) return;
             const entry = playerMap.get(player.playerID) ?? {
                 games: 0, wins: 0, rankSum: 0, rankSqSum: 0, rankGames: 0,
             };
@@ -984,8 +986,8 @@ const buildPlayerDetail = (
 ): IPlayerDetailData | null => {
     const playerRecords: Array<{record: IMatchStatsRecord; player: IPlayerStatsRecord}> = [];
 
-    // 忽略无名玩家（playerID 为 0/1/2/3）
-    if (playerID === "0" || playerID === "1" || playerID === "2" || playerID === "3") return null;
+    // 忽略无名/测试玩家
+    if (ignoredPlayerIDs.has(playerID)) return null;
 
     records.forEach(record => {
         const player = record.players.find(p => p.playerID === playerID);
