@@ -3,7 +3,7 @@ import {IG} from "../types/setup";
 import {Region, VictoryType, valid_regions} from "../types/core";
 
 interface IPlayerEndSnapshot {
-    playerID: PlayerID,
+    playerID: PlayerID | string,
     seat: number,
     stillInOrder: boolean,
     industry: number,
@@ -19,7 +19,7 @@ interface IBuildingSnapshot {
     region: string,
     slotIndex: number,
     building: string | null,
-    owner: PlayerID | "",
+    owner: PlayerID | string,
     activated: boolean,
 }
 
@@ -29,7 +29,7 @@ interface IMatchStatsRecord {
     finishedAt: string,
     turnCount: number,
     reason: VictoryType,
-    winner: PlayerID,
+    winner: PlayerID | string,
     settings: {
         playerCount: number,
         mode: string,
@@ -40,8 +40,8 @@ interface IMatchStatsRecord {
         hasSchoolExtensionQM: boolean,
         hasExtensionChaosMedia: boolean,
         disableUndo: boolean,
-        initialOrder: PlayerID[],
-        finalOrder: PlayerID[],
+        initialOrder: PlayerID | string[],
+        finalOrder: PlayerID | string[],
     },
     players: IPlayerEndSnapshot[],
     buildings: IBuildingSnapshot[],
@@ -131,7 +131,7 @@ const buildPlayersSnapshot = (G: IG): IPlayerEndSnapshot[] => {
             ...p.archive,
         ]));
         return {
-            playerID: pid,
+            playerID: G.playerNames[pid] || "",
             seat,
             stillInOrder: G.order.includes(pid),
             industry: p.industry,
@@ -155,7 +155,7 @@ const buildBuildingsSnapshot = (G: IG): IBuildingSnapshot[] => {
                 region: Region[region],
                 slotIndex: idx,
                 building: slot.building ?? null,
-                owner: slot.owner,
+                owner: G.playerNames[slot.owner] || slot.owner,
                 activated: slot.activated,
             });
         });
@@ -170,7 +170,7 @@ const normalizeTurnCount = (turn: number | undefined): number => {
     return Math.max(0, (turn - 1) / 4);
 }
 
-export const appendServerMatchStats = (G: IG, ctx: Ctx, reason: VictoryType, winner: PlayerID): void => {
+export const appendServerMatchStats = (G: IG, ctx: Ctx, reason: VictoryType, winner: PlayerID | string): void => {
     try {
         const filePath = resolveStatsPath();
         if (!filePath) {
@@ -181,13 +181,14 @@ export const appendServerMatchStats = (G: IG, ctx: Ctx, reason: VictoryType, win
             loggedResolvedPath = true;
             console.info(`[match-stats] resolved path -> ${filePath}`);
         }
+        const winnerName = G.playerNames[winner] || winner;
         const record: IMatchStatsRecord = {
             version: 2,
             matchID: G.matchID,
             finishedAt: new Date().toISOString(),
             turnCount: normalizeTurnCount(ctx.turn),
             reason,
-            winner,
+            winner: winnerName,
             settings: {
                 playerCount: G.playerCount || ctx.numPlayers,
                 mode: G.mode,
@@ -198,8 +199,8 @@ export const appendServerMatchStats = (G: IG, ctx: Ctx, reason: VictoryType, win
                 hasSchoolExtensionQM: G.hasSchoolExtensionQM,
                 hasExtensionChaosMedia: G.hasExtensionChaosMedia,
                 disableUndo: G.disableUndo,
-                initialOrder: [...G.initialOrder],
-                finalOrder: [...G.order],
+                initialOrder: [...G.initialOrder].map(pid => G.playerNames[pid] || pid),
+                finalOrder: [...G.order].map(pid => G.playerNames[pid] || pid),
             },
             players: buildPlayersSnapshot(G),
             buildings: buildBuildingsSnapshot(G),

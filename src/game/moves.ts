@@ -1008,6 +1008,7 @@ export const chooseEffect: LongFormMove = {
         log.push(`|`);
         let eff = G.e.choices[arg.idx];
         log.push(JSON.stringify(eff));
+
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
         let regions: Region[];
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -2003,6 +2004,7 @@ export interface IShowBoardStatusProps {
     school: ICardSlot[]
     film: ICardSlot[],
     matchID: string,
+    playerNames?: Record<string, string>,
 }
 
 export const showBoardStatus: LongFormMove = {
@@ -2011,6 +2013,9 @@ export const showBoardStatus: LongFormMove = {
     move: (G: IG, ctx: Ctx, args: IShowBoardStatusProps) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${args.matchID}|p${ctx.playerID}.moves.showBoardStatus(${JSON.stringify(args)})`);
+        if (args.playerNames) {
+            G.playerNames = { ...G.playerNames, ...args.playerNames };
+        }
         if (ctx.phase === "InitPhase") {
             if (G.anonymousRandomMode && !G.anonymousRandomRevealed) {
                 const shuffledOrder = shuffle(ctx, [...G.order]);

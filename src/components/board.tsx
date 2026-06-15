@@ -190,7 +190,18 @@ export const FilmCentenaryBoard = ({
         p: playerID
     })
 
+    // 从 matchData 提取所有玩家名称（复用 getName 中 getMatchDataName 的逻辑）
+    const extractNamesFromMatchData = (): Record<string, string> => {
+        if (matchData === undefined) return {};
+        const names: Record<string, string> = {};
+        for (const m of matchData) {
+            if (m.name) names[m.id.toString()] = m.name;
+        }
+        return names;
+    };
+
     const showBoardStatus = () => {
+        const playerNames = extractNamesFromMatchData();
         const args = ctx.numPlayers > SimpleRuleNumPlayers ? {
             regions: [
                 G.regions[Region.NA],
@@ -202,11 +213,13 @@ export const FilmCentenaryBoard = ({
             school: [],
             film: [],
             matchID: matchID,
+            playerNames,
         } : {
             regions: [],
             school: G.twoPlayer.school,
             film: G.twoPlayer.film,
             matchID: matchID,
+            playerNames,
         }
         moves.showBoardStatus(args);
     }
