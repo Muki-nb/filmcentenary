@@ -131,7 +131,7 @@ const buildPlayersSnapshot = (G: IG): IPlayerEndSnapshot[] => {
             ...p.archive,
         ]));
         return {
-            playerID: G.playerNames[pid] || "",
+            playerID: G.playerNames[pid] || pid,
             seat,
             stillInOrder: G.order.includes(pid),
             industry: p.industry,
