@@ -4512,7 +4512,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
     // S6002/S6003 思想电影/新思想电影: +4 / (工业等级 + 美学等级)
     if (p.school === SchoolCardID.S6002 || p.school === SchoolCardID.S6003) {
         log.push(`|thoughtFilm|before|${f.events}`);
-        f.events += 4 * (p.industry + p.aesthetics);
+        f.events += 4 * Math.min(p.industry, p.aesthetics);
         log.push(`|after|${f.events}`);
     }
 
