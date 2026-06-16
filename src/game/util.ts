@@ -3683,17 +3683,6 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
             addVp(G, ctx, p, 1);
         }
     }
-    // 明星制
-    if (pub.school === SchoolCardID.S5206) {
-        for(let otherP of G.order) {
-            if(otherP !== p && pub.vp > G.pub[parseInt(otherP)].vp) {
-                if(pub.vp >= 1) {
-                    loseVp(G, ctx, p, 1);
-                    pub.resource++;
-                }
-            }
-        }
-    }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
     pub.playedCardInTurn = [];
     pub.revealedHand = [];
@@ -3762,6 +3751,17 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
                 if(noNormalAndLegendCard){
                     drawCardForPlayer(G, ctx, p);
                     addVp(G, ctx, p, 1);
+                }
+            }
+        }
+    }
+    // 明星制
+    if (pub.school === SchoolCardID.S5206) {
+        for(let otherP of G.order) {
+            if(otherP !== p && pub.vp > G.pub[parseInt(otherP)].vp) {
+                if(pub.vp >= 1) {
+                    loseVp(G, ctx, p, 1);
+                    pub.resource++;
                 }
             }
         }
