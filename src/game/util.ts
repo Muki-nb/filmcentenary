@@ -2356,6 +2356,9 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
         if (pub.industry > 7) {
             //addVp(G, ctx, p, 1);
         }
+        if(pub.playedCardInTurn.includes(FilmCardID.F6312)){
+            drawCardForPlayer(G, ctx, p);
+        }
     }
     if(pub.playedCardInTurn.includes(FilmCardID.F6312)){
         drawCardForPlayer(G, ctx, p);
@@ -3719,6 +3722,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     log.push(`|industryAwardEndTurn`);
     industryAwardEndTurn(G, ctx, ctx.currentPlayer);
 
+    //新思想
     deltaLv = pub.aesthetics - pub.industry;
     if(deltaLv < 0) deltaLv = -deltaLv;
     if (pub.school === SchoolCardID.S6003 && deltaLv <= 2) {
