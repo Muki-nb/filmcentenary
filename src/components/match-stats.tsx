@@ -924,6 +924,8 @@ const buildTopRegions = (
 const ignoredPlayerIDs = new Set(["0", "1", "2", "3", "P1", "P2", "P3", "P4", ""]);
 
 const rankRefMap: Record<number, number> = {1: 6, 2: 3, 3: 2, 4: 1};
+const rankRefMapPost10: Record<number, number> = {1: 4, 2: 1, 3: -0.5, 4: -1.33};
+const COMPOSITE_THRESHOLD = 10;
 
 const buildPlayerLeaderboard = (
     records: IMatchStatsRecord[],
@@ -931,12 +933,20 @@ const buildPlayerLeaderboard = (
     sortMode: PlayerLeaderboardSortMode,
 ): IPlayerLeaderboardRow[] => {
     const filtered = filterRecordsByScope(records, scope);
+    // 按时间排序，保证综合分按对局先后累积
+    const sorted = [...filtered].sort((a, b) => {
+        const ta = a.finishedAt ? new Date(a.finishedAt).getTime() : 0;
+        const tb = b.finishedAt ? new Date(b.finishedAt).getTime() : 0;
+        return ta - tb;
+    });
     const playerMap = new Map<string, {
         games: number; wins: number; rankSum: number; rankSqSum: number; rankGames: number;
         compositeScore: number;
     }>();
+    // 跟踪每个玩家当前已累积的综合分，用于判断是否超过阈值
+    const runningCompositeMap = new Map<string, number>();
 
-    filtered.forEach(record => {
+    sorted.forEach(record => {
         const rankMap = buildRankMap(record);
 
         // 计算该对局所有玩家的总分和
@@ -952,6 +962,8 @@ const buildPlayerLeaderboard = (
         const adjustedTurn = typeof rawTurn === "number" && rawTurn > 0
             ? (record.players.length === 3 ? rawTurn * 4 / 3 : rawTurn)
             : 0;
+
+        const playerCount = record.players.length;
 
         record.players.forEach(player => {
             // 忽略无名/测试玩家
@@ -975,10 +987,34 @@ const buildPlayerLeaderboard = (
             const personalScore = typeof player.finalScore === "number" && Number.isFinite(player.finalScore)
                 ? player.finalScore : 0;
             const otherSum = totalScoreSum - personalScore;
-            const rankRef = typeof rank === "number" ? (rankRefMap[rank] ?? 0) : 0;
-            if (otherSum > 0 && adjustedTurn > 0 && totalScoreSum > 0 && rankRef > 0) {
-                const matchScore = (personalScore / otherSum) * rankRef * (adjustedTurn / 20) * (totalScoreSum / 600);
+            const runningComposite = runningCompositeMap.get(player.playerID) ?? 0;
+
+            if (otherSum > 0 && adjustedTurn > 0 && totalScoreSum > 0 && typeof rank === "number") {
+                let matchScore = 0;
+
+                if (runningComposite < COMPOSITE_THRESHOLD) {
+                    // 阈值前：原公式，仅 rankRef > 0 时有效
+                    const rankRef = rankRefMap[rank] ?? 0;
+                    if (rankRef > 0) {
+                        matchScore = (personalScore / otherSum) * rankRef * (adjustedTurn / 20) * (totalScoreSum / 600);
+                    }
+                } else {
+                    // 阈值后：新名次参考值 + 分名次公式
+                    const rankRef = rankRefMapPost10[rank] ?? 0;
+                    if (rankRef !== 0 && personalScore > 0) {
+                        if (rank <= 2) {
+                            // 名次 1/2：原公式结构
+                            matchScore = (personalScore / otherSum) * rankRef * (adjustedTurn / 20) * (totalScoreSum / 600);
+                        } else {
+                            // 名次 3/4：分子改为其他玩家分数均值
+                            const otherAvg = otherSum / (playerCount - 1);
+                            matchScore = (otherAvg / personalScore) * rankRef * (adjustedTurn / 20) * (totalScoreSum / 600);
+                        }
+                    }
+                }
+
                 entry.compositeScore += matchScore;
+                runningCompositeMap.set(player.playerID, runningComposite + matchScore);
             }
 
             playerMap.set(player.playerID, entry);
