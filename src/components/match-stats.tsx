@@ -401,12 +401,13 @@ const buildRankMap = (record: IMatchStatsRecord): Map<string, number> => {
         .map(player => ({
             playerID: player.playerID,
             finalScore: Number(player.finalScore),
+            seat: player.seat,
         }))
         .sort((left, right) => {
             if (right.finalScore !== left.finalScore) {
                 return right.finalScore - left.finalScore;
             }
-            return left.playerID.localeCompare(right.playerID);
+            return right.seat - left.seat;
         });
 
     if (playersWithScore.length === 0) {
