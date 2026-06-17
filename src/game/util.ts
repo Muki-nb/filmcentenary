@@ -2356,11 +2356,11 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
         if (pub.industry > 7) {
             //addVp(G, ctx, p, 1);
         }
-        if(pub.playedCardInTurn.includes(FilmCardID.F6312)){
+        if(pub.activeCardInTurn.includes(FilmCardID.F6312)){
             drawCardForPlayer(G, ctx, p);
         }
     }
-    if(pub.playedCardInTurn.includes(FilmCardID.F6312)){
+    if(pub.activeCardInTurn.includes(FilmCardID.F6312)){
         drawCardForPlayer(G, ctx, p);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3688,6 +3688,8 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
     pub.playedCardInTurn = [];
+    pub.activeCardInTurn = [];
+
     pub.revealedHand = [];
     pub.resource = 0;
     if (pub.deposit > 10) {

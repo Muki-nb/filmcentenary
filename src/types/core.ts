@@ -418,6 +418,7 @@ export interface IPubInfo {
     discard: CardID[],
     revealedHand: CardID[],
     playedCardInTurn: CardID[],
+    activeCardInTurn: CardID[],
     industry: number,
     aesthetics: number,
     school: SchoolCardID | null,

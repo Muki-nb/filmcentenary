@@ -1803,6 +1803,8 @@ export const playCard: LongFormMove = {
 
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
+        pub.activeCardInTurn.push(arg.card);
+        
         G.e.card = arg.card;
         let autoActive = false;
         if (arg.card === BasicCardID.B05) {
