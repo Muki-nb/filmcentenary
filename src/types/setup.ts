@@ -208,6 +208,7 @@ function pubPlayer(): IPubInfo {
         archive: [],
         discard: [],
         playedCardInTurn: [],
+        activeCardInTurn: [],
         finalScoring: {
             card: 0,
             building: 0,
