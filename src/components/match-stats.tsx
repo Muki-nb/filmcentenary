@@ -117,7 +117,7 @@ interface IMatchCompositionStatsRow {
 }
 
 type PlayerStatsSubPanel = "leaderboard" | "detail";
-type PlayerLeaderboardSortMode = "winRate" | "avgRank" | "games";
+type PlayerLeaderboardSortMode = "composite" | "winRate" | "avgRank" | "games";
 type PlayerLeaderboardScope = "all" | "weekly" | "monthly";
 
 interface IPlayerLeaderboardRow {
@@ -127,6 +127,7 @@ interface IPlayerLeaderboardRow {
     winRate: number;
     avgRank: number;
     rankStdDev: number;
+    compositeScore: number;
 }
 
 interface IPlayerTopItem {
@@ -921,6 +922,8 @@ const buildTopRegions = (
 
 const ignoredPlayerIDs = new Set(["0", "1", "2", "3", "P1", "P2", "P3", "P4", ""]);
 
+const rankRefMap: Record<number, number> = {1: 6, 2: 3, 3: 2, 4: 1};
+
 const buildPlayerLeaderboard = (
     records: IMatchStatsRecord[],
     scope: PlayerLeaderboardScope,
@@ -929,15 +932,32 @@ const buildPlayerLeaderboard = (
     const filtered = filterRecordsByScope(records, scope);
     const playerMap = new Map<string, {
         games: number; wins: number; rankSum: number; rankSqSum: number; rankGames: number;
+        compositeScore: number;
     }>();
 
     filtered.forEach(record => {
         const rankMap = buildRankMap(record);
+
+        // 计算该对局所有玩家的总分和
+        let totalScoreSum = 0;
+        record.players.forEach(p => {
+            if (typeof p.finalScore === "number" && Number.isFinite(p.finalScore)) {
+                totalScoreSum += p.finalScore;
+            }
+        });
+
+        // 调整回合数（3人局修正）
+        const rawTurn = record.turnCount;
+        const adjustedTurn = typeof rawTurn === "number" && rawTurn > 0
+            ? (record.players.length === 3 ? rawTurn * 4 / 3 : rawTurn)
+            : 0;
+
         record.players.forEach(player => {
             // 忽略无名/测试玩家
             if (ignoredPlayerIDs.has(player.playerID)) return;
             const entry = playerMap.get(player.playerID) ?? {
                 games: 0, wins: 0, rankSum: 0, rankSqSum: 0, rankGames: 0,
+                compositeScore: 0,
             };
             entry.games += 1;
             if (player.playerID === record.winner) {
@@ -949,6 +969,17 @@ const buildPlayerLeaderboard = (
                 entry.rankSqSum += rank * rank;
                 entry.rankGames += 1;
             }
+
+            // 综合分计算
+            const personalScore = typeof player.finalScore === "number" && Number.isFinite(player.finalScore)
+                ? player.finalScore : 0;
+            const otherSum = totalScoreSum - personalScore;
+            const rankRef = typeof rank === "number" ? (rankRefMap[rank] ?? 0) : 0;
+            if (otherSum > 0 && adjustedTurn > 0 && totalScoreSum > 0 && rankRef > 0) {
+                const matchScore = (personalScore / otherSum) * rankRef * (adjustedTurn / 20) * (totalScoreSum / 600);
+                entry.compositeScore += matchScore;
+            }
+
             playerMap.set(player.playerID, entry);
         });
     });
@@ -961,8 +992,15 @@ const buildPlayerLeaderboard = (
             winRate: stat.games > 0 ? stat.wins / stat.games : 0,
             avgRank: stat.rankGames > 0 ? stat.rankSum / stat.rankGames : 0,
             rankStdDev: calcStdDev(stat.rankSum, stat.rankSqSum, stat.rankGames),
+            compositeScore: stat.compositeScore,
         }))
         .sort((left, right) => {
+            if (sortMode === "composite") {
+                if (right.compositeScore !== left.compositeScore) return right.compositeScore - left.compositeScore;
+                if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+                if (left.avgRank !== right.avgRank) return left.avgRank - right.avgRank;
+                return right.games - left.games;
+            }
             if (sortMode === "avgRank") {
                 if (left.avgRank !== right.avgRank) return left.avgRank - right.avgRank;
                 if (right.winRate !== left.winRate) return right.winRate - left.winRate;
@@ -1975,6 +2013,7 @@ const MatchStatsPage = () => {
                             <div style={{display: "flex", alignItems: "center", gap: 8}}>
                                 <Typography variant="body2" color="textSecondary" style={{minWidth: 36, flexShrink: 0}}>排序：</Typography>
                                 <div style={{overflowX: "auto", whiteSpace: "nowrap", flex: 1}}>
+                                    <Button size="small" variant={playerLeaderboardSortMode === "composite" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("composite")} style={{marginRight: 6}}>综合</Button>
                                     <Button size="small" variant={playerLeaderboardSortMode === "winRate" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("winRate")} style={{marginRight: 6}}>胜率</Button>
                                     <Button size="small" variant={playerLeaderboardSortMode === "avgRank" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("avgRank")} style={{marginRight: 6}}>名次</Button>
                                     <Button size="small" variant={playerLeaderboardSortMode === "games" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("games")}>对局数</Button>
@@ -1987,6 +2026,7 @@ const MatchStatsPage = () => {
                             <TableHead>
                                 <TableRow style={tableHeadRowStyle}>
                                     <TableCell>玩家名</TableCell>
+                                    <TableCell>综合分</TableCell>
                                     <TableCell>胜率</TableCell>
                                     <TableCell>平均名次</TableCell>
                                     <TableCell>胜局数</TableCell>
@@ -1996,6 +2036,7 @@ const MatchStatsPage = () => {
                             <TableBody>
                                 {playerLeaderboard.map((row, idx) => <TableRow key={row.playerID} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
                                     <TableCell>{row.playerID}</TableCell>
+                                    <TableCell>{row.compositeScore > 0 ? row.compositeScore.toFixed(2) : "-"}</TableCell>
                                     <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
                                     <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
                                     <TableCell>{row.wins}</TableCell>
@@ -2003,6 +2044,7 @@ const MatchStatsPage = () => {
                                 </TableRow>)}
                                 {playerLeaderboard.length === 0 ? <TableRow>
                                     <TableCell align="center">暂无数据</TableCell>
+                                    <TableCell></TableCell>
                                     <TableCell></TableCell>
                                     <TableCell></TableCell>
                                     <TableCell></TableCell>
