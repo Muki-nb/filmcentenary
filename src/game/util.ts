@@ -890,6 +890,11 @@ export const noBuildingPlayers = (G: IG, ctx: Ctx, r: Region, p: PlayerID): Play
     const allPlayers = seqFromPlayer(G, ctx, p);
     log.push(`|all|${JSON.stringify(allPlayers)}`);
     const result = allPlayers.filter(pid => {
+        // 跳过无效玩家（如 undefined/null），防止后续崩溃
+        if (pid == null) {
+            log.push(`|p${pid}|skipNull`);
+            return false;
+        }
         const hasBuilding = studioInRegion(G, ctx, r, pid) || cinemaInRegion(G, ctx, r, pid);
         log.push(`|p${pid}|${hasBuilding}`);
         return !hasBuilding
@@ -929,13 +934,20 @@ export const checkRegionScoring = (G: IG, ctx: Ctx, r: Region): boolean => {
 
 export const seqFromPos = (G: IG, _ctx: Ctx, pos: number): PlayerID[] => {
     const log = [`seqFromPos`];
-    let seq = [];
-    const remainPlayers = G.order.length
-    for (let i = pos; i < remainPlayers; i++) {
+    let seq: PlayerID[] = [];
+    const remainPlayers = G.order.length;
+    if (remainPlayers === 0) {
+        log.push(`|emptyOrder`);
+        logger.debug(`${G.matchID}|${log.join('')}`);
+        return seq;
+    }
+    // 防止 pos 为负数时取到 undefined
+    const safePos = ((pos % remainPlayers) + remainPlayers) % remainPlayers;
+    for (let i = safePos; i < remainPlayers; i++) {
         log.push(`|push|${i}`);
         seq.push(G.order[i])
     }
-    for (let i = 0; i < pos; i++) {
+    for (let i = 0; i < safePos; i++) {
         log.push(`|push|${i}`);
         seq.push(G.order[i])
     }
@@ -1398,7 +1410,13 @@ export const pushPlayersEffects = (G: IG, players: PlayerID[], eff: any) => {
     const log = [`pushPlayersEffects|players|${JSON.stringify(players)}`];
     const pos = players.length;
     for (let i = pos - 1; i >= 0; i--) {
-        const targetEff = {...eff, target: players[i]};
+        const target = players[i];
+        // 跳过无效玩家（如 undefined/null），防止后续 playerEffExec 崩溃
+        if (target == null) {
+            log.push(`|skipNullTarget|i${i}`);
+            continue;
+        }
+        const targetEff = {...eff, target};
         G.e.stack.push(targetEff);
     }
     log.push(`|${JSON.stringify(G.e.stack)}`);
@@ -1416,6 +1434,20 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
     log.push(`|eff|${JSON.stringify(eff)}`);
     G.e.currentEffect = eff;
+
+    // 阻止自动结算导致他人操作结算后撤回
+    if (p !== ctx.currentPlayer) {
+        const privateOps = [
+            "discard", "discardBasic", "discardNormalOrLegend", "discardLegend",
+            "discardAesthetics", "discardIndustry", "breakthroughResDeduct",
+            "handToAnyPlayer", "discardToAnyPlayer", "playedCardInTurnEffect",
+        ];
+        if (privateOps.includes(eff.e)) {
+            G.previousMoveUndoable = false;
+            log.push(`|noUndo|privateOpOnOtherPlayer`);
+        }
+    }
+    
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
@@ -4060,7 +4092,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         
         // P6311 Kubrick: after contest, +1 deposit, +1 competition power
         const atkPub = G.pub[parseInt(i.atk)];
-        if(atkPub.playedCardInTurn.includes(PersonCardID.P6311)){
+        if(atkPub.activeCardInTurn.includes(PersonCardID.P6311)){
             atkPub.deposit += 1;
             addCompetitionPower(G, ctx, i.atk, 1);
         }
