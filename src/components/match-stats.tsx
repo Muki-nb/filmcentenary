@@ -117,7 +117,7 @@ interface IMatchCompositionStatsRow {
 }
 
 type PlayerStatsSubPanel = "leaderboard" | "detail";
-type PlayerLeaderboardSortMode = "composite" | "winRate" | "avgRank" | "games";
+type PlayerLeaderboardSortMode = "composite" | "winRate" | "avgRank" | "games" | "wins";
 type PlayerLeaderboardScope = "all" | "weekly" | "monthly";
 
 interface IPlayerLeaderboardRow {
@@ -924,7 +924,7 @@ const buildTopRegions = (
 const ignoredPlayerIDs = new Set(["0", "1", "2", "3", "P1", "P2", "P3", "P4", ""]);
 
 const rankRefMap: Record<number, number> = {1: 6, 2: 3, 3: 2, 4: 1};
-const rankRefMapPost10: Record<number, number> = {1: 4, 2: 1, 3: -0.5, 4: -1.33};
+const rankRefMapPost10: Record<number, number> = {1: 5, 2: 2.66, 3: -0.33, 4: -1};
 const COMPOSITE_THRESHOLD = 10;
 
 const buildPlayerLeaderboard = (
@@ -1045,6 +1045,11 @@ const buildPlayerLeaderboard = (
             }
             if (sortMode === "games") {
                 if (right.games !== left.games) return right.games - left.games;
+                if (right.winRate !== left.winRate) return right.winRate - left.winRate;
+                return left.avgRank - right.avgRank;
+            }
+            if (sortMode === "wins") {
+                if (right.wins !== left.wins) return right.wins - left.wins;
                 if (right.winRate !== left.winRate) return right.winRate - left.winRate;
                 return left.avgRank - right.avgRank;
             }
@@ -2053,7 +2058,8 @@ const MatchStatsPage = () => {
                                     <Button size="small" variant={playerLeaderboardSortMode === "composite" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("composite")} style={{marginRight: 6}}>综合</Button>
                                     <Button size="small" variant={playerLeaderboardSortMode === "winRate" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("winRate")} style={{marginRight: 6}}>胜率</Button>
                                     <Button size="small" variant={playerLeaderboardSortMode === "avgRank" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("avgRank")} style={{marginRight: 6}}>名次</Button>
-                                    <Button size="small" variant={playerLeaderboardSortMode === "games" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("games")}>对局数</Button>
+                                    <Button size="small" variant={playerLeaderboardSortMode === "games" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("games")} style={{marginRight: 6}}>对局数</Button>
+                                    <Button size="small" variant={playerLeaderboardSortMode === "wins" ? "contained" : "outlined"} color="primary" onClick={() => setPlayerLeaderboardSortMode("wins")}>胜局数</Button>
                                 </div>
                             </div>
                         </Grid>
