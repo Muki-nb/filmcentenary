@@ -1966,6 +1966,8 @@ export const comment: LongFormMove = {
     move: (G: IG, ctx: Ctx, arg: ICommentArg) => {
         if (activePlayer(ctx) !== ctx.playerID) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${arg.p}.moves.comment(${JSON.stringify(arg)})`);
+        const log = ["comment"];
+        undoCheck(G, log);
         const slot = ctx.numPlayers > SimpleRuleNumPlayers
             ? cardSlotOnBoard(G, ctx, getCardById(arg.target))
             : cardSlotOnBoard2p(G, ctx, getCardById(arg.target));
