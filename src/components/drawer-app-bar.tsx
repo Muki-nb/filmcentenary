@@ -1,4 +1,4 @@
-import {Link} from 'react-router-dom'
+import {Link, useHistory} from 'react-router-dom'
 import React from "react";
 import Drawer from "@material-ui/core/Drawer";
 import MenuIcon from '@material-ui/icons/Menu';
@@ -66,6 +66,7 @@ const AntSwitch = withStyles((theme: Theme) =>
 const DrawerAppBar = () => {
 
     useI18n(i18n);
+    const history = useHistory();
     const [open, setOpen] = React.useState(false);
     const [checked, setChecked] = React.useState(false);
     const [playerName, setPlayerName] = React.useState(loadPlayerName() || "");
@@ -142,11 +143,32 @@ const DrawerAppBar = () => {
     </AppBar>
         <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>
             <List>
-                <ListItem><Button><Link to={'/'}>{i18n.drawer.lobby}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/cards'}>{i18n.drawer.cards}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/match-stats'}>对局数据</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/local4p'}>{i18n.drawer.fourPlayer}</Link></Button></ListItem>
-                <ListItem><Button><Link to={'/about'}>{i18n.drawer.about}</Link></Button></ListItem>
+                <ListItem>
+                    <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/'); handleClose(); }}>{i18n.drawer.lobby}</Button>
+                </ListItem>
+                <ListItem>
+                    <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/cards'); handleClose(); }}>{i18n.drawer.cards}</Button>
+                </ListItem>
+                <ListItem>
+                    <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/match-stats'); handleClose(); }}>对局数据</Button>
+                </ListItem>
+                <ListItem>
+                    <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/local4p'); handleClose(); }}>{i18n.drawer.fourPlayer}</Button>
+                </ListItem>
+                <ListItem>
+                    <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/about'); handleClose(); }}>{i18n.drawer.about}</Button>
+                </ListItem>
+                <ListItem>
+                    <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={!playerName.trim()}
+                        onClick={() => { history.push(`/match-stats?player=${encodeURIComponent(playerName.trim())}`); handleClose(); }}
+                        fullWidth
+                    >
+                        快捷回放（{playerName.trim() || "未设置玩家名"}）
+                    </Button>
+                </ListItem>
             </List>
         </MUIDrawer>
     </React.Fragment>
