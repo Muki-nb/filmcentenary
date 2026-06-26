@@ -1447,7 +1447,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             log.push(`|noUndo|privateOpOnOtherPlayer`);
         }
     }
-    
+
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
