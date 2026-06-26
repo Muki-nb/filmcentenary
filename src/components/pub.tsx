@@ -63,9 +63,10 @@ export interface IPubPanelProps {
     G: IG,
     ctx: Ctx,
     log: LogEntry[],
+    hideLog?: boolean,
 }
 
-export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
+export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPanelProps) => {
     useI18n(i18n);
     const classes = useStyles();
     const [, setTick] = React.useState(0);
@@ -123,7 +124,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
     return <Grid container item
                  justifyContent="center" alignItems="center"
                  key={`pub${idx}-${playerID}`}>
-        <Grid item xs={12}>
+        {!hideLog && <Grid item xs={12}>
             {/*<textarea*/}
             {/*    defaultValue={playerLogText}*/}
             {/*    disabled*/}
@@ -139,7 +140,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G}: IPubPanelProps) => {
                 maxRows={8}
                 variant="filled"
             />
-        </Grid>
+        </Grid>}
         <Grid
             container
             item
