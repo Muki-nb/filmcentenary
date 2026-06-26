@@ -9,10 +9,13 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Button from "@material-ui/core/Button";
+import TextField from "@material-ui/core/TextField";
+import {Link as RouterLink, useLocation} from "react-router-dom";
 import {getCardName} from "./card";
 import i18n from "../constant/i18n";
 import {BasicCardID, CardType, IEra, getCardById, Region} from "../types/core";
 import {getColor} from "./icons";
+import {PubPanel} from "./pub";
 
 interface IPlayerStatsRecord {
     playerID: string,
@@ -182,7 +185,7 @@ type RegionFilter = "all" | "EE" | "WE" | "NA" | "ASIA";
 type EraFilter = "all" | "1" | "2" | "3";
 type CardTypeFilter = "all" | "film" | "school" | "person";
 type CardSortMode = "winRate" | "avgRank" | "games";
-type StatsPanel = "turn" | "seat" | "level" | "card" | "player";
+type StatsPanel = "turn" | "seat" | "level" | "card" | "player" | "playerMatches";
 const NO_SCHOOL_CARD_ID = "__NO_SCHOOL__";
 
 const regionNameMap: Record<number, string> = {
@@ -1256,6 +1259,7 @@ const buildPlayerDetail = (
 };
 
 const MatchStatsPage = () => {
+    const location = useLocation();
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
     const [records, setRecords] = React.useState<IMatchStatsRecord[]>([]);
@@ -1277,6 +1281,9 @@ const MatchStatsPage = () => {
     const [playerLeaderboardSortMode, setPlayerLeaderboardSortMode] = React.useState<PlayerLeaderboardSortMode>("winRate");
     const [playerDetailInput, setPlayerDetailInput] = React.useState("");
     const [playerDetailSearchedID, setPlayerDetailSearchedID] = React.useState("");
+    const [playerMatchName, setPlayerMatchName] = React.useState("");
+    const [playerMatchResults, setPlayerMatchResults] = React.useState<any[] | null>(null);
+    const [playerMatchLoading, setPlayerMatchLoading] = React.useState(false);
 
     const loadStats = React.useCallback(async () => {
         setLoading(true);
@@ -1325,9 +1332,40 @@ const MatchStatsPage = () => {
         }
     }, []);
 
+    const fetchPlayerMatches = React.useCallback(async (name: string) => {
+        if (!name.trim()) return;
+        const ignoredNames = new Set(["0", "1", "2", "3", "P1", "P2", "P3", "P4", "", "玩家0", "玩家1", "玩家2", "玩家3"]);
+        if (ignoredNames.has(name.trim())) {
+            setPlayerMatchResults([]);
+            return;
+        }
+        setPlayerMatchLoading(true);
+        try {
+            const resp = await fetch(`/api/player-matches/${encodeURIComponent(name.trim())}`);
+            if (!resp.ok) throw new Error(`${resp.status}`);
+            const data = await resp.json();
+            setPlayerMatchResults(data);
+        } catch (err: any) {
+            setPlayerMatchResults([]);
+        } finally {
+            setPlayerMatchLoading(false);
+        }
+    }, []);
+
     React.useEffect(() => {
         loadStats().then(() => {});
     }, [loadStats]);
+
+    React.useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const player = params.get("player");
+        if (player && player.trim()) {
+            setActivePanel("playerMatches");
+            setPlayerMatchName(player.trim());
+            setPlayerMatchResults(null);
+            fetchPlayerMatches(player.trim());
+        }
+    }, [location.search]);
 
     const cardStats = React.useMemo(() => {
         const rows = buildCardStats(records, cardStatsFilterMode)
@@ -1622,6 +1660,16 @@ const MatchStatsPage = () => {
                             onClick={() => setActivePanel("player")}
                         >
                             玩家数据
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button
+                            size="small"
+                            variant={activePanel === "playerMatches" ? "contained" : "outlined"}
+                            color="primary"
+                            onClick={() => setActivePanel("playerMatches")}
+                        >
+                            玩家详细对局
                         </Button>
                     </Grid>
                 </Grid>
@@ -2123,8 +2171,10 @@ const MatchStatsPage = () => {
                             </Typography>
                         </Grid>
                         <Grid item xs={12} sm={6} md={4}>
-                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7"}}>
-                                <Typography variant="body2" color="textSecondary">对局数</Typography>
+                            <div style={{padding: 12, textAlign: "center", borderRadius: 10, border: "1px solid #eef2f7", cursor: "pointer"}}
+                                onClick={() => { setPlayerMatchName(playerDetail.playerID); setPlayerMatchResults(null); setActivePanel("playerMatches"); }}
+                                title="点击查看该玩家所有对局">
+                                <Typography variant="body2" color="textSecondary">对局数 🔍</Typography>
                                 <Typography variant="h5">{playerDetail.games}</Typography>
                             </div>
                         </Grid>
@@ -2308,6 +2358,74 @@ const MatchStatsPage = () => {
                     </Grid>)}
                 </> : <></>}
             </Paper>
+        </Grid> : <></>}
+        {activePanel === "playerMatches" ? <Grid item xs={12}>
+            <div style={sectionPaperStyle}>
+                <Paper>
+                <Grid container spacing={2} style={{padding: 12}}>
+                    <Grid item xs={12}>
+                        <Typography variant="h6">玩家详细对局</Typography>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="玩家名"
+                            value={playerMatchName}
+                            onChange={(e: any) => setPlayerMatchName(e.target.value)}
+                            inputProps={{ onKeyDown: (e: any) => { if (e.key === "Enter") { setPlayerMatchResults(null); fetchPlayerMatches(playerMatchName); } } }}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            disabled={!playerMatchName.trim() || playerMatchLoading}
+                            onClick={() => { setPlayerMatchResults(null); fetchPlayerMatches(playerMatchName); }}
+                        >
+                            {playerMatchLoading ? "搜索中..." : "搜索"}
+                        </Button>
+                    </Grid>
+                    {playerMatchResults !== null && (
+                        <Grid item xs={12}>
+                            {playerMatchResults.length === 0 ? (
+                                <Typography color="textSecondary" style={{marginTop: 8}}>未找到 "{playerMatchName}" 参与的对局</Typography>
+                            ) : (
+                                <>
+                                    <Typography variant="subtitle2" style={{marginBottom: 8}}>
+                                        共 {playerMatchResults.length} 局
+                                    </Typography>
+                                    {playerMatchResults.map((m: any) => (
+                                        <div key={m.matchID} style={{marginBottom: 8, padding: 10, border: "1px solid #e0e0e0", borderRadius: 4}}>
+                                            <Grid container spacing={1} alignItems="center">
+                                                <Grid item xs={12}>
+                                                    <Typography variant="subtitle2" component={RouterLink} to={`/match-data/${m.matchID}`} style={{textDecoration: "none"}}>
+                                                        {new Date(m.exportedAt).toLocaleDateString("zh-CN")} · {m.matchID} · 回合{m.rounds} · 获胜玩家：{m.winner}
+                                                    </Typography>
+                                                </Grid>
+                                                {m.G?.pub?.map((p: any, pi: number) => (
+                                                    <Grid item sm={6} lg={3} key={pi}>
+                                                        <PubPanel
+                                                            i={p}
+                                                            idx={pi}
+                                                            getName={(pid: string) => m.G?.playerNames?.[pid] || `P${Number(pid)+1}`}
+                                                            G={m.G}
+                                                            ctx={m.ctx || {}}
+                                                            log={[]}
+                                                            hideLog
+                                                        />
+                                                    </Grid>
+                                                ))}
+                                            </Grid>
+                                        </div>
+                                    ))}
+                                </>
+                            )}
+                        </Grid>
+                    )}
+                </Grid>
+                </Paper>
+            </div>
         </Grid> : <></>}
     </Grid>;
 };
