@@ -1,5 +1,6 @@
 import {PlayerID} from "boardgame.io";
 import { IG } from "./setup";
+import { getAllExtensionCards, getEnabledExtensions } from "../extensions/registry";
 
 
 export enum Region {
@@ -3401,7 +3402,7 @@ export function getBasicCard(id: BasicCardID): IBasicCard {
     return BasicCards[id];
 }
 
-export function getCardById(id: string): INormalOrLegendCard {
+export function getCardById(id: string, G?: IG): INormalOrLegendCard {
     if (id in NoneBasicCards) {
         // @ts-ignore
         return NoneBasicCards[id];
@@ -3416,6 +3417,13 @@ export function getCardById(id: string): INormalOrLegendCard {
                 if (id in ScoreCardID) {
                     return getScoreCardByID(id);
                 } else {
+                    // ★ 扩展卡牌查找（新增）
+                    if (G) {
+                        const extCards = getAllExtensionCards(G);
+                        if (id in extCards) {
+                            return extCards[id] as INormalOrLegendCard;
+                        }
+                    }
                     throw new Error("No such card id " + id)
                 }
             }
@@ -3492,5 +3500,23 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
     } else {
         res = res.filter(c => c[1].category === CardCategory.NORMAL)
     }
-    return res.map(c => c[1]);
+    let result: INormalOrLegendCard[] = res.map(c => c[1]);
+
+    // ★ 新增：从扩展注册中心获取启用扩展的卡牌
+    const extCards = getAllExtensionCards(G);
+    const extEntries = Object.entries(extCards) as [string, INormalOrLegendCard][];
+    const extFiltered = extEntries.filter(
+        c => c[1].era === e && c[1].region === r
+    );
+    if (isLegend) {
+        result = result.concat(
+            extFiltered.filter(c => c[1].category === CardCategory.LEGEND).map(c => c[1])
+        );
+    } else {
+        result = result.concat(
+            extFiltered.filter(c => c[1].category === CardCategory.NORMAL).map(c => c[1])
+        );
+    }
+
+    return result;
 }

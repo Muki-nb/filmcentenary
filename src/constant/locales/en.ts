@@ -312,6 +312,8 @@ const setting: LocaleSettings = {
     changeSetting: "Change Game Setting",
     disableUndo: "Disable Undo",
 
+    customOptions: "Custom Options",
+
     extensionMode: "Extension Mode",
     extensionMode_none: "normal Extension mode",
     extensionMode_four: "4-Extension-school mode",

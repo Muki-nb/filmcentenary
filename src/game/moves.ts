@@ -31,6 +31,7 @@ import {
     valid_regions,
     VictoryType
 } from "../types/core";
+import { runExtensionSetups } from "../extensions/registry";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     activePlayer,
@@ -97,7 +98,9 @@ export interface ISetupGameModeArgs {
     enableSchoolExtensionQM: boolean,
     enableExtensionChaosMedia: boolean,
     extensionMode: ExtensionMode,
-    disableUndo: boolean
+    disableUndo: boolean,
+    /** DIY 扩展：已启用的扩展 ID 列表 */
+    enabledExtensions?: string[],
 }
 
 // Reserved for future curated company names.
@@ -394,6 +397,12 @@ export const setupGameMode: LongFormMove = {
         G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
         G.hasExtensionChaosMedia = args.enableExtensionChaosMedia;
         G.extensionMode = args.extensionMode;
+        G.enabledExtensions = args.enabledExtensions || [];
+
+        // ★ 执行所有启用 DIY 扩展的 onSetup 钩子
+        if (G.enabledExtensions.length > 0) {
+            runExtensionSetups(G, ctx);
+        }
 
         
         if (ctx.numPlayers === 4) {

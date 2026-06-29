@@ -77,6 +77,8 @@ export interface IG {
     hasSchoolExtensionMuki2: boolean,
     hasSchoolExtensionQM: boolean,
     hasExtensionChaosMedia: boolean,
+    /** DIY 扩展：已启用的扩展 ID 列表 (src/extensions/) */
+    enabledExtensions: string[],
     extensionMode: ExtensionMode,
     randomOrder: boolean,
     anonymousRandomMode: boolean,
@@ -322,6 +324,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         hasSchoolExtensionMuki2: false,
         hasSchoolExtensionQM: false,
         hasExtensionChaosMedia: false,
+        enabledExtensions: [],
         extensionMode: ExtensionMode.NONE,
         randomOrder: false,
         anonymousRandomMode: false,

@@ -16,6 +16,7 @@ import {
     ScoringEffectNames,
     SimpleEffectNames
 } from "../types/core";
+import { getAllExtensionEffects } from "../extensions/registry";
 
 const noEff = {e: "none", a: 1};
 const noResponse = {pre: noEff, effect: noEff};
@@ -24,7 +25,7 @@ export function getEvent(id: EventCardID) {
     return eventEffects[id];
 }
 
-export function getCardEffect(id: CardID): any {
+export function getCardEffect(id: CardID, G?: IG): any {
     if (id in effects) {
         // @ts-ignore
         return effects[id]
@@ -61,6 +62,14 @@ export function getCardEffect(id: CardID): any {
                 // @ts-ignore
                 return effects[id.slice(1)]
             } else {
+                // ★ 扩展效果查找（新增）：去掉 F/S/P 前缀后用数字部分查找
+                if (G) {
+                    const extEffs = getAllExtensionEffects(G);
+                    const key = id.slice(1); // "F7001" -> "7001"
+                    if (key in extEffs) {
+                        return extEffs[key];
+                    }
+                }
                 throw Error(`Unknown id ${JSON.stringify(id)}`);
             }
         }

@@ -50,6 +50,8 @@ export interface LocaleSettings {
     changeSetting: string,
     disableUndo: string,
 
+    customOptions: string,
+
     extensionMode: string,
     extensionMode_none: string,
     extensionMode_four: string,

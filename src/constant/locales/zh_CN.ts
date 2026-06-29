@@ -312,6 +312,8 @@ const setting = {
     changeSetting: "更改设置",
     disableUndo: "禁止撤回",
 
+    customOptions: "自定义选项",
+
     extensionMode: "流派扩模式",
     extensionMode_none: "全部发放",
     extensionMode_four: "每时代2个",
