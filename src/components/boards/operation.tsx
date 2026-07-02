@@ -116,14 +116,17 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
 
     const hasCurEffect = G.e.stack.length > 0;
     // const effType = hasCurEffect ? G.e.stack.slice(-1)[0] : "";
+    const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
+    // 以下卡片具有 peek + choice filter 效果，供参考
     const searchChoiceCards = [
         PersonCardID.P2401, FilmCardID.F2404, FilmCardID.F2410,
         PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414,
-        FilmCardID.F6343
+        FilmCardID.F6343,
     ]
-    const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
-    // @ts-ignore
-    const peekChoicesDisabled = G.e.card === null ? true : !searchChoiceCards.includes(G.e.card);
+    // 基于效果栈判断 peek 是否可选，而非依赖 G.e.card（G.e.card 在蓝复制等场景下不会更新）
+    const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek"
+        ? G.e.stack[0].a.filter.e !== "choice"
+        : true;
 
     const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek

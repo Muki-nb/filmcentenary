@@ -94,7 +94,7 @@ export const getValidHelper = (G: IG, playerID: PlayerID) => {
 
 export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     const hasCurEffect = G.e.stack.length > 0;
-    const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+    const peekChoicesDisabled = hasCurEffect && G.e.stack.slice(-1)[0].e === "peek" ? G.e.stack.slice(-1)[0].a.filter.e !== "choice" : true;
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
         .map((r: CardID, idx: number) => {
             return {
