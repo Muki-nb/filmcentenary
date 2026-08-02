@@ -147,6 +147,9 @@ const DrawerAppBar = () => {
                     <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/'); handleClose(); }}>{i18n.drawer.lobby}</Button>
                 </ListItem>
                 <ListItem>
+                    <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/manual'); handleClose(); }}>使用手册</Button>
+                </ListItem>
+                <ListItem>
                     <Button size="small" variant="outlined" fullWidth onClick={() => { history.push('/cards'); handleClose(); }}>{i18n.drawer.cards}</Button>
                 </ListItem>
                 <ListItem>

@@ -10,6 +10,7 @@ import JoinPage from "./components/join";
 import DenseTable from "./components/card-table";
 import CardViewTable from "./components/card-view-table";
 import AboutPage from "./components/about-page";
+import ManualPage from "./components/manual-page";
 import Lobby from "./components/lobby";
 import Local from "./songJinn/components/local";
 import MatchStatsPage from "./components/match-stats";
@@ -44,6 +45,9 @@ render(
                 </Route>
                 <Route exact path="/about">
                     <AboutPage/>
+                </Route>
+                <Route exact path="/manual">
+                    <ManualPage/>
                 </Route>
                 <Route exact path="/match-stats">
                     <MatchStatsPage/>
