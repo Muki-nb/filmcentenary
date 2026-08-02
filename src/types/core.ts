@@ -11,6 +11,7 @@ export enum Region {
     EXTENSION,
     EXTENSION1,
     EXTENSION2,
+    MONTHLY_SCHOOL,
     NONE,
 }
 
@@ -549,6 +550,12 @@ export enum SchoolCardID {
     'S5207' = 'S5207',
     'S5208' = 'S5208',
     'S5209' = 'S5209',
+
+    //2026-8扩
+    'S52681' = 'S52681',
+    'S52682' = 'S52682',
+    'S52683' = 'S52683',
+    'S52684' = 'S52684',
 
     //起名扩
     'S6001' = 'S6001',
@@ -2545,10 +2552,10 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Alien",
         cardId: FilmCardID.F6312,
-        cost: cost(9, 7, 4),
+        cost: cost(9, 7, 3),
         vp: 10,
         category: CardCategory.NORMAL,
-        industry: 1,
+        industry: 2,
         aesthetics: 0,
     }),
     "F6313": filmCard({
@@ -2593,7 +2600,7 @@ const NoneBasicCards = {
         vp: 14,
         category: CardCategory.NORMAL,
         industry: 0,
-        aesthetics: 2,
+        aesthetics: 3,
     }),
     "P6331": personCard({
         era: IEra.THREE,
@@ -2768,6 +2775,52 @@ const NoneBasicCards = {
         cardId: SchoolCardID.S5209,
         cost: cost(8, 3, 2),
         vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+
+    // 2026-8 Extension
+    "S52681": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Prose Film",
+        cardId: SchoolCardID.S52681,
+        cost: cost(8, 1, 1),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52682": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Berlin School",
+        cardId: SchoolCardID.S52682,
+        cost: cost(4, 3, 3),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52683": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Mexican Film",
+        cardId: SchoolCardID.S52683,
+        cost: cost(7, 3, 4),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S52684": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Sun Tribe Film",
+        cardId: SchoolCardID.S52684,
+        cost: cost(6, 5, 0),
+        vp: 7,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 0,
@@ -3449,6 +3502,7 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
         'S5001', 'S5002', 'S5003', 'S5004', //Muki扩
         'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
         'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
+        'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
         'S6001', 'S6002', 'S6003', 'S6004' //QM扩
     ];
     let filterCardIds : string[] = [];
@@ -3470,6 +3524,7 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
             'S5001', 'S5002', 'S5003', 'S5004', //Muki扩
             'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
             'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
+            'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
             'S6001', 'S6002', 'S6003', 'S6004' //QM扩
         ];
     }else{

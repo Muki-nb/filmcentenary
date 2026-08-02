@@ -224,5 +224,9 @@ export const getColor = (r: Region): string => {
             return indigo[800]
         case Region.EXTENSION2:
             return green[800]
+        case Region.MONTHLY_SCHOOL:
+            return grey[800]
+        default:
+            return grey[700]
     }
 }

@@ -95,10 +95,13 @@ export interface ISetupGameModeArgs {
     enableSchoolExtension: boolean,
     enableSchoolExtensionMuki: boolean,
     enableSchoolExtensionMuki2: boolean,
+    enableSchoolExtensionDawn: boolean,
     enableSchoolExtensionQM: boolean,
     enableExtensionChaosMedia: boolean,
     extensionMode: ExtensionMode,
     disableUndo: boolean,
+    testModeCinema: boolean,
+    testModeEnd180: boolean,
     /** DIY 扩展：已启用的扩展 ID 列表 */
     enabledExtensions?: string[],
 }
@@ -224,6 +227,8 @@ export const setupGameMode: LongFormMove = {
                 break;
         }
         G.disableUndo = args.disableUndo;
+        G.testModeCinema = args.testModeCinema;
+        G.testModeEnd180 = args.testModeEnd180;
         log.push(`|turnOrder|${JSON.stringify(initOrder)}`);
         G.order = initOrder;
         G.initialOrder = initOrder;
@@ -349,6 +354,38 @@ export const setupGameMode: LongFormMove = {
             }
         }
 
+        
+        G.regions[Region.MONTHLY_SCHOOL].legend.card = null;
+        for (let iCardSlot of G.regions[Region.MONTHLY_SCHOOL].normal) {
+            iCardSlot.card = null;
+        }
+        let cardsDawn = [];
+        if(args.enableSchoolExtensionDawn){
+            let dawnCards = shuffle(ctx, [
+                SchoolCardID.S52681,
+                SchoolCardID.S52682,
+                SchoolCardID.S52683,
+                SchoolCardID.S52684
+            ]);
+            cardsDawn.push(...dawnCards);
+        }
+        if(cardsDawn.length > 0){
+            let schoolCardPopped = cardsDawn.pop();
+            if (schoolCardPopped === undefined) {
+                throw new Error(schoolCardPopped);
+            } else {
+                G.regions[Region.MONTHLY_SCHOOL].legend.card = schoolCardPopped;
+            }
+            for (let iCardSlot of G.regions[Region.MONTHLY_SCHOOL].normal) {
+                schoolCardPopped = cardsDawn.pop();
+                if (schoolCardPopped === undefined) {
+                    break;
+                } else {
+                    iCardSlot.card = schoolCardPopped;
+                }
+            }
+        }
+
         if(args.extensionMode === ExtensionMode.NONE){
             //as default, do nothing
         }else if(args.extensionMode === ExtensionMode.FOUR){
@@ -364,6 +401,7 @@ export const setupGameMode: LongFormMove = {
                 SchoolCardID.S5209
             );
             if(args.enableSchoolExtensionQM) cards_era2.push(SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003, /*SchoolCardID.S6004*/);
+            if(args.enableSchoolExtensionDawn) cards_era2.push(SchoolCardID.S52681, SchoolCardID.S52682, SchoolCardID.S52683, SchoolCardID.S52684);
             let cards_era3 = [];
             if(args.enableSchoolExtension) cards_era3.push(SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008);
             if(args.enableSchoolExtensionMuki2) cards_era3.push(SchoolCardID.S5201, SchoolCardID.S5202, SchoolCardID.S5203, SchoolCardID.S5204, SchoolCardID.S5205);
@@ -394,6 +432,7 @@ export const setupGameMode: LongFormMove = {
         G.hasSchoolExtension = args.enableSchoolExtension;
         G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;
         G.hasSchoolExtensionMuki2 = args.enableSchoolExtensionMuki2;
+        G.hasSchoolExtensionDawn = args.enableSchoolExtensionDawn;
         G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
         G.hasExtensionChaosMedia = args.enableExtensionChaosMedia;
         G.extensionMode = args.extensionMode;
@@ -1765,6 +1804,7 @@ export const playCard: LongFormMove = {
         const playCard = getCardById(arg.card);
         const pub = G.pub[parseInt(arg.playerID)];
         const hand = G.player[parseInt(arg.playerID)].hand;
+        const handCountBeforePlay = hand.length;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
             switch (pub.school) {
@@ -1775,8 +1815,13 @@ export const playCard: LongFormMove = {
                     log.push(`|masala|${JSON.stringify(G.e.stack)}`)
                     break;
                 default:
-                    G.e.stack.push({e: "addVp", a: 2});
-                    G.e.stack.push({e: "res", a: 1});
+                    if (G.testModeCinema) {
+                        G.e.stack.push({e: "addVp", a: 1});
+                        G.e.stack.push({e: "res", a: 1});
+                    } else {
+                        G.e.stack.push({e: "addVp", a: 2});
+                        G.e.stack.push({e: "res", a: 1});
+                    }
                     log.push(`|${JSON.stringify(G.e.stack)}`)
                     break;
             }
@@ -1815,6 +1860,17 @@ export const playCard: LongFormMove = {
         pub.activeCardInTurn.push(arg.card);
         
         G.e.card = arg.card;
+        // [可选]支付1声望，将打出的牌置入档案馆
+        const proseFilmArchiveEffect = pub.school === SchoolCardID.S52681 && handCountBeforePlay === 5
+            ? {e: "optional",
+            a: {e: "pay", a: {
+                cost: {
+                    e: "vp", a: 1
+                },
+                eff: {e: "EssayFilm_doArchive", a: arg.card}
+            }}
+            , target: arg.playerID}
+            : null;
         let autoActive = false;
         if (arg.card === BasicCardID.B05) {
             const privateInfo = G.player[parseInt(arg.playerID)];
@@ -1854,15 +1910,24 @@ export const playCard: LongFormMove = {
             if (eff.e !== "none") {
                 log.push(`|${JSON.stringify(eff)}`);
                 G.e.stack.splice(0, 0, eff);
+                if (proseFilmArchiveEffect !== null) {
+                    G.e.stack.splice(0, 0, proseFilmArchiveEffect);
+                }
                 log.push(`${JSON.stringify(G.e.stack)}`)
                 playerEffExec(G, ctx, ctx.currentPlayer);
                 //checkNextEffect(G, ctx);
             } else {
                 log.push(`|emptyPlayEffect`);
+                if (proseFilmArchiveEffect !== null) {
+                    G.e.stack.splice(0, 0, proseFilmArchiveEffect);
+                }
                 checkNextEffect(G, ctx);
             }
         } else {
             log.push(`|noPlayEffect`);
+            if (proseFilmArchiveEffect !== null) {
+                G.e.stack.splice(0, 0, proseFilmArchiveEffect);
+            }
             checkNextEffect(G, ctx);
         }
         logger.debug(`${G.matchID}|${log.join('')}`);
@@ -1953,12 +2018,26 @@ export const breakthrough: LongFormMove = {
 
             if(active){
                 doBuy(G, ctx, B05, arg.playerID);
-                drawCardForPlayer(G, ctx, arg.playerID);
+                // drawCardForPlayer(G, ctx, arg.playerID);
             }
         }
         log.push(`|startBreakthrough`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);
+        if (pub.school === SchoolCardID.S52683) {
+            G.e.stack.push({
+                e: "optional",
+                a: {
+                    e: "choice",
+                    a: [
+                        {e: "buyCardToHand", a: BasicCardID.B02},
+                        {e: "buyCardToHand", a: BasicCardID.B01},
+                    ]
+                },
+                target: arg.playerID,
+            });
+            checkNextEffect(G, ctx);
+        }
     }
 }
 

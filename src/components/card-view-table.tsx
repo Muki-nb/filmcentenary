@@ -33,6 +33,10 @@ const MUKI_EXTENSION_IDS = new Set<string>([
     "S5201", "S5202", "S5203", "S5204", "S5205", "S5206", "S5207", "S5208", "S5209",
 ]);
 
+const DAWN_EXTENSION_IDS = new Set<string>([
+    "S52681", "S52682", "S52683", "S52684",
+]);
+
 const QM_EXTENSION_IDS = new Set<string>([
     "S6001", "S6002", "S6003", "S6004",
 ]);
@@ -46,6 +50,7 @@ const CHAOS_MEDIA_IDS = new Set<string>([
 const ALL_EXTENSION_IDS = new Set<string>([
     ...Array.from(YANG_EXTENSION_IDS),
     ...Array.from(MUKI_EXTENSION_IDS),
+    ...Array.from(DAWN_EXTENSION_IDS),
     ...Array.from(QM_EXTENSION_IDS),
     ...Array.from(CHAOS_MEDIA_IDS),
 ]);
@@ -288,6 +293,7 @@ const CardViewTable = () => {
     const cardsYangExtension = sortById(classicCards.filter((id) => YANG_EXTENSION_IDS.has(id as string)));
     const cards5xxxQm = sortById(classicCards.filter((id) => QM_EXTENSION_IDS.has(id as string)));
     const cards5xxxMuki = sortById(classicCards.filter((id) => MUKI_EXTENSION_IDS.has(id as string)));
+    const cardsDawn = sortById(classicCards.filter((id) => DAWN_EXTENSION_IDS.has(id as string)));
     const cardsChaos = sortById(classicCards.filter((id) => CHAOS_MEDIA_IDS.has(id as string)));
 
     const sectionsClassicCoreByRegionEra = groupByRegionEra(cardsClassicCore);
@@ -306,6 +312,7 @@ const CardViewTable = () => {
         {id: "classic-4", title: "杨 - 流派扩"},
         ...(cards5xxxQm.length > 0 ? [{id: "classic-5-qm", title: "qm扩"}] : []),
         {id: "classic-5-muki", title: "muki扩"},
+        {id: "classic-5-monthly", title: "月度流派扩"},
         {id: "classic-6", title: "乱世光影"},
         {id: "basic", title: "基础卡"},
         {id: "event", title: "事件卡"},
@@ -344,6 +351,16 @@ const CardViewTable = () => {
 
             {cards5xxxQm.length > 0 ? <Section id="classic-5-qm" title="qm扩" cards={cards5xxxQm}/> : <React.Fragment/>}
             <Section id="classic-5-muki" title="muki扩" cards={cards5xxxMuki}/>
+            <SectionWithSubsections
+                id="classic-5-monthly"
+                title="月度流派扩"
+                cards={cardsDawn}
+                subsections={[{
+                    id: "monthly-dawn",
+                    title: "2026-8 流派扩：破晓",
+                    cards: cardsDawn,
+                }]}
+            />
 
             <SectionWithSubsections
                 id="classic-6"

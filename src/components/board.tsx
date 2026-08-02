@@ -264,13 +264,19 @@ export const FilmCentenaryBoard = ({
             if (G.extensionMode === ExtensionMode.FOUR) return false;
             return G.hasSchoolExtensionMuki2;
         }
+        if (r === Region.MONTHLY_SCHOOL) {
+            if (ExtensionMode.FIXED === G.extensionMode) return false;
+            if (G.extensionMode === ExtensionMode.FOUR) return false;
+            return G.hasSchoolExtensionDawn;
+        }
         // 主地区始终可见
         return true;
     };
 
     const allRegions: Region[] = [
         Region.NA, Region.WE, Region.EE, Region.ASIA,
-        Region.EXTENSION, Region.EXTENSION1, Region.EXTENSION2
+        Region.EXTENSION, Region.EXTENSION1, Region.EXTENSION2,
+        Region.MONTHLY_SCHOOL
     ];
 
     const visibleDisplayRegions: Region[] = allRegions.filter(r => isRegionVisible(r));
@@ -301,7 +307,7 @@ export const FilmCentenaryBoard = ({
     }, [filterRegion, visibleDisplayRegions, ctx.phase, ctx.numPlayers]);
 
     const isExtensionRegion = (r: Region): boolean =>
-        r === Region.EXTENSION || r === Region.EXTENSION1 || r === Region.EXTENSION2;
+        r === Region.EXTENSION || r === Region.EXTENSION1 || r === Region.EXTENSION2 || r === Region.MONTHLY_SCHOOL;
 
     const renderRegionButtonContent = (r: Region, selected: boolean): React.ReactNode => {
         // @ts-ignore
@@ -485,6 +491,9 @@ export const FilmCentenaryBoard = ({
                                   playerID={playerID}/>}
                 {(filterRegion === null || filterRegion === Region.EXTENSION2) &&
                     <SchoolRegion getPlayerName={getName} r={Region.EXTENSION2} moves={moves} region={G.regions[Region.EXTENSION2]} G={G} ctx={ctx}
+                                  playerID={playerID}/>}
+                {(filterRegion === null || filterRegion === Region.MONTHLY_SCHOOL) &&
+                    <SchoolRegion getPlayerName={getName} r={Region.MONTHLY_SCHOOL} moves={moves} region={G.regions[Region.MONTHLY_SCHOOL]} G={G} ctx={ctx}
                                   playerID={playerID}/>}
             </Grid>
         </Grid>

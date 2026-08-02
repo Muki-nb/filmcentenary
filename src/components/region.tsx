@@ -335,6 +335,10 @@ const isRegionVisible = (G:IG, region:IRegionInfo) => {
         if(G.extensionMode === ExtensionMode.FOUR) return false;
         return G.hasSchoolExtensionMuki2;
     }
+    if(region == G.regions[Region.MONTHLY_SCHOOL]){
+        if(G.extensionMode === ExtensionMode.FOUR) return false;
+        return G.hasSchoolExtensionDawn;
+    }
     return true;
 };
 

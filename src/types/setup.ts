@@ -48,6 +48,8 @@ export interface CompetitionInfo {
 
 export interface IG {
     disableUndo: boolean,
+    testModeCinema: boolean,
+    testModeEnd180: boolean,
     previousMoveUndoable: boolean,
     updateCardHistory: CardID[][],
     settlementTimeline: Array<{
@@ -75,6 +77,7 @@ export interface IG {
     hasSchoolExtension: boolean,
     hasSchoolExtensionMuki: boolean,
     hasSchoolExtensionMuki2: boolean,
+    hasSchoolExtensionDawn: boolean,
     hasSchoolExtensionQM: boolean,
     hasExtensionChaosMedia: boolean,
     /** DIY 扩展：已启用的扩展 ID 列表 (src/extensions/) */
@@ -143,6 +146,7 @@ export interface IG {
             [Region.EXTENSION]: IRegionPrivate,
             [Region.EXTENSION1]: IRegionPrivate,
             [Region.EXTENSION2]: IRegionPrivate,
+            [Region.MONTHLY_SCHOOL]: IRegionPrivate,
         },
         events: EventCardID[],
         playerDecks: CardID[][],
@@ -159,6 +163,7 @@ export interface IG {
         [Region.EXTENSION]: IRegionInfo,
         [Region.EXTENSION1]: IRegionInfo,
         [Region.EXTENSION2]: IRegionInfo,
+        [Region.MONTHLY_SCHOOL]: IRegionInfo,
     },
     pendingEffects: any[],
     basicCards: {
@@ -306,6 +311,8 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     logger.debug(`order${JSON.stringify(randomOrder)}`)
     let G: IG = {
         disableUndo: false,
+        testModeCinema: false,
+        testModeEnd180: false,
         previousMoveUndoable: true,
         updateCardHistory: [],
         settlementTimeline: [],
@@ -322,6 +329,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         hasSchoolExtension: false,
         hasSchoolExtensionMuki: false,
         hasSchoolExtensionMuki2: false,
+        hasSchoolExtensionDawn: false,
         hasSchoolExtensionQM: false,
         hasExtensionChaosMedia: false,
         enabledExtensions: [],
@@ -426,6 +434,10 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                     legendDeck: [],
                     normalDeck: [],
                 },
+                [Region.MONTHLY_SCHOOL]: {
+                    legendDeck: [],
+                    normalDeck: [],
+                },
             },
             twoPlayer: {
                 school: [],
@@ -527,6 +539,17 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
                     emptyBuildingSlot(Region.EXTENSION2, false)],
                 legend: emptyNormalCardSlot(Region.EXTENSION2),
                 normal: [emptyNormalCardSlot(Region.EXTENSION2), emptyNormalCardSlot(Region.EXTENSION2), emptyNormalCardSlot(Region.EXTENSION2)],
+                share: 0,
+            },
+            [Region.MONTHLY_SCHOOL] : {
+                normalDeckLength: 0,
+                legendDeckLength: 0,
+                completedLastScoring: false,
+                era: IEra.ONE,
+                buildings: [emptyBuildingSlot(Region.MONTHLY_SCHOOL, false),
+                    emptyBuildingSlot(Region.MONTHLY_SCHOOL, false)],
+                legend: emptyNormalCardSlot(Region.MONTHLY_SCHOOL),
+                normal: [emptyNormalCardSlot(Region.MONTHLY_SCHOOL), emptyNormalCardSlot(Region.MONTHLY_SCHOOL), emptyNormalCardSlot(Region.MONTHLY_SCHOOL)],
                 share: 0,
             },
         },
@@ -659,21 +682,16 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     // G.pub[2].school = "S5203";
     // // @ts-ignore
     // // G.pub[3].school = "S5204";
-    // if(ctx.numPlayers === 4){
-    //     G.pub[0].vp = 149;
-    //     // // @ts-ignore
-    //     // G.pub[0].school = "S6342";
-    //     // G.player[0].hand = [FilmCardID.F6332, FilmCardID.F6343, PersonCardID.P2202, BasicCardID.B04, BasicCardID.B01];
-    //     // // @ts-ignore
-    //     // G.pub[1].school = "S6241";
-    //     // G.player[1].hand = [PersonCardID.P1101];
-    //     // // @ts-ignore
-    //     // G.pub[1].school = "S5207";
-    //     // // @ts-ignore
-    //     // G.pub[2].school = "S5208";
-    //     // // @ts-ignore
-    //     // G.pub[3].school = "S5209";
-    // }
+    if(ctx.numPlayers === 4){
+        // // @ts-ignore
+        // G.pub[3].school = "S52681";
+        // // @ts-ignore
+        // G.pub[1].school = "S52682";
+        // // @ts-ignore
+        // G.pub[2].school = "S52683";
+        // // @ts-ignore
+        // G.pub[0].school = "S52684";
+    }
     // G.player[firstMovePlayer].hand = [FilmCardID.F2407, FilmCardID.F3112, BasicCardID.B02, PersonCardID.P2103];
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[firstMovePlayer].industry = 10;

@@ -2,11 +2,13 @@ import {
     AllClassicCards,
     BasicCardID, CardID,
     EventCardID,
+    getCardById,
     IBuyInfo,
     IEra,
     Region,
     ValidRegion,
 } from "../../types/core";
+import { getAllExtensions } from "../../extensions/registry";
 import {
     chooseDiscard,
     IChooseDiscardArg,
@@ -199,8 +201,14 @@ const cards = {
     '5208': 'Black Wave',
     '5209': 'Martial Arts Film',
 
+    '52681': 'Essay Film',
+    '52682': 'Berlin School',
+    '52683': 'Mexican Film',
+    '52684': 'Sun Tribe Film',
+
     '6001': 'New Drama',
     '6002': 'Czechoslovak Film',
+    'enableSchoolExtensionDawn': 'Enable Daybreak Extension',
     '6003': 'New Czechoslovak Film',
 	'6004': 'Auteur film',
 
@@ -236,6 +244,7 @@ const region = {
     [Region.EXTENSION] : "School Extension",
     [Region.EXTENSION1] : "Muki & QM Extension",
     [Region.EXTENSION2] : "Muki Extension2",
+    [Region.MONTHLY_SCHOOL] : "Monthly School",
     [Region.NONE] : "Any Region",
 };
 const numToValue = (value: number = 1): string => value.toString();
@@ -311,6 +320,10 @@ const setting: LocaleSettings = {
     order: "Turn Order",
     changeSetting: "Change Game Setting",
     disableUndo: "Disable Undo",
+    enableSchoolExtensionDawn: "Enable Daybreak Extension",
+
+    testModeCinema: "[Optional] Cinema: +1 resource, +1 prestige",
+    testModeEnd180: "[Optional] Game End: 180 VP",
 
     customOptions: "Custom Options",
 
@@ -770,6 +783,16 @@ const en = {
         '5208_buy': "Can be bought when any region is in Era II. If East Europe is in Era I/II, gain all/1 East Europe share(s).",
         '5208_effect': "Whenever you archive an obsolete film or a bad film (including through breakthrough), buy 1 Classic Film for free and +1 card. Your Classic Film can also choose option 3: +1 deposit, +2 prestige.",
         '5209_effect': "When you only have 1 action point left and play an obsolete film: pay 1 deposit to resolve the [Play] effect based on the film's era; if you can't pay, +1 prestige.",
+
+        '52681_buy': "Buy 【Literary Film】 for free. +1 East Europe share.",
+        '52681_effect': "When you have exactly 5 cards in hand, after you play a card, [optional] pay 1 prestige to archive that card.",
+        EssayFilm_doArchive: "Archive the played card",
+        '52682_buy': "If the sum of your levels is 4, choose one: ①+1 industry level; ②+1 aesthetics level. +1 West Europe share.",
+        '52682_effect': "Before the recovery phase, if your hand is not empty, after the recovery phase, +1 card and +1 prestige.",
+        '52683_buy': "Other companies -1 card, -1 prestige, +1 deposit. +1 North America share.",
+        '52683_effect': "After breakthrough, [optional] choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
+        '52684_buy': "[Buy][Update] once. +1 Asia share. +1 action point.",
+        '52684_effect': "Before the recovery phase, if you have no action points, after the recovery phase, archive Sun Tribe Film. After losing Sun Tribe Film: +1 industry level, +7 prestige.",
 
         '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
         '6312_effect': "During this action phase, after your industry reward: +1 card.",

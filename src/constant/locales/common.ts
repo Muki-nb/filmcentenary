@@ -29,6 +29,7 @@ export interface LocaleRegions {
     [Region.EXTENSION]: string,
     [Region.EXTENSION1]: string,
     [Region.EXTENSION2]: string,
+    [Region.MONTHLY_SCHOOL]: string,
     [Region.NONE]: string,
 }
 
@@ -40,6 +41,7 @@ export interface LocaleSettings {
     enableSchoolExtension: string,
     enableSchoolExtensionMuki: string,
     enableSchoolExtensionMuki2: string,
+    enableSchoolExtensionDawn: string,
     enableSchoolExtensionQM: string,
     enableExtensionChaosMedia: string,
     randomFirst: string,
@@ -49,6 +51,9 @@ export interface LocaleSettings {
     order: string,
     changeSetting: string,
     disableUndo: string,
+
+    testModeCinema: string,
+    testModeEnd180: string,
 
     customOptions: string,
 
@@ -112,6 +117,10 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                 t += ", "
                 t += setting.enableSchoolExtensionMuki2
             }
+            if (arg.enableSchoolExtensionDawn){
+                t += ", "
+                t += setting.enableSchoolExtensionDawn
+            }
             if (arg.enableSchoolExtensionQM){
                 t += ", "
                 t += setting.enableSchoolExtensionQM
@@ -123,6 +132,14 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
             if (arg.disableUndo) {
                 t += ", "
                 t += setting.disableUndo
+            }
+            if (arg.testModeCinema) {
+                t += ", "
+                t += setting.testModeCinema
+            }
+            if (arg.testModeEnd180) {
+                t += ", "
+                t += setting.testModeEnd180
             }
             return t;
         }

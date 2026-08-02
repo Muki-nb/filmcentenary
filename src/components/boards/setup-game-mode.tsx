@@ -29,9 +29,12 @@ interface ISavedOptions {
     enableSchoolExtension: boolean;
     enableSchoolExtensionMuki: boolean;
     enableSchoolExtensionMuki2: boolean;
+    enableSchoolExtensionDawn: boolean;
     enableSchoolExtensionQM: boolean;
     enableExtensionChaosMedia: boolean;
     disableUndo: boolean;
+    testModeCinema: boolean;
+    testModeEnd180: boolean;
     enabledExtensions: string[];
 }
 
@@ -58,11 +61,14 @@ function hasAnySavedExtensionEnabled(saved: ISavedOptions | null): boolean {
         saved.enableSchoolExtension ||
         saved.enableSchoolExtensionMuki ||
         saved.enableSchoolExtensionMuki2 ||
+        saved.enableSchoolExtensionDawn ||
         saved.enableSchoolExtensionQM ||
         saved.enableExtensionChaosMedia ||
         (saved.enabledExtensions && saved.enabledExtensions.length > 0) ||
         saved.extensionMode !== ExtensionMode.NONE ||
-        saved.disableUndo
+        saved.disableUndo ||
+        saved.testModeCinema ||
+        saved.testModeEnd180
     );
 }
 
@@ -78,9 +84,12 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(saved?.enableSchoolExtension ?? false);
     const [enableSchoolExtensionMuki, setEnableSchoolExtensionMuki] = React.useState(saved?.enableSchoolExtensionMuki ?? false);
     const [enableSchoolExtensionMuki2, setEnableSchoolExtensionMuki2] = React.useState(saved?.enableSchoolExtensionMuki2 ?? false);
+    const [enableSchoolExtensionDawn, setEnableSchoolExtensionDawn] = React.useState(saved?.enableSchoolExtensionDawn ?? false);
     const [enableSchoolExtensionQM, setEnableSchoolExtensionQM] = React.useState(saved?.enableSchoolExtensionQM ?? false);
     const [enableExtensionChaosMedia, setEnableExtensionChaosMedia] = React.useState(saved?.enableExtensionChaosMedia ?? false);
     const [disableUndo, setDisableUndo] = React.useState(saved?.disableUndo ?? false);
+    const [testModeCinema, setTestModeCinema] = React.useState(saved?.testModeCinema ?? false);
+    const [testModeEnd180, setTestModeEnd180] = React.useState(saved?.testModeEnd180 ?? false);
     const [enabledExtensions, setEnabledExtensions] = React.useState<string[]>(saved?.enabledExtensions ?? []);
     // 如果有保存的扩展选项，默认展开自定义选项面板
     const [showCustomOptions, setShowCustomOptions] = React.useState(
@@ -92,6 +101,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
         enableSchoolExtension ||
         enableSchoolExtensionMuki ||
         enableSchoolExtensionMuki2 ||
+        enableSchoolExtensionDawn ||
         enableSchoolExtensionQM ||
         enableExtensionChaosMedia ||
         enabledExtensions.length > 0 ||
@@ -128,16 +138,18 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
         const current = {
             mode, order, extensionMode,
             enableSchoolExtension, enableSchoolExtensionMuki,
-            enableSchoolExtensionMuki2, enableSchoolExtensionQM,
+            enableSchoolExtensionMuki2, enableSchoolExtensionDawn,
+            enableSchoolExtensionQM,
             enableExtensionChaosMedia, disableUndo,
+            testModeCinema, testModeEnd180,
             enabledExtensions,
             ...overrides,
         };
         moves.setupGameMode(current);
         saveOptions(current);
     }, [mode, order, extensionMode, enableSchoolExtension, enableSchoolExtensionMuki,
-        enableSchoolExtensionMuki2, enableSchoolExtensionQM, enableExtensionChaosMedia,
-        disableUndo, enabledExtensions, moves]);
+        enableSchoolExtensionMuki2, enableSchoolExtensionDawn, enableSchoolExtensionQM, enableExtensionChaosMedia,
+        disableUndo, testModeCinema, testModeEnd180, enabledExtensions, moves]);
 
     // 组件挂载时，如果有保存的选项，应用一次
     React.useEffect(() => {
@@ -251,6 +263,11 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                                 disabled={ctx.numPlayers < 3}
                                 control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionMuki2}/>
                             <FormControlLabel
+                                checked={enableSchoolExtensionDawn}
+                                onChange={makeExtHandler(setEnableSchoolExtensionDawn, 'enableSchoolExtensionDawn')}
+                                disabled={ctx.numPlayers < 3}
+                                control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionDawn}/>
+                            <FormControlLabel
                                 checked={enableSchoolExtensionQM}
                                 onChange={makeExtHandler(setEnableSchoolExtensionQM, 'enableSchoolExtensionQM')}
                                 disabled={ctx.numPlayers < 3}
@@ -264,6 +281,14 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                                 checked={disableUndo}
                                 onChange={makeExtHandler(setDisableUndo, 'disableUndo')}
                                 control={<Checkbox/>} label={i18n.setting.disableUndo}/>
+                            <FormControlLabel
+                                checked={testModeCinema}
+                                onChange={makeExtHandler(setTestModeCinema, 'testModeCinema')}
+                                control={<Checkbox/>} label={i18n.setting.testModeCinema || '【可选】电影院：+1资源，+1声望'}/>
+                            <FormControlLabel
+                                checked={testModeEnd180}
+                                onChange={makeExtHandler(setTestModeEnd180, 'testModeEnd180')}
+                                control={<Checkbox/>} label={i18n.setting.testModeEnd180 || '【可选】游戏结束：180分'}/>
 
                             {/* ====== DIY 扩展（从注册中心自动生成） ====== */}
                             {registeredExtensions.length > 0 && (
