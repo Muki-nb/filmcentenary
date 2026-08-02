@@ -26,3 +26,5 @@ yarn-error.log*
 debug.log
 /.env
 src/data/film-match-stats.jsonl
+/src/coding
+/src/film_image
