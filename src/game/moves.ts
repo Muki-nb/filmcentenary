@@ -817,7 +817,7 @@ export const chooseHand: LongFormMove = {
 
                     if(active){
                         doBuy(G, ctx, B05, p);
-                        drawCardForPlayer(G, ctx, p);
+                        //drawCardForPlayer(G, ctx, p);
                     }
                 }
                 startBreakThrough(G, ctx, arg.p, arg.hand);
@@ -840,7 +840,7 @@ export const chooseHand: LongFormMove = {
 
                     if(active){
                         doBuy(G, ctx, B05, p);
-                        drawCardForPlayer(G, ctx, p);
+                        //drawCardForPlayer(G, ctx, p);
                     }
                 }
                 if (buildingInRegion(G, ctx, Region.EE, p)) {
@@ -890,7 +890,7 @@ export const chooseHand: LongFormMove = {
 
                     if(active){
                         doBuy(G, ctx, B05, p);
-                        drawCardForPlayer(G, ctx, p);
+                        //drawCardForPlayer(G, ctx, p);
                     }
                 }
                 const vpToAdd = getCardById(arg.hand).vp;
@@ -926,7 +926,7 @@ export const chooseHand: LongFormMove = {
 
                     if(active){
                         doBuy(G, ctx, B05, p);
-                        drawCardForPlayer(G, ctx, p);
+                        //drawCardForPlayer(G, ctx, p);
                     }
                 }
                 

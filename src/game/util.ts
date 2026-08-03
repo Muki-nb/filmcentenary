@@ -1490,6 +1490,22 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
     }
     log.push(`|eff|${JSON.stringify(eff)}`);
     G.e.currentEffect = eff;
+
+    
+    // 阻止自动结算导致他人操作结算后撤回
+    if (p !== ctx.currentPlayer) {
+        const privateOps = [
+            "discard", "discardBasic", "discardNormalOrLegend", "discardLegend",
+            "discardAesthetics", "discardIndustry", "breakthroughResDeduct",
+            "handToAnyPlayer", "discardToAnyPlayer", "playedCardInTurnEffect",
+        ];
+        if (privateOps.includes(eff.e)) {
+            G.previousMoveUndoable = false;
+            log.push(`|noUndo|privateOpOnOtherPlayer`);
+        }
+    }
+
+
     let targetPlayer = p;
     let pub = G.pub[parseInt(p)];
     const playerObj = G.player[parseInt(p)];
@@ -2430,8 +2446,11 @@ export const industryAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
         if (pub.industry > 7) {
             //addVp(G, ctx, p, 1);
         }
+        if(pub.activeCardInTurn.includes(FilmCardID.F6312)){
+            drawCardForPlayer(G, ctx, p);
+        }
     }
-    if(pub.playedCardInTurn.includes(FilmCardID.F6312)){
+    if(pub.activeCardInTurn.includes(FilmCardID.F6312)){
         drawCardForPlayer(G, ctx, p);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
@@ -3798,7 +3817,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     pub.newHollyWoodUsed = false;
     pub.action = getPlayerAction(G, arg);
 
-        fillPlayerHand(G, ctx, ctx.currentPlayer);
+    fillPlayerHand(G, ctx, ctx.currentPlayer);
     log.push(`| execute development rewards`);
     log.push(`|aesAwardEndTurn`);
     aesAwardEndTurn(G, ctx, ctx.currentPlayer);
@@ -3861,6 +3880,18 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
         }
     }
     */
+    // 明星制
+    if (pub.school === SchoolCardID.S5206) {
+        for(let otherP of G.order) {
+            if(otherP !== p && pub.vp > G.pub[parseInt(otherP)].vp) {
+                if(pub.vp >= 1) {
+                    loseVp(G, ctx, p, 1);
+                    pub.resource++;
+                }
+            }
+        }
+    }
+
     logger.debug(`${G.matchID}|${log.join('')}`);
     pub.actionused = false;
     
@@ -4168,7 +4199,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         
         // P6311 Kubrick: after contest, +1 deposit, +1 competition power
         const atkPub = G.pub[parseInt(i.atk)];
-        if(atkPub.playedCardInTurn.includes(PersonCardID.P6311)){
+        if(atkPub.activeCardInTurn.includes(PersonCardID.P6311)){
             atkPub.deposit += 1;
             addCompetitionPower(G, ctx, i.atk, 1);
         }
@@ -4626,7 +4657,7 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
     // S6002/S6003 思想电影/新思想电影: +4 / (工业等级 + 美学等级)
     if (p.school === SchoolCardID.S6002 || p.school === SchoolCardID.S6003) {
         log.push(`|thoughtFilm|before|${f.events}`);
-        f.events += 4 * (p.industry + p.aesthetics);
+        f.events += 4 * Math.min(p.industry, p.aesthetics);
         log.push(`|after|${f.events}`);
     }
 
