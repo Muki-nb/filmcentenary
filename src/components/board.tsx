@@ -22,6 +22,7 @@ import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import Paper from "@material-ui/core/Paper";
 import LogView from './log-view';
+import CheckIcon from '@material-ui/icons/Check';
 import DeckIcon from '@material-ui/icons/Layers';
 import NormalCardIcon from '@material-ui/icons/RadioButtonUnchecked';
 import LegendCardIcon from '@material-ui/icons/StarBorder';
@@ -35,6 +36,7 @@ import {nanoid} from "nanoid";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import DialogContent from "@material-ui/core/DialogContent";
 import SetupPanel from "./boards/setup-game-mode";
+import { getAllExtensions } from "../extensions/registry";
 // @ts-ignore
 import disconnectedSfx from './media/connect.mp3'
 // @ts-ignore
@@ -629,7 +631,49 @@ export const FilmCentenaryBoard = ({
                     <Paper variant="elevation">
                         <Typography variant="h4" component="h1">{i18n.pub.lastRoundOfGame}</Typography>
                     </Paper> </Grid> : <></>}
-            {ctx.numPlayers !== SimpleRuleNumPlayers ? <Grid xs={12} spacing={2} container item>
+            {ctx.numPlayers !== SimpleRuleNumPlayers ? <>
+                {/* 自定义选项 */}
+                {(() => {
+                    // 收集卡牌扩展名称
+                    const cardExtNames: string[] = [];
+                    if (G.hasExtensionChaosMedia) cardExtNames.push(i18n.setting.enableExtensionChaosMedia);
+                    if (G.enabledExtensions && G.enabledExtensions.length > 0) {
+                        const allExts = getAllExtensions();
+                        G.enabledExtensions.forEach(extId => {
+                            const ext = allExts.find(e => e.id === extId);
+                            cardExtNames.push(ext ? (ext.label?.ch || ext.name) : extId);
+                        });
+                    }
+                    // 重点选项摘要
+                    const summaryParts: string[] = [];
+                    if (cardExtNames.length > 0) summaryParts.push(...cardExtNames);
+                    if (G.testModeCinema) summaryParts.push(i18n.setting.testModeCinema);
+                    if (G.testModeEnd180) summaryParts.push(i18n.setting.testModeEnd180);
+                    if (G.disableUndo) summaryParts.push(i18n.setting.disableUndo);
+                    const hasAnySpecial = summaryParts.length > 0;
+                    return <>
+                <Grid xs={12} container item>
+                    <Grid item xs={12}>
+                        <Typography variant="body2" style={{padding: '2px 8px', display: 'flex', alignItems: 'center'}}>
+                            {i18n.setting.customOptions}
+                            {hasAnySpecial ?
+                                <Typography variant="body2" component="span" style={{marginLeft: 4}}>
+                                    {summaryParts.map((part, i) => <span key={i}>
+                                        {i > 0 ? ' |' : ''}
+                                        <CheckIcon style={{fontSize: 14, verticalAlign: 'middle', color: '#d32f2f'}}/>
+                                        {part}
+                                    </span>)}
+                                </Typography> :
+                                <Typography variant="body2" component="span" color="textSecondary" style={{marginLeft: 4}}>
+                                    X
+                                </Typography>}
+                        </Typography>
+                    </Grid>
+                </Grid>
+                    </>;
+                })()}
+                {/* 事件栏 */}
+                <Grid xs={12} spacing={2} container item>
                 <Grid item xs={4}>
                     <Typography>{`${i18n.pub.events}(${G.eventDeckLength})`}</Typography
                     ></Grid>
@@ -638,7 +682,8 @@ export const FilmCentenaryBoard = ({
                         <Typography>{getCardName(e)}</Typography>
                         <Typography>{i18n.eventName[e]}</Typography>
                     </Paper></Grid>)}
-            </Grid> : <></>}
+            </Grid>
+            </> : <></>}
             {playerID === null ? cardBoard : <></>}
             {upperPanel}
             <Grid item container justifyContent="space-evenly">
