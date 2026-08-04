@@ -2024,20 +2024,6 @@ export const breakthrough: LongFormMove = {
         log.push(`|startBreakthrough`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         startBreakThrough(G, ctx, arg.playerID, arg.card);
-        if (pub.school === SchoolCardID.S52683) {
-            G.e.stack.push({
-                e: "optional",
-                a: {
-                    e: "choice",
-                    a: [
-                        {e: "buyCardToHand", a: BasicCardID.B02},
-                        {e: "buyCardToHand", a: BasicCardID.B01},
-                    ]
-                },
-                target: arg.playerID,
-            });
-            checkNextEffect(G, ctx);
-        }
     }
 }
 

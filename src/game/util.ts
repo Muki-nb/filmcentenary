@@ -464,6 +464,19 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             pub.playedCardInTurn = pub.playedCardInTurn.filter(c => c !== eff.a);
             pub.archive.push(eff.a as CardID);
             break;
+        case "Dawn_Berlin_buy":
+            // 柏林学派: 如果等级总和为4，选择工业或美学升级
+            log.push(`|Dawn_Berlin|i${pub.industry}a${pub.aesthetics}`);
+            if (pub.industry + pub.aesthetics === 4) {
+                G.e.stack.push({e: "industryOrAestheticsLevelUp", a: 1, target: p});
+            }
+            break;
+        case "addAction":
+            // +1行动力
+            log.push(`|addAction|before|${pub.action}`);
+            pub.action += eff.a;
+            log.push(`|after|${pub.action}`);
+            break;
         default:
             // logger.error("Invalid effect" + JSON.stringify(eff));
             // throw new Error(JSON.stringify(eff));
@@ -791,50 +804,6 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     // @ts-ignore
                     G.regions[Region.EE].share = 0;
                 }
-            }
-            // 破晓扩 - 柏林学派: 等级总和=4时二选一
-            if((pub.school as any) === "S52682"){
-                if(pub.industry + pub.aesthetics === 4){
-                    G.e.choices.push({e: "industryLevelUp", a: 1});
-                    G.e.choices.push({e: "aestheticsLevelUp", a: 1});
-                    changePlayerStage(G, ctx, "chooseEffect", p);
-                }
-                // +1西欧份额
-                // @ts-ignore
-                if(G.regions[Region.WE].share > 0){
-                    pub.shares[Region.WE] += 1;
-                    G.regions[Region.WE].share -= 1;
-                }
-            }
-            // 破晓扩 - 墨西哥电影: 其他公司-1牌,-1声望,+1存款; +1北美份额
-            if((pub.school as any) === "S52683"){
-                for(let otherP of G.order){
-                    if(otherP !== p){
-                        let otherPub = G.pub[parseInt(otherP)];
-                        if(G.player[parseInt(otherP)].hand.length > 0){
-                            let discarded = G.player[parseInt(otherP)].hand.pop();
-                            if(discarded) otherPub.discard.push(discarded);
-                        }
-                        loseVp(G, ctx, otherP, 1);
-                        otherPub.deposit += 1;
-                    }
-                }
-                // +1北美份额
-                // @ts-ignore
-                if(G.regions[Region.NA].share > 0){
-                    pub.shares[Region.NA] += 1;
-                    G.regions[Region.NA].share -= 1;
-                }
-            }
-            // 破晓扩 - 太阳族电影: 更新1次, +1亚洲份额, +1行动力
-            if((pub.school as any) === "S52684"){
-                G.e.stack.push({e: "update", a: 1});
-                // @ts-ignore
-                if(G.regions[Region.ASIA].share > 0){
-                    pub.shares[Region.ASIA] += 1;
-                    G.regions[Region.ASIA].share -= 1;
-                }
-                pub.action++;
             }
             switch (pub.school) {
                 case SchoolCardID.S4001:
@@ -1366,6 +1335,20 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
             // @ts-ignore
             G.regions[r].share -= 1;
         }
+    }
+    
+    if (pub.school === SchoolCardID.S52683 && c.cardId === BasicCardID.B07) {
+        G.e.stack.push({
+            e: "optional",
+            a: {
+                e: "choice",
+                a: [
+                    {e: "buyCardToHand", a: BasicCardID.B02},
+                    {e: "buyCardToHand", a: BasicCardID.B01},
+                ]
+            },
+            target: pid
+        });
     }
     // // 明星制
     // if (pub.school === SchoolCardID.S5206) {

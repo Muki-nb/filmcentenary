@@ -789,10 +789,12 @@ const en = {
         EssayFilm_doArchive: "Archive the played card",
         '52682_buy': "If the sum of your levels is 4, choose one: ①+1 industry level; ②+1 aesthetics level. +1 West Europe share.",
         '52682_effect': "Before the recovery phase, if your hand is not empty, after the recovery phase, +1 card and +1 prestige.",
+        Dawn_Berlin_buy: "If industry + aesthetics = 4, choose industry or aesthetics +1",
         '52683_buy': "Other companies -1 card, -1 prestige, +1 deposit. +1 North America share.",
         '52683_effect': "After breakthrough, [optional] choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
         '52684_buy': "[Buy][Update] once. +1 Asia share. +1 action point.",
         '52684_effect': "Before the recovery phase, if you have no action points, after the recovery phase, archive Sun Tribe Film. After losing Sun Tribe Film: +1 industry level, +7 prestige.",
+        addAction: ["+{{a}} action(s)", argValue],
 
         '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
         '6312_effect': "During this action phase, after your industry reward: +1 card.",
