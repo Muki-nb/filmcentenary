@@ -43,6 +43,20 @@ interface IMatchStatsRecord {
     finishedAt?: string,
     buildings?: IBuildingRecord[],
     version?: number,
+    settings?: {
+        playerCount: number,
+        mode?: string,
+        extensionMode?: string,
+        hasSchoolExtension?: boolean,
+        hasSchoolExtensionMuki?: boolean,
+        hasSchoolExtensionMuki2?: boolean,
+        hasSchoolExtensionDawn?: boolean,
+        hasSchoolExtensionQM?: boolean,
+        hasExtensionChaosMedia?: boolean,
+        disableUndo?: boolean,
+        testModeCinema?: boolean,
+        testModeEnd180?: boolean,
+    },
 }
 
 interface ITurnStatsGroup {
@@ -119,6 +133,17 @@ interface IMatchCompositionStatsRow {
     aesWinRate: number,
 }
 
+interface IBuildingStatsRow {
+    region: string,
+    regionLabel: string,
+    totalSlots: number,
+    cinemasBuilt: number,
+    studiosBuilt: number,
+    cinemaRate: number,
+    studioRate: number,
+    avgBuildings: number,
+}
+
 type PlayerStatsSubPanel = "leaderboard" | "detail";
 type PlayerLeaderboardSortMode = "composite" | "winRate" | "avgRank" | "games" | "wins";
 type PlayerLeaderboardScope = "all" | "weekly" | "monthly";
@@ -187,6 +212,114 @@ type CardTypeFilter = "all" | "film" | "school" | "person";
 type CardSortMode = "winRate" | "avgRank" | "games";
 type StatsPanel = "turn" | "seat" | "level" | "card" | "player" | "playerMatches";
 const NO_SCHOOL_CARD_ID = "__NO_SCHOOL__";
+
+// ── 全局筛选选项类型 ──
+type PlayerCountFilter = "3" | "4";
+type OptionFilterMode = "include" | "exclude" | "any";
+type CardExtensionFilter = "all" | "base" | "schoolExt" | "muki" | "muki2" | "qm" | "dawn" | "chaosmedia";
+
+interface IFilterOptionDef {
+    key: string;
+    label: string;
+    settingsKey: string;
+}
+
+const GLOBAL_FILTER_OPTIONS: IFilterOptionDef[] = [
+    {key: "hasSchoolExtension", label: "流派扩", settingsKey: "hasSchoolExtension"},
+    {key: "hasSchoolExtensionMuki", label: "Muki扩", settingsKey: "hasSchoolExtensionMuki"},
+    {key: "hasSchoolExtensionQM", label: "起名扩", settingsKey: "hasSchoolExtensionQM"},
+    {key: "hasSchoolExtensionMuki2", label: "Muki扩2", settingsKey: "hasSchoolExtensionMuki2"},
+    {key: "hasSchoolExtensionDawn", label: "2026-8扩", settingsKey: "hasSchoolExtensionDawn"},
+    {key: "hasExtensionChaosMedia", label: "乱世光影", settingsKey: "hasExtensionChaosMedia"},
+    {key: "testModeCinema", label: "影院测试", settingsKey: "testModeCinema"},
+    {key: "testModeEnd180", label: "180分结束", settingsKey: "testModeEnd180"},
+];
+
+const DEFAULT_OPTION_FILTERS = (): Record<string, OptionFilterMode> => {
+    const result: Record<string, OptionFilterMode> = {};
+    GLOBAL_FILTER_OPTIONS.forEach(opt => { result[opt.key] = "any"; });
+    return result;
+};
+
+const CARD_EXTENSION_LABELS: Record<CardExtensionFilter, string> = {
+    all: "全部",
+    base: "基础",
+    schoolExt: "流派扩",
+    muki: "Muki扩",
+    muki2: "Muki扩2",
+    qm: "起名扩",
+    dawn: "2026-8扩",
+    chaosmedia: "乱世光影",
+};
+
+/** 根据卡牌ID判断所属扩展 */
+const getCardExtension = (cardID: string): CardExtensionFilter => {
+    const n = normalizeCardId(cardID);
+    if (/^B\d+$/.test(n) || /^V\d+$/.test(n)) return "base";
+
+    // Dawn 2026-8流派扩: S52681-S52684
+    if (/^S5268[1234]$/.test(n)) return "dawn";
+
+    // Muki扩2: S5201-S5209
+    if (/^S520[1-9]$/.test(n)) return "muki2";
+
+    // Muki扩: S5001-S5004
+    if (/^S500[1-4]$/.test(n)) return "muki";
+
+    // QM/起名扩: S6001-S6004
+    if (/^S600[1-4]$/.test(n)) return "qm";
+
+    // 乱世光影 (ChaosMedia): S6241, S6342 + F6xxx + P6xxx
+    if (/^[FPS]6\d{3}$/.test(n)) return "chaosmedia";
+
+    // 杨-流派扩: S4001-S4008
+    if (/^S4\d{3}$/.test(n)) return "schoolExt";
+
+    // 基础: 1xxx, 2xxx, 3xxx (S/F/P)
+    return "base";
+};
+
+/** 全局筛选：按人数、日期、自定义选项过滤对局记录 */
+const applyGlobalFilters = (
+    records: IMatchStatsRecord[],
+    playerCountFilter: PlayerCountFilter,
+    optionFilters: Record<string, OptionFilterMode>,
+    dateStart: string,
+    dateEnd: string,
+): IMatchStatsRecord[] => {
+    return records.filter(record => {
+        // 人数筛选
+        if (record.players.length !== parseInt(playerCountFilter)) return false;
+
+        // 日期筛选
+        if (dateStart || dateEnd) {
+            const ts = record.finishedAt ? new Date(record.finishedAt).getTime() : 0;
+            if (!ts) return false;
+            if (dateStart) {
+                const startTs = new Date(dateStart).getTime();
+                if (ts < startTs) return false;
+            }
+            if (dateEnd) {
+                const endTs = new Date(dateEnd + "T23:59:59").getTime();
+                if (ts > endTs) return false;
+            }
+        }
+
+        // 自定义选项筛选
+        const settings = record.settings;
+        if (!settings) return true; // 老数据没有 settings 字段，保留
+        for (const opt of GLOBAL_FILTER_OPTIONS) {
+            const mode = optionFilters[opt.key];
+            if (mode === "any") continue;
+            const value = (settings as any)[opt.settingsKey];
+            // 老数据可能缺少某些字段，视为 false
+            const boolValue = typeof value === "boolean" ? value : false;
+            if (mode === "include" && !boolValue) return false;
+            if (mode === "exclude" && boolValue) return false;
+        }
+        return true;
+    });
+};
 
 const regionNameMap: Record<number, string> = {
     [Region.NA]: "北美",
@@ -871,6 +1004,39 @@ const buildCompositionStats = (records: IMatchStatsRecord[]): IMatchCompositionS
     ];
 }
 
+const buildBuildingStats = (records: IMatchStatsRecord[]): IBuildingStatsRow[] => {
+    const regionMap = new Map<string, {total: number, cinemas: number, studios: number}>();
+
+    records.forEach(record => {
+        const buildings = record.buildings;
+        if (!buildings || buildings.length === 0) return;
+        buildings.forEach(b => {
+            const region = b.region || "UNKNOWN";
+            const entry = regionMap.get(region) || {total: 0, cinemas: 0, studios: 0};
+            entry.total += 1;
+            if (b.building === "cinema") entry.cinemas += 1;
+            else if (b.building === "studio") entry.studios += 1;
+            regionMap.set(region, entry);
+        });
+    });
+
+    const gameCount = records.filter(r => r.buildings && r.buildings.length > 0).length;
+    const orderedRegions = ["NA", "WE", "EE", "ASIA"];
+    return orderedRegions.map(region => {
+        const entry = regionMap.get(region) || {total: 0, cinemas: 0, studios: 0};
+        return {
+            region,
+            regionLabel: regionNameMap[Region[region as keyof typeof Region] as unknown as number] || region,
+            totalSlots: entry.total,
+            cinemasBuilt: entry.cinemas,
+            studiosBuilt: entry.studios,
+            cinemaRate: gameCount > 0 ? entry.cinemas / gameCount : 0,
+            studioRate: gameCount > 0 ? entry.studios / gameCount : 0,
+            avgBuildings: gameCount > 0 ? (entry.cinemas + entry.studios) / gameCount : 0,
+        };
+    });
+};
+
 const isPersonCard = (cardID: string): boolean => /^P\d+$/i.test(normalizeCardId(cardID));
 const isFilmCard = (cardID: string): boolean => /^F\d+$/i.test(normalizeCardId(cardID));
 const isScoringCard = (cardID: string): boolean => /^V\d+$/i.test(normalizeCardId(cardID));
@@ -1263,17 +1429,11 @@ const MatchStatsPage = () => {
     const [loading, setLoading] = React.useState(true);
     const [error, setError] = React.useState("");
     const [records, setRecords] = React.useState<IMatchStatsRecord[]>([]);
-    const [seatStats, setSeatStats] = React.useState<ISeatStatsGroup>({p3: [], p4: []});
     const [cardStatsFilterMode, setCardStatsFilterMode] = React.useState<CardStatsFilterMode>("all");
     const [cardRegionFilter, setCardRegionFilter] = React.useState<RegionFilter>("all");
     const [cardEraFilter, setCardEraFilter] = React.useState<EraFilter>("all");
     const [cardTypeFilter, setCardTypeFilter] = React.useState<CardTypeFilter>("all");
     const [cardSortMode, setCardSortMode] = React.useState<CardSortMode>("winRate");
-    const [turnStats, setTurnStats] = React.useState<ITurnStatsSummary>({
-        all: buildTurnStatsGroup([]),
-        p3: buildTurnStatsGroup([]),
-        p4: buildTurnStatsGroup([]),
-    });
     const [recordCount, setRecordCount] = React.useState(0);
     const [activePanel, setActivePanel] = React.useState<StatsPanel>("turn");
     const [activePlayerSubPanel, setActivePlayerSubPanel] = React.useState<PlayerStatsSubPanel>("leaderboard");
@@ -1284,6 +1444,15 @@ const MatchStatsPage = () => {
     const [playerMatchName, setPlayerMatchName] = React.useState("");
     const [playerMatchResults, setPlayerMatchResults] = React.useState<any[] | null>(null);
     const [playerMatchLoading, setPlayerMatchLoading] = React.useState(false);
+
+    // ── 全局筛选状态 ──
+    const [playerCountFilter, setPlayerCountFilter] = React.useState<PlayerCountFilter>("4");
+    const [optionFilters, setOptionFilters] = React.useState<Record<string, OptionFilterMode>>(DEFAULT_OPTION_FILTERS());
+    const [dateStart, setDateStart] = React.useState("");
+    const [dateEnd, setDateEnd] = React.useState("");
+    const [showFilterPanel, setShowFilterPanel] = React.useState(false);
+    // ── 卡牌扩展筛选 ──
+    const [cardExtensionFilter, setCardExtensionFilter] = React.useState<CardExtensionFilter>("all");
 
     const loadStats = React.useCallback(async () => {
         setLoading(true);
@@ -1314,18 +1483,10 @@ const MatchStatsPage = () => {
             const records = parseJsonLines(loadedText);
             setRecords(records);
             setRecordCount(records.length);
-            setSeatStats(buildSeatStats(records));
-            setTurnStats(buildTurnStats(records));
             setError(loadedFrom === "/api/match-stats" ? "" : "暂无可用数据");
         } catch (err) {
             setRecords([]);
             setRecordCount(0);
-            setSeatStats({p3: [], p4: []});
-            setTurnStats({
-                all: buildTurnStatsGroup([]),
-                p3: buildTurnStatsGroup([]),
-                p4: buildTurnStatsGroup([]),
-            });
             setError(`暂无可用数据`);
         } finally {
             setLoading(false);
@@ -1367,9 +1528,21 @@ const MatchStatsPage = () => {
         }
     }, [location.search]);
 
+    // ── 全局筛选后的对局记录（不影响玩家数据、详细对局） ──
+    const filteredRecords = React.useMemo(() => {
+        return applyGlobalFilters(records, playerCountFilter, optionFilters, dateStart, dateEnd);
+    }, [records, playerCountFilter, optionFilters, dateStart, dateEnd]);
+
+    const seatStats = React.useMemo(() => buildSeatStats(filteredRecords), [filteredRecords]);
+    const turnStats = React.useMemo(() => buildTurnStats(filteredRecords), [filteredRecords]);
+
     const cardStats = React.useMemo(() => {
-        const rows = buildCardStats(records, cardStatsFilterMode)
+        const rows = buildCardStats(filteredRecords, cardStatsFilterMode)
             .filter(row => {
+                // 扩展筛选
+                if (cardExtensionFilter !== "all") {
+                    if (getCardExtension(row.cardID) !== cardExtensionFilter) return false;
+                }
                 if (cardTypeFilter !== "all") {
                     const type = getCardType(row.cardID);
                     if (type !== cardTypeFilter) {
@@ -1440,27 +1613,31 @@ const MatchStatsPage = () => {
             }
             return left.cardID.localeCompare(right.cardID);
         });
-    }, [records, cardStatsFilterMode, cardTypeFilter, cardEraFilter, cardRegionFilter, cardSortMode]);
+    }, [filteredRecords, cardStatsFilterMode, cardExtensionFilter, cardTypeFilter, cardEraFilter, cardRegionFilter, cardSortMode]);
 
     const turnDistribution = React.useMemo(() => {
-        return buildTurnDistribution(records);
-    }, [records]);
+        return buildTurnDistribution(filteredRecords);
+    }, [filteredRecords]);
 
     const industryThresholdStats = React.useMemo(() => {
-        return buildLevelThresholdStats(records, player => player.industry);
-    }, [records]);
+        return buildLevelThresholdStats(filteredRecords, player => player.industry);
+    }, [filteredRecords]);
 
     const aestheticsThresholdStats = React.useMemo(() => {
-        return buildLevelThresholdStats(records, player => player.aesthetics);
-    }, [records]);
+        return buildLevelThresholdStats(filteredRecords, player => player.aesthetics);
+    }, [filteredRecords]);
 
     const industryAestheticsRelationStats = React.useMemo(() => {
-        return buildIndustryAestheticsRelationStats(records);
-    }, [records]);
+        return buildIndustryAestheticsRelationStats(filteredRecords);
+    }, [filteredRecords]);
 
     const compositionStats = React.useMemo(() => {
-        return buildCompositionStats(records);
-    }, [records]);
+        return buildCompositionStats(filteredRecords);
+    }, [filteredRecords]);
+
+    const buildingStats = React.useMemo(() => {
+        return buildBuildingStats(filteredRecords);
+    }, [filteredRecords]);
 
     const playerLeaderboard = React.useMemo(() => {
         return buildPlayerLeaderboard(records, playerLeaderboardScope, playerLeaderboardSortMode);
@@ -1591,6 +1768,7 @@ const MatchStatsPage = () => {
         setCardEraFilter("all");
         setCardTypeFilter("all");
         setCardSortMode("winRate");
+        setCardExtensionFilter("all");
     }, []);
 
     return <Grid container spacing={2} style={{paddingBottom: 16}}>
@@ -1599,7 +1777,7 @@ const MatchStatsPage = () => {
                 <div style={topPanelStyle}>
                     <Typography variant="h4" component="h1">对局数据</Typography>
                     <Typography variant="body2" color="textSecondary">
-                        当前记录数：{recordCount}
+                        总记录数：{recordCount}{filteredRecords.length !== recordCount ? ` / 筛选后：${filteredRecords.length}` : ""}
                     </Typography>
                 </div>
             </Paper>
@@ -1608,6 +1786,74 @@ const MatchStatsPage = () => {
             <Button variant="contained" color="primary" onClick={loadStats} disabled={loading}>
                 {loading ? "读取中..." : "重新读取"}
             </Button>
+        </Grid>
+        {/* ── 全局筛选选项 ── */}
+        <Grid item xs={12}>
+            <Paper>
+                <div style={{padding: "8px 12px"}}>
+                    <Grid container alignItems="center" justifyContent="space-between">
+                        <Grid item>
+                            <Button size="small" variant="outlined" onClick={() => setShowFilterPanel(v => !v)}>
+                                {showFilterPanel ? "隐藏筛选" : "显示筛选"}
+                            </Button>
+                        </Grid>
+                        <Grid item>
+                            <Button size="small" color="secondary" variant="outlined" onClick={() => {
+                                setPlayerCountFilter("4");
+                                setOptionFilters(DEFAULT_OPTION_FILTERS());
+                                setDateStart("");
+                                setDateEnd("");
+                            }}>
+                                重置筛选
+                            </Button>
+                        </Grid>
+                    </Grid>
+                    {showFilterPanel ? <Grid container spacing={2} style={{marginTop: 8}}>
+                        {/* 人数筛选 */}
+                        <Grid item xs={12}>
+                            <Typography variant="body2" color="textSecondary" style={{marginBottom: 4}}>人数：</Typography>
+                            <Button size="small" variant={playerCountFilter === "4" ? "contained" : "outlined"} color="primary"
+                                onClick={() => setPlayerCountFilter("4")} style={{marginRight: 6}}>4人局</Button>
+                            <Button size="small" variant={playerCountFilter === "3" ? "contained" : "outlined"} color="primary"
+                                onClick={() => setPlayerCountFilter("3")}>3人局</Button>
+                        </Grid>
+                        {/* 自定义选项筛选 */}
+                        <Grid item xs={12}>
+                            <Typography variant="body2" color="textSecondary" style={{marginBottom: 4}}>自定义选项：</Typography>
+                            {GLOBAL_FILTER_OPTIONS.map(opt => (
+                                <div key={opt.key} style={{display: "inline-flex", alignItems: "center", marginRight: 16, marginBottom: 4}}>
+                                    <Typography variant="body2" style={{marginRight: 4, minWidth: 56}}>{opt.label}：</Typography>
+                                    <Button size="small"
+                                        variant={optionFilters[opt.key] === "include" ? "contained" : "outlined"}
+                                        color="primary"
+                                        onClick={() => setOptionFilters(prev => ({...prev, [opt.key]: "include"}))}
+                                        style={{marginRight: 4}}>包含</Button>
+                                    <Button size="small"
+                                        variant={optionFilters[opt.key] === "exclude" ? "contained" : "outlined"}
+                                        color="secondary"
+                                        onClick={() => setOptionFilters(prev => ({...prev, [opt.key]: "exclude"}))}
+                                        style={{marginRight: 4}}>不包含</Button>
+                                    <Button size="small"
+                                        variant={optionFilters[opt.key] === "any" ? "contained" : "outlined"}
+                                        onClick={() => setOptionFilters(prev => ({...prev, [opt.key]: "any"}))}
+                                    >可选</Button>
+                                </div>
+                            ))}
+                        </Grid>
+                        {/* 日期筛选 */}
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="body2" color="textSecondary" style={{marginBottom: 4}}>起始日期：</Typography>
+                            <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)}
+                                style={{padding: "4px 8px", border: "1px solid #ccc", borderRadius: 4, fontSize: 14}} />
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <Typography variant="body2" color="textSecondary" style={{marginBottom: 4}}>终止日期：</Typography>
+                            <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)}
+                                style={{padding: "4px 8px", border: "1px solid #ccc", borderRadius: 4, fontSize: 14}} />
+                        </Grid>
+                    </Grid> : null}
+                </div>
+            </Paper>
         </Grid>
         <Grid item xs={12}>
             <Paper>
@@ -1682,41 +1928,28 @@ const MatchStatsPage = () => {
                         <Typography variant="h6" component="h2">回合统计</Typography>
                     </Grid>
 
+                    {(() => {
+                        const ts = playerCountFilter === "4" ? turnStats.p4 : turnStats.p3;
+                        const chart = playerCountFilter === "4" ? turnDistributionCharts.p4 : turnDistributionCharts.p3;
+                        return <>
                     <Grid item xs={12}>
-                        <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>4人局</Typography>
+                        <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>{playerCountFilter}人局</Typography>
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <Typography>平均回合数：{turnStats.p4.recordedTurnGames > 0 ? turnStats.p4.averageTurnCount.toFixed(2) : "-"}</Typography>
+                        <Typography>平均回合数：{ts.recordedTurnGames > 0 ? ts.averageTurnCount.toFixed(2) : "-"}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <Typography>最短回合：{turnStats.p4.recordedTurnGames > 0 ? turnStats.p4.minTurnCount.toFixed(2) : "-"}</Typography>
+                        <Typography>最短回合：{ts.recordedTurnGames > 0 ? ts.minTurnCount.toFixed(2) : "-"}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <Typography>最长回合：{turnStats.p4.recordedTurnGames > 0 ? turnStats.p4.maxTurnCount.toFixed(2) : "-"}</Typography>
+                        <Typography>最长回合：{ts.recordedTurnGames > 0 ? ts.maxTurnCount.toFixed(2) : "-"}</Typography>
                     </Grid>
                     <Grid item xs={12} sm={3}>
-                        <Typography>含回合数据对局：{turnStats.p4.recordedTurnGames}</Typography>
+                        <Typography>含回合数据对局：{ts.recordedTurnGames}</Typography>
                     </Grid>
-
-                    {renderDistributionChart(turnDistributionCharts.p4, "4人局回合分布图")}
-
-                    <Grid item xs={12}>
-                        <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>3人局</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>平均回合数：{turnStats.p3.recordedTurnGames > 0 ? turnStats.p3.averageTurnCount.toFixed(2) : "-"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>最短回合：{turnStats.p3.recordedTurnGames > 0 ? turnStats.p3.minTurnCount.toFixed(2) : "-"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>最长回合：{turnStats.p3.recordedTurnGames > 0 ? turnStats.p3.maxTurnCount.toFixed(2) : "-"}</Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={3}>
-                        <Typography>含回合数据对局：{turnStats.p3.recordedTurnGames}</Typography>
-                    </Grid>
-
-                    {renderDistributionChart(turnDistributionCharts.p3, "3人局回合分布图")}
+                    {renderDistributionChart(chart, `${playerCountFilter}人局回合分布图`)}
+                        </>;
+                    })()}
                 </Grid>
             </Paper>
         </Grid> : <></>}
@@ -1739,11 +1972,11 @@ const MatchStatsPage = () => {
                 
                 <Grid container style={{...sectionPaperStyle, paddingTop: 0}}>
                     <Grid item xs={12}>
-                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>4人局位次胜率</Typography>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>{playerCountFilter}人局位次胜率</Typography>
                     </Grid>
                 </Grid>
                 <TableContainer>
-                    <Table size="small" aria-label="4 player seat win rates">
+                    <Table size="small" aria-label="seat win rates">
                         <TableHead>
                             <TableRow style={tableHeadRowStyle}>
                                 <TableCell>位次</TableCell>
@@ -1755,37 +1988,7 @@ const MatchStatsPage = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {seatStats.p4.map((row, idx) => <TableRow key={row.label} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
-                                <TableCell>{row.label}</TableCell>
-                                <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
-                                <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
-                                <TableCell>{row.games > 0 ? formatStdDev(row.rankStdDev) : "-"}</TableCell>
-                                <TableCell>{row.wins}</TableCell>
-                                <TableCell>{row.games}</TableCell>
-                            </TableRow>)}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-
-                <Grid container style={{...sectionPaperStyle, paddingTop: 16}}>
-                    <Grid item xs={12}>
-                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>3人局位次胜率</Typography>
-                    </Grid>
-                </Grid>
-                <TableContainer>
-                    <Table size="small" aria-label="3 player seat win rates">
-                        <TableHead>
-                            <TableRow style={tableHeadRowStyle}>
-                                <TableCell>位次</TableCell>
-                                <TableCell>胜率</TableCell>
-                                <TableCell>平均名次</TableCell>
-                                <TableCell>位次标准差</TableCell>
-                                <TableCell>胜场</TableCell>
-                                <TableCell>样本</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {seatStats.p3.map((row, idx) => <TableRow key={row.label} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                            {seatStats[playerCountFilter === "4" ? "p4" : "p3"].map((row, idx) => <TableRow key={row.label} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
                                 <TableCell>{row.label}</TableCell>
                                 <TableCell>{row.games > 0 ? formatRate(row.winRate) : "-"}</TableCell>
                                 <TableCell>{row.games > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
@@ -1929,6 +2132,34 @@ const MatchStatsPage = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <Grid container style={{...sectionPaperStyle, paddingTop: 0}}>
+                    <Grid item xs={12}>
+                        <Typography variant="subtitle1" component="h3" style={{marginTop: 8}}>建筑统计</Typography>
+                    </Grid>
+                </Grid>
+                <TableContainer>
+                    <Table size="small" aria-label="building stats">
+                        <TableHead>
+                            <TableRow style={tableHeadRowStyle}>
+                                <TableCell>地区</TableCell>
+                                <TableCell>平均电影院数</TableCell>
+                                <TableCell>平均制片厂数</TableCell>
+                                <TableCell>总建筑数</TableCell>
+                                <TableCell>含建筑数据对局</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {buildingStats.map((row, idx) => <TableRow key={row.region} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
+                                <TableCell><span style={{color: getColor(Region[row.region as keyof typeof Region] as any)}}>{row.regionLabel}</span></TableCell>
+                                <TableCell>{row.totalSlots > 0 ? row.cinemaRate.toFixed(2) : "-"}</TableCell>
+                                <TableCell>{row.totalSlots > 0 ? row.studioRate.toFixed(2) : "-"}</TableCell>
+                                <TableCell>{row.cinemasBuilt + row.studiosBuilt}</TableCell>
+                                <TableCell>{row.totalSlots > 0 ? Math.round(row.totalSlots / 2) : 0}</TableCell>
+                            </TableRow>)}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             </Paper>
         </Grid> : <></>}
         {activePanel === "card" ? <Grid item xs={12}>
@@ -2007,6 +2238,21 @@ const MatchStatsPage = () => {
                                         <Button size="small" variant={cardTypeFilter === "film" ? "contained" : "outlined"} color="primary" onClick={() => setCardTypeFilter("film")} style={{marginRight: 6}}>影片</Button>
                                         <Button size="small" variant={cardTypeFilter === "school" ? "contained" : "outlined"} color="primary" onClick={() => setCardTypeFilter("school")} style={{marginRight: 6}}>流派</Button>
                                         <Button size="small" variant={cardTypeFilter === "person" ? "contained" : "outlined"} color="primary" onClick={() => setCardTypeFilter("person")}>人物</Button>
+                                    </div>
+                                </div>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <div style={{display: "flex", alignItems: "center", gap: 8}}>
+                                    <Typography variant="body2" color="textSecondary" style={{minWidth: 36, flexShrink: 0}}>扩展：</Typography>
+                                    <div style={{overflowX: "auto", whiteSpace: "nowrap", flex: 1}}>
+                                        {(Object.keys(CARD_EXTENSION_LABELS) as CardExtensionFilter[]).map(ext => (
+                                            <Button key={ext} size="small"
+                                                variant={cardExtensionFilter === ext ? "contained" : "outlined"}
+                                                color="primary"
+                                                onClick={() => setCardExtensionFilter(ext)}
+                                                style={{marginRight: 6}}
+                                            >{CARD_EXTENSION_LABELS[ext]}</Button>
+                                        ))}
                                     </div>
                                 </div>
                             </Grid>

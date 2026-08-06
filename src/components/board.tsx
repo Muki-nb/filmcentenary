@@ -558,7 +558,7 @@ export const FilmCentenaryBoard = ({
             </Dialog>
         </>
 
-    const spectatorTrendPanel = playerID === null && ctx.gameover === undefined ?
+    const spectatorTrendPanel = playerID === null || ctx.gameover !== undefined ?
         <Grid item xs={12}>
             <Paper variant="elevation">
                 <div style={{padding: 8}}>
