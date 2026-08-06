@@ -124,8 +124,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         FilmCardID.F6343,
     ]
     // 基于效果栈判断 peek 是否可选，而非依赖 G.e.card（G.e.card 在蓝复制等场景下不会更新）
-    const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek"
-        ? G.e.stack[0].a.filter.e !== "choice"
+    const peekChoicesDisabled = hasCurEffect && G.e.stack.slice(-1)[0].e === "peek"
+        ? G.e.stack.slice(-1)[0].a.filter.e !== "choice"
         : true;
 
     const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();

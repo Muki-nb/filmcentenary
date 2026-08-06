@@ -1804,7 +1804,6 @@ export const playCard: LongFormMove = {
         const playCard = getCardById(arg.card);
         const pub = G.pub[parseInt(arg.playerID)];
         const hand = G.player[parseInt(arg.playerID)].hand;
-        const handCountBeforePlay = hand.length;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
             switch (pub.school) {
@@ -1855,6 +1854,8 @@ export const playCard: LongFormMove = {
             }
         }
 
+        // 散文电影触发条件：在手牌被移除前，捕获经过学派效果修正后的手牌数
+        const handCountBeforePlay = hand.length;
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
         pub.activeCardInTurn.push(arg.card);
