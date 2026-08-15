@@ -16,7 +16,7 @@ import {PlayerHand} from "../player-hand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@material-ui/core/Slider";
 import {PubPanel} from "../pub";
-import {getChooseHandChoice, getValidHelper, inferDeckRemoveHelper} from "../../game/board-util";
+import {getChooseHandChoice, getPersonCardsOnBoard, getValidHelper, inferDeckRemoveHelper} from "../../game/board-util";
 import {effName, getCardName} from "../card";
 import UndoIcon from '@material-ui/icons/Undo';
 import RedoIcon from '@material-ui/icons/Redo';
@@ -181,6 +181,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
         
         const cardId = (effE === "playedCardInTurnEffect")
         ? G.pub[parseInt(playerID)].playedCardInTurn[idx] // Blue
+        : (effE === "personCardOnBoardEffect")
+        ? getPersonCardsOnBoard(G)[idx]
         : hand[idx];
 
         moves.chooseHand({

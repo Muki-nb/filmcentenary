@@ -308,7 +308,7 @@ export function changeBothStage(G: IG, ctx: Ctx, stage: string): void {
 }
 
 export function changePlayerStage(G: any, ctx: Ctx, stage: string, p: PlayerID): void {
-    console.log("changePlayerStage: ", G.secretInfo);
+    //console.log("changePlayerStage: ", G.secretInfo);
     switchTimerToPlayerNow(G, p);
     ctx.events?.setActivePlayers?.({
         value: {

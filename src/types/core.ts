@@ -594,8 +594,10 @@ export enum PersonCardID {
     'P3402' = 'P3402',
     'P3403' = 'P3403',
     'P6211' = 'P6211',
+    'P6213' = 'P6213',
     'P6221' = 'P6221',
     'P6231' = 'P6231',
+    'P6243' = 'P6243',
     'P6311' = 'P6311',
     'P6321' = 'P6321',
     'P6331' = 'P6331',
@@ -706,6 +708,7 @@ export enum FilmCardID {
     'F6242' = 'F6242',
     'F6312' = 'F6312',
     'F6313' = 'F6313',
+    'F6314' = 'F6314',
     'F6322' = 'F6322',
     'F6323' = 'F6323',
     'F6332' = 'F6332',
@@ -2429,8 +2432,8 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Baby's Lunch",
         cardId: FilmCardID.F6121,
-        cost: cost(4, 0, 1),
-        vp: 2,
+        cost: cost(5, 0, 0),
+        vp: 1,
         category: CardCategory.NORMAL,
         industry: 0,
         aesthetics: 1,
@@ -2454,6 +2457,17 @@ const NoneBasicCards = {
         name: "Stanley Donen",
         cardId: PersonCardID.P6211,
         cost: cost(8, 3, 3),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "P6213": personCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "William Wyler",
+        cardId: PersonCardID.P6213,
+        cost: cost(8, 6, 0),
         vp: 0,
         category: CardCategory.LEGEND,
         industry: 0,
@@ -2514,6 +2528,17 @@ const NoneBasicCards = {
         industry: 1,
         aesthetics: 1,
     }),
+    "P6243": personCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Ishiro Honda",
+        cardId: PersonCardID.P6243,
+        cost: cost(8, 4, 2),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
     "S6241": schoolCard({
         era: IEra.TWO,
         region: Region.ASIA,
@@ -2530,7 +2555,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Floating Weeds",
         cardId: FilmCardID.F6242,
-        cost: cost(4, 2, 5),
+        cost: cost(6, 2, 5),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -2568,6 +2593,17 @@ const NoneBasicCards = {
         category: CardCategory.NORMAL,
         industry: 3,
         aesthetics: 0,
+    }),
+    "F6314": filmCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "The Terminator",
+        cardId: FilmCardID.F6314,
+        cost: cost(8, 11, 3),
+        vp: 14,
+        category: CardCategory.LEGEND,
+        industry: 2,
+        aesthetics: 1,
     }),
     "P6321": personCard({
         era: IEra.THREE,
@@ -2662,8 +2698,8 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Yellow Earth",
         cardId: FilmCardID.F6343,
-        cost: cost(8, 4, 7),
-        vp: 10,
+        cost: cost(7, 3, 6),
+        vp: 9,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 1,
@@ -2797,7 +2833,7 @@ const NoneBasicCards = {
         region: Region.WE,
         name: "Berlin School",
         cardId: SchoolCardID.S52682,
-        cost: cost(4, 3, 3),
+        cost: cost(6, 3, 3),
         vp: 5,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -2808,8 +2844,8 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "Mexican Film",
         cardId: SchoolCardID.S52683,
-        cost: cost(7, 3, 4),
-        vp: 6,
+        cost: cost(8, 1, 2),
+        vp: 4,
         category: CardCategory.NORMAL,
         industry: 1,
         aesthetics: 1,
@@ -3496,6 +3532,8 @@ export function filmCardsByEra(e: IEra) {
     return res.map(c => c[1]);
 }
 
+const BANNED_CHAOS_MEDIA_CARD_IDS = ['P6211', 'P6311', 'S6241'];
+
 export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
     const extensionCardIds = [
         'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', //流派扩
@@ -3534,17 +3572,18 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
     if(!G.hasExtensionChaosMedia){
         const chaosMediaCardIds = [
             'F6111', 'F6121', 'F6131',
-            'P6211', 'F6212', 
+            'P6211', 'P6213', 'F6212', 
             'P6221', 'F6222', 
             'P6231', 'F6232', 
-            'S6241', 'F6242',
-            'P6311', 'F6312', 'F6313',
+            'S6241', 'F6242', 'P6243',
+            'P6311', 'F6312', 'F6313', 'F6314',
             'P6321', 'F6322', 'F6323',
             'P6331', 'F6332', 'F6333',
             'P6341', 'S6342', 'F6343',
         ];
         filterCardIds = filterCardIds.concat(chaosMediaCardIds);
     }
+    filterCardIds = filterCardIds.concat(BANNED_CHAOS_MEDIA_CARD_IDS);
 
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(

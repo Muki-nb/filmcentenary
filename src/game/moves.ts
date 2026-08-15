@@ -82,6 +82,7 @@ import {
     studioSlotsAvailable,
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage, stopTimingForGameEnd} from "./logFix";
+import {getPersonCardsOnBoard} from "./board-util";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {logger} from "./logger";
 
@@ -709,6 +710,8 @@ export const chooseHand: LongFormMove = {
         const pub = G.pub[parseInt(p)];
         if (eff.e === "playedCardInTurnEffect") {
             target = pub.playedCardInTurn[arg.idx];
+        } else if (eff.e === "personCardOnBoardEffect") {
+            target = getPersonCardsOnBoard(G)[arg.idx];
         } else {
             target = arg.hand
         }
@@ -754,6 +757,7 @@ export const chooseHand: LongFormMove = {
         switch (eff.e) {
             // Effect of "Blue" S3303 only
             case "playedCardInTurnEffect":
+            case "personCardOnBoardEffect":
                 log.push(`|${target}`);
                 let cardEff = getCardEffect(target);
                 if (cardEff.hasOwnProperty("play")) {
@@ -1135,8 +1139,6 @@ export const updateSlot: LongFormMove = {
         const newCinemaPlayer = schoolPlayer(G, ctx, SchoolCardID.S6342);
         if (newCinemaPlayer !== null) {
             drawCardForPlayer(G, ctx, newCinemaPlayer);
-            changePlayerStage(G, ctx, "comment", newCinemaPlayer);
-            return;
         }
 
         checkNextEffect(G, ctx);
@@ -1804,6 +1806,7 @@ export const playCard: LongFormMove = {
         const playCard = getCardById(arg.card);
         const pub = G.pub[parseInt(arg.playerID)];
         const hand = G.player[parseInt(arg.playerID)].hand;
+        const handCountBeforePlay = hand.length;
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
             switch (pub.school) {
@@ -1854,8 +1857,6 @@ export const playCard: LongFormMove = {
             }
         }
 
-        // 散文电影触发条件：在手牌被移除前，捕获经过学派效果修正后的手牌数
-        const handCountBeforePlay = hand.length;
         hand.splice(arg.idx, 1);
         pub.playedCardInTurn.push(arg.card);
         pub.activeCardInTurn.push(arg.card);

@@ -48,6 +48,7 @@ import {IG} from "../types/setup";
 import {Ctx, PlayerID} from "boardgame.io";
 import {Stage} from "boardgame.io/core";
 import {changePlayerStage, changeStage, signalEndStage, signalEndTurn, stopTimingForGameEnd} from "./logFix";
+import {getPersonCardsOnBoard} from "./board-util";
 import {getCardEffect} from "../constant/effects";
 import {logger} from "./logger";
 import {appendServerMatchStats} from "./serverStatsStorage";
@@ -117,6 +118,7 @@ export const isSimpleEffect = (G: IG, eff: any): boolean => {
     switch (eff.e) {
         case "anyRegionShareCentral":
         case "playedCardInTurnEffect":
+        case "personCardOnBoardEffect":
         case "alternative":
         case "competition":
         case ItrEffects.loseAnyRegionShare:
@@ -465,9 +467,9 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             pub.archive.push(eff.a as CardID);
             break;
         case "Dawn_Berlin_buy":
-            // 柏林学派: 如果等级总和为4，选择工业或美学升级
+            // 柏林学派: 如果等级总和≤4，选择工业或美学升级
             log.push(`|Dawn_Berlin|i${pub.industry}a${pub.aesthetics}`);
-            if (pub.industry + pub.aesthetics === 4) {
+            if (pub.industry + pub.aesthetics <= 4) {
                 G.e.stack.push({e: "industryOrAestheticsLevelUp", a: 1, target: p});
             }
             break;
@@ -577,9 +579,13 @@ export const checkSocialismRealism = (G: IG, ctx: Ctx, card: INormalOrLegendCard
         log.push(`|SocialismRealism`);
         switch (cardRegion) {
             case Region.EE:
-                log.push(`|isEastEurope|1CP|1VP`);
-                addCompetitionPower(G, ctx, p, 1);
-                addVp(G, ctx, p, 1);
+                if (card.type === CardType.F) {
+                    log.push(`|isEastEurope|1CP|1VP`);
+                    addCompetitionPower(G, ctx, p, 1);
+                    addVp(G, ctx, p, 1);
+                } else {
+                    log.push(`|isEastEurope|notFilm|noEff`);
+                }
                 break;
             default:
                 log.push(`|notEastEurope|noEff`);
@@ -1480,7 +1486,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
         const privateOps = [
             "discard", "discardBasic", "discardNormalOrLegend", "discardLegend",
             "discardAesthetics", "discardIndustry", "breakthroughResDeduct",
-            "handToAnyPlayer", "discardToAnyPlayer", "playedCardInTurnEffect",
+            "handToAnyPlayer", "discardToAnyPlayer", "playedCardInTurnEffect", "personCardOnBoardEffect",
         ];
         if (privateOps.includes(eff.e)) {
             G.previousMoveUndoable = false;
@@ -1556,6 +1562,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 return;
             }
             log.push(`|noAesMarkCardPlayed`);
+            break;
+        case "personCardOnBoardEffect":
+            if (getPersonCardsOnBoard(G).length > 0) {
+                log.push(`|chooseHand`);
+                G.e.stack.push(eff);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                changePlayerStage(G, ctx, "chooseHand", p);
+                return;
+            }
+            log.push(`|noPersonCardOnBoard`);
             break;
         case "aestheticsLevelUpCost":
             extraCost = additionalCostForUpgrade(G, pub.aesthetics);

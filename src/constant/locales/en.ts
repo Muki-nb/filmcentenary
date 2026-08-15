@@ -216,6 +216,7 @@ const cards = {
     '6121': "Baby's Lunch",
     '6131': "The Cameraman's Revenge",
     '6211': 'Stanley Donen',
+    '6213': 'William Wyler',
     '6212': 'Touch of Evil',
     '6221': 'Jean Vigo',
     '6222': 'Zero for Conduct',
@@ -223,9 +224,11 @@ const cards = {
     '6232': 'Knife in the Water',
     '6241': 'Solitary Island',
     '6242': 'Floating Weeds',
+    '6243': 'Ishiro Honda',
     '6311': 'Stanley Kubrick',
     '6312': 'Alien',
     '6313': 'Jurassic Park',
+    '6314': 'The Terminator',
     '6321': 'Jean-Pierre Melville',
     '6322': 'The Living Daylights',
     '6323': 'Wings of Desire',
@@ -275,7 +278,7 @@ const eventName = {
     'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
     'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
     'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',
-    'E11': 'Every person card in your deck and archive gain 4 extra prestige',
+    'E11': 'Every person card in your hand, discard, deck and archive gain 4 extra prestige',
     'E12': 'Gain prestige according to your industry and aesthetics level.',
     'E13': 'If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
     'E14': 'Every champion and share give you 1 extra prestige',
@@ -789,7 +792,7 @@ const en = {
         EssayFilm_doArchive: "Archive the played card",
         '52682_buy': "If the sum of your levels is 4, choose one: ①+1 industry level; ②+1 aesthetics level. +1 West Europe share.",
         '52682_effect': "Before the recovery phase, if your hand is not empty, after the recovery phase, +1 card and +1 prestige.",
-        Dawn_Berlin_buy: "If industry + aesthetics = 4, choose industry or aesthetics +1",
+        Dawn_Berlin_buy: "If industry + aesthetics ≤ 4, choose industry or aesthetics +1",
         '52683_buy': "Other companies -1 card, -1 prestige, +1 deposit. +1 North America share.",
         '52683_effect': "After breakthrough, [optional] choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
         '52684_buy': "[Buy][Update] once. +1 Asia share. +1 action point.",
@@ -798,8 +801,9 @@ const en = {
 
         '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
         '6312_effect': "During this action phase, after your industry reward: +1 card.",
+        personCardOnBoardEffect: "Execute the 【play】 effect of a person card on the board.",
 
-        '6342_effect': "After any company [Updates]: +1 card and Comment once. Each time you lose 1 card, gain +1 resource for each industry icon on that card and +1 prestige for each aesthetics icon on that card. After being competed, you do not lose prestige.",
+        '6342_effect': "After any company [Updates]: +1 card. Each time you lose 1 card, gain +1 resource for each industry icon on that card and +1 prestige for each aesthetics icon on that card. After being competed, you do not lose prestige.",
 
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
@@ -863,6 +867,8 @@ const en = {
                 if (e.e !== "none") {
                     if (e.e === "anyRegionShareCentral") {
                         return "get an additional share from any region on board if you win."
+                    } else if (e.e === "addAction") {
+                        return ` and gain ${e.a} action point if you win.`
                     } else {
                         return "get an additional share from " + region[e.r as Region] + " if you win."
                     }
