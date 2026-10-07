@@ -525,7 +525,7 @@ const argCompetitionCard = {
 }
 const argUpdateSlot = {
     args: (arg: IUpdateSlotProps[]): string => {
-        return ` updated ${bracketCardName(arg[0].cardId)} to`
+        return ` updated ${bracketCardName(arg[0].cardId)}`
     }
 }
 const argComment = {
@@ -1029,6 +1029,9 @@ const en = {
         payAdditionalCost: "Pay extra cost",
         comment: "Comment",
         updateSlot: "Update",
+        newEraReveal: " revealed: ",
+        updateReveal: "Update revealed: ",
+        refillReveal: "Refill revealed: ",
         showBoardStatus: "Initial setup",
         draw: "Draw additional card",
         play: "Play",

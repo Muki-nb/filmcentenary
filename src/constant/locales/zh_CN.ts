@@ -579,7 +579,7 @@ const argCompetitionCard = {
 }
 const argUpdateSlot = {
     args: (arg: IUpdateSlotProps[]): string => {
-        return `更新了：${bracketCardName(arg[0].cardId)} 翻出：`
+        return `更新了：${bracketCardName(arg[0].cardId)}`
     }
 }
 const argComment = {
@@ -652,6 +652,9 @@ const zh_CN: Locale = {
         payAdditionalCost: "支付额外花费",
         comment: "评论",
         updateSlot: "更新",
+        newEraReveal: "开牌：",
+        updateReveal: "更新翻出：",
+        refillReveal: "补充翻出：",
         showBoardStatus: "展示牌列",
         draw: "使用行动力摸牌",
         play: "出牌",

@@ -85,6 +85,7 @@ import {changePlayerStage, changeStage, signalEndPhase, signalEndStage, stopTimi
 import {getPersonCardsOnBoard} from "./board-util";
 import {getCardEffect, getEvent} from "../constant/effects";
 import {logger} from "./logger";
+import {CardRevealReason} from "./cardReveal";
 
 export interface IChangePlayerSettingArgs {
     classicFilmAutoMoveMode: ClassicFilmAutoMoveMode
@@ -1132,8 +1133,9 @@ export const updateSlot: LongFormMove = {
             addVp(G, ctx, newWavePlayer, 2);
         }
         doReturnSlotCard(G, ctx, slot);
-        const updateResult = ctx.numPlayers > SimpleRuleNumPlayers ? fillEmptySlots(G) : fillTwoPlayerBoard(G);
-        ctx.log?.setMetadata({updateResult})
+        const updateResult = ctx.numPlayers > SimpleRuleNumPlayers ?
+            fillEmptySlots(G, ctx, CardRevealReason.UPDATE) :
+            fillTwoPlayerBoard(G, ctx, CardRevealReason.UPDATE);
         G.updateCardHistory.push(updateResult);
 
         const newCinemaPlayer = schoolPlayer(G, ctx, SchoolCardID.S6342);
