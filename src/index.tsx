@@ -16,6 +16,7 @@ import Local from "./songJinn/components/local";
 import MatchStatsPage from "./components/match-stats";
 import MatchDataPage from "./components/match-data";
 import {ThemeProvider, createTheme} from '@material-ui/core/styles';
+import VersionChecker from "./components/version-checker";
 
 
 const rootElement = document.getElementById("root");
@@ -32,6 +33,7 @@ render(
     <ThemeProvider theme={theme}>
         <BrowserRouter>
             <CssBaseline/>
+            <VersionChecker/>
             <DrawerAppBar/>
             <Switch>
                 <Route exact path="/">
