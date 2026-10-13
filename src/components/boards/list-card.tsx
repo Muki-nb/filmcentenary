@@ -19,9 +19,32 @@ import ResourceIcon from "@material-ui/icons/MonetizationOn";
 import Typography from "@material-ui/core/Typography";
 
 import '../card.css';
+import {CardRevealReason, ICardReveal} from "../../game/cardReveal";
 
+
+const getCardRevealText = (reveal: ICardReveal): string => {
+    const cardsText = reveal.cards.map(c => '【' + getCardName(c) + '】').join('');
+    switch (reveal.reason) {
+        case CardRevealReason.NEW_ERA:
+            const regionText = reveal.region === undefined ? "" : i18n.region[reveal.region];
+            const eraText = reveal.era === undefined ? "" : i18n.era[reveal.era];
+            return `${regionText}${eraText}${i18n.action.newEraReveal}${cardsText}`;
+        case CardRevealReason.UPDATE:
+            return `${i18n.action.updateReveal}${cardsText}`;
+        default:
+            return `${i18n.action.refillReveal}${cardsText}`;
+    }
+}
 
 export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
+    const text = getMoveLogText(l, getPlayerName, G);
+    const reveals: ICardReveal[] = l.metadata?.cardReveals ??
+        // 旧记录只有 updateSlot 的 updateResult
+        (Array.isArray(l.metadata?.updateResult) ? [{reason: CardRevealReason.UPDATE, cards: l.metadata.updateResult}] : []);
+    return [text, ...reveals.map(getCardRevealText)].filter(t => t !== "").join('\n');
+}
+
+const getMoveLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
     switch (l.action.type) {
         case "GAME_EVENT":
             if (l.action.payload.type === "endTurn" && l.turn !== 1) {
@@ -37,17 +60,11 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                     l.action.payload.args[0].effect
                 )
             } else {
-                if (moveName === MoveNames.updateSlot) {
-                    const updatedResult = l.metadata.updatedResult;
-                    const resultText = typeof updatedResult === typeof Array ? updatedResult.map((c: string) => '【' + getCardName(c) + '】').join('') : "";
-                    return `${getPlayerName(l.action.payload.playerID)}${i18n.moves[moveName]({args: l.action.payload.args})}${resultText}`
-                } else {
+                // @ts-ignore
+                return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
                     // @ts-ignore
-                    return getPlayerName(l.action.payload.playerID) + i18n.moves[moveName]({
-                        // @ts-ignore
-                        args: l.action.payload.args
-                    })
-                }
+                    args: l.action.payload.args
+                })
             }
         case
         "REDO"

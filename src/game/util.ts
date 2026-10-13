@@ -53,6 +53,7 @@ import {getPersonCardsOnBoard} from "./board-util";
 import {getCardEffect} from "../constant/effects";
 import {logger} from "./logger";
 import {appendServerMatchStats} from "./serverStatsStorage";
+import {CardRevealReason, recordCardReveal} from "./cardReveal";
 
 export const curPid = (_G: IG, ctx: Ctx): number => {
     return parseInt(ctx.currentPlayer);
@@ -2914,7 +2915,7 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
 
-export const fillTwoPlayerBoard = (G: IG): CardID[] => {
+export const fillTwoPlayerBoard = (G: IG, ctx: Ctx, reason: CardRevealReason): CardID[] => {
     const log = ['fillTwoPlayerBoard'];
     const filledCards = [];
     const s = G.secretInfo.twoPlayer.school;
@@ -2945,6 +2946,7 @@ export const fillTwoPlayerBoard = (G: IG): CardID[] => {
     }
     log.push(`|filledCards|${filledCards}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
+    recordCardReveal(ctx, {reason, cards: filledCards});
     return filledCards;
 }
 export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
@@ -2975,6 +2977,13 @@ export const drawForTwoPlayerEra = (G: IG, ctx: Ctx, e: IEra): void => {
             s.card = c;
         }
     }
+    recordCardReveal(ctx, {
+        reason: CardRevealReason.NEW_ERA,
+        era: e,
+        cards: [...G.twoPlayer.school, ...G.twoPlayer.film]
+            .map((s): CardID | null => s.card)
+            .filter((c): c is CardID => c !== null),
+    });
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -3007,6 +3016,16 @@ export const drawForRegion = (G: IG, ctx: Ctx, r: Region, e: IEra): void => {
         // @ts-ignore
         G.regions[r].legend.card = c;
     }
+    recordCardReveal(ctx, {
+        reason: CardRevealReason.NEW_ERA,
+        // @ts-ignore
+        region: r,
+        era: e,
+        // @ts-ignore
+        cards: [G.regions[r].legend, ...G.regions[r].normal]
+            .map(s => s.card)
+            .filter((c): c is CardID => c !== null),
+    });
 }
 
 export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
@@ -3188,7 +3207,7 @@ export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: CardID): C
 //     }
 // }
 
-export const fillEmptySlots = (G: IG): CardID[] => {
+export const fillEmptySlots = (G: IG, ctx: Ctx, reason: CardRevealReason): CardID[] => {
     const log = ["fillEmptySlots"];
     const filledCards = [];
     for (let r of valid_regions) {
@@ -3225,6 +3244,7 @@ export const fillEmptySlots = (G: IG): CardID[] => {
     }
     log.push(`|filledCards|${filledCards}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
+    recordCardReveal(ctx, {reason, cards: filledCards});
     return filledCards;
 }
 
@@ -3397,7 +3417,7 @@ export const try2pScoring = (G: IG, ctx: Ctx): void => {
             return
         }
     } else {
-        fillTwoPlayerBoard(G);
+        fillTwoPlayerBoard(G, ctx, CardRevealReason.REFILL);
         signalEndTurn(G, ctx);
         return;
     }
@@ -3430,9 +3450,9 @@ export const tryScoring = (G: IG, ctx: Ctx): void => {
             setupAfterScoring(G, ctx);
             log.push("|fillEmptySlots");
             if (ctx.numPlayers > SimpleRuleNumPlayers) {
-                fillEmptySlots(G);
+                fillEmptySlots(G, ctx, CardRevealReason.REFILL);
             } else {
-                fillTwoPlayerBoard(G)
+                fillTwoPlayerBoard(G, ctx, CardRevealReason.REFILL)
             }
             log.push("|signalEndStage&Turn");
             logger.debug(`${G.matchID}|${log.join('')}`);
