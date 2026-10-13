@@ -3,14 +3,10 @@ import {useI18n} from "@i18n-chain/react";
 import Grid from "@material-ui/core/Grid";
 import Typography from "@material-ui/core/Typography";
 import Divider from "@material-ui/core/Divider";
-import PrestigeIcon from "@material-ui/icons/EmojiEvents";
-import AestheticsIcon from "@material-ui/icons/ImportContacts";
-import IndustryIcon from "@material-ui/icons/Settings";
-import ResourceIcon from "@material-ui/icons/MonetizationOn";
 import {
     AllClassicCards,
+    BANNED_CHAOS_MEDIA_CARD_IDS,
     BasicCardID,
-    CardCategory,
     CardID,
     EventCardID,
     getCardById,
@@ -18,7 +14,7 @@ import {
     ScoreCardID,
 } from "../types/core";
 import i18n from "../constant/i18n";
-import CardInfo, {CardEffect} from "./card";
+import CardInfo, {CardEffect, CardPanel} from "./card";
 
 import "./card.css";
 import "./card-view-table.css";
@@ -37,6 +33,10 @@ const DAWN_EXTENSION_IDS = new Set<string>([
     "S52681", "S52682", "S52683", "S52684",
 ]);
 
+const TECH_EXTENSION_IDS = new Set<string>([
+    "S52691", "S52692", "S52693", "S52694",
+]);
+
 const QM_EXTENSION_IDS = new Set<string>([
     "S6001", "S6002", "S6003", "S6004",
 ]);
@@ -51,6 +51,7 @@ const ALL_EXTENSION_IDS = new Set<string>([
     ...Array.from(YANG_EXTENSION_IDS),
     ...Array.from(MUKI_EXTENSION_IDS),
     ...Array.from(DAWN_EXTENSION_IDS),
+    ...Array.from(TECH_EXTENSION_IDS),
     ...Array.from(QM_EXTENSION_IDS),
     ...Array.from(CHAOS_MEDIA_IDS),
 ]);
@@ -161,47 +162,6 @@ const regionToSubmenuClass = (region?: Region): string => {
     }
 };
 
-const CardPanel = ({cardId}: { cardId: CardID }) => {
-    const card = getCardById(cardId);
-    const cardLabel = cardId in AllClassicCards ? cardId.slice(1) : cardId;
-
-    return <div
-        className={`dybn-card card-view-item${card.category === CardCategory.LEGEND ? " card-view-item--legend" : ""}`}
-    >
-        <div className="card-view-meta">
-            <Typography className="card-view-meta-text">#{cardLabel}</Typography>
-        </div>
-        <div
-            style={{
-                backgroundImage: `url("/img/${cardId}.png")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right center',
-                backgroundSize: 'auto 100%',
-                margin: '4px 0',
-                ...(getCardById(cardId).category === CardCategory.LEGEND ? {
-                    boxShadow: '2px 2px 2px #000000c4, -1px -1px 1px 1px #dadadacc'
-                } : {})
-            }}
-        >
-            <CardInfo cid={cardId}/>
-            <Typography
-                style={{
-                    display:'inline-flex',
-                    verticalAlign:'middle'
-                }}>
-                <IndustryIcon/>
-                {card.cost.industry}
-                <AestheticsIcon/>
-                {card.cost.aesthetics}
-                <ResourceIcon/>
-                {card.cost.res}
-                <PrestigeIcon/>
-                {card.vp}
-            </Typography>
-        </div>
-    </div>;
-};
-
 const EventCardPanel = ({cardId}: { cardId: EventCardID }) => {
     const card = getCardById(cardId);
     return <div
@@ -283,17 +243,20 @@ const SectionWithSubsections = ({id, title, cards, subsections}: {
 const CardViewTable = () => {
     useI18n(i18n);
 
-    const classicCards = (Object.keys(AllClassicCards) as CardID[]).sort((a: string, b: string) => {
-        const aNumId = parseInt(a.slice(1));
-        const bNumId = parseInt(b.slice(1));
-        return aNumId - bNumId;
-    });
+    const classicCards = (Object.keys(AllClassicCards) as CardID[])
+        .filter(id => !BANNED_CHAOS_MEDIA_CARD_IDS.includes(id as string))
+        .sort((a: string, b: string) => {
+            const aNumId = parseInt(a.slice(1));
+            const bNumId = parseInt(b.slice(1));
+            return aNumId - bNumId;
+        });
 
     const cardsClassicCore = sortById(classicCards.filter((id) => !ALL_EXTENSION_IDS.has(id as string)));
     const cardsYangExtension = sortById(classicCards.filter((id) => YANG_EXTENSION_IDS.has(id as string)));
     const cards5xxxQm = sortById(classicCards.filter((id) => QM_EXTENSION_IDS.has(id as string)));
     const cards5xxxMuki = sortById(classicCards.filter((id) => MUKI_EXTENSION_IDS.has(id as string)));
     const cardsDawn = sortById(classicCards.filter((id) => DAWN_EXTENSION_IDS.has(id as string)));
+    const cardsTech = sortById(classicCards.filter((id) => TECH_EXTENSION_IDS.has(id as string)));
     const cardsChaos = sortById(classicCards.filter((id) => CHAOS_MEDIA_IDS.has(id as string)));
 
     const sectionsClassicCoreByRegionEra = groupByRegionEra(cardsClassicCore);
@@ -354,12 +317,19 @@ const CardViewTable = () => {
             <SectionWithSubsections
                 id="classic-5-monthly"
                 title="月度流派扩"
-                cards={cardsDawn}
-                subsections={[{
-                    id: "monthly-dawn",
-                    title: "2026-8 流派扩：破晓",
-                    cards: cardsDawn,
-                }]}
+                cards={[...cardsDawn, ...cardsTech]}
+                subsections={[
+                    {
+                        id: "monthly-dawn",
+                        title: "2026-8 流派扩：破晓",
+                        cards: cardsDawn,
+                    },
+                    {
+                        id: "monthly-tech",
+                        title: "2026-9 流派扩：技术革新",
+                        cards: cardsTech,
+                    },
+                ]}
             />
 
             <SectionWithSubsections

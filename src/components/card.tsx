@@ -1,12 +1,13 @@
 import React from "react";
 import {
     AllClassicCards,
+    BasicCardID,
     CardCategory,
     CardID, CardType,
     EventCardID,
     getCardById,
     getScoreCardByID,
-    IEra, ItrEffects,
+    IEra, isTechSchool, ItrEffects,
     Region,
     ScoreCardID, SimpleEffectNames
 } from "../types/core";
@@ -47,6 +48,9 @@ import StudioIcon from '@material-ui/icons/Business';
 import PayIcon from '@material-ui/icons/Remove';
 import SearchIcon from '@material-ui/icons/Search';
 import Grid from "@material-ui/core/Grid";
+import Tooltip from "@material-ui/core/Tooltip";
+import "./card.css";
+import "./card-view-table.css";
 
 export interface ICardEffectProps {
     cid: CardID,
@@ -83,6 +87,36 @@ export const getCardName = (cardId: string): string => {
         }
     }
 }
+/** 按卡名查找卡牌 ID（用于公告文本中的【卡牌名】悬停展示） */
+const cardIdByName = (name: string): string | null => {
+    for (const id of Object.keys(AllClassicCards)) {
+        if (getCardName(id) === name) return id;
+    }
+    for (const id of Object.keys(BasicCardID)) {
+        if (getCardName(id) === name) return id;
+    }
+    return null;
+};
+
+/** 公告文本渲染：将【卡牌名】替换为悬停显示卡牌的片段 */
+export const CardNameText = ({text}: {text: string}) => {
+    const parts = text.split(/【([^】]*)】/);
+    return <React.Fragment>
+        {parts.map((part, idx) => {
+            if (idx % 2 === 0) {
+                return <React.Fragment key={idx}>{part}</React.Fragment>;
+            }
+            const cardId = cardIdByName(part);
+            if (cardId) {
+                return <Tooltip key={idx} {...CardHoverTooltipProps} title={<CardPanel cardId={cardId as CardID} width={440}/>}>
+                    <span style={{color: "#0b77ba", cursor: "default", borderBottom: "1px dotted #9fb6cc"}}>【{part}】</span>
+                </Tooltip>;
+            }
+            return <React.Fragment key={idx}>【{part}】</React.Fragment>;
+        })}
+    </React.Fragment>;
+};
+
 export const playCardEffectText = (cardId: CardID): string => {
     let effObj = getCardEffect(cardId);
     if (effObj.hasOwnProperty("play") && effObj.play.e !== "none") {
@@ -629,7 +663,7 @@ export const getEffectTextById = (cid: CardID): string => {
     const arch = archiveCardEffectText(cid);
     const score = scoreEffectText(cid);
     const eff = getCardEffect(cid);
-    const schoolBasic = eff.hasOwnProperty("school")
+    const schoolBasic = eff.hasOwnProperty("school") && !isTechSchool(cid)
         ? i18n.effect.school({
             hand: eff.school.hand,
             action: eff.school.action
@@ -687,10 +721,10 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
             <Typography key={nanoid()} aria-label={i18n.effect.continuous}>
                 <ContinuousHeaderIcon style={verticalAlign}/>
             </Typography>
-            <Typography key={nanoid()}>
+            {!isTechSchool(cid) ? <Typography key={nanoid()}>
                 <CardIcon key={nanoid()}/>{effObj.school.hand}
                 <ActionPointIcon key={nanoid()}/>{effObj.school.action}
-            </Typography>
+            </Typography> : <React.Fragment key={nanoid()}/>}
             <Typography key={nanoid()}>
                 {schoolEffectText(cid)}
             </Typography>
@@ -701,3 +735,53 @@ export const CardEffect = ({cid}: ICardEffectProps) => {
 }
 
 export default React.memo(CardInfo);
+
+export const CardPanel = ({cardId, width}: { cardId: CardID, width?: string | number }) => {
+    const card = getCardById(cardId);
+    const cardLabel = cardId in AllClassicCards ? cardId.slice(1) : cardId;
+
+    return <div
+        className={`dybn-card card-view-item${card.category === CardCategory.LEGEND ? " card-view-item--legend" : ""}`}
+        style={width !== undefined ? {width} : undefined}
+    >
+        <div className="card-view-meta">
+            <Typography className="card-view-meta-text">#{cardLabel}</Typography>
+        </div>
+        <div
+            style={{
+                backgroundImage: `url("/img/${cardId}.png")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right center',
+                backgroundSize: 'auto 100%',
+                margin: '4px 0',
+                ...(card.category === CardCategory.LEGEND ? {
+                    boxShadow: '2px 2px 2px #000000c4, -1px -1px 1px 1px #dadadacc'
+                } : {})
+            }}
+        >
+            <CardInfo cid={cardId}/>
+            <Typography
+                style={{
+                    display: 'inline-flex',
+                    verticalAlign: 'middle'
+                }}>
+                <IndustryIcon/>
+                {card.cost.industry}
+                <AestheticsIcon/>
+                {card.cost.aesthetics}
+                <ResIcon/>
+                {card.cost.res}
+                <PrestigeIcon/>
+                {card.vp}
+            </Typography>
+        </div>
+    </div>;
+};
+
+/** 悬停展示卡牌时使用的 Tooltip 属性（白底、完整卡面） */
+export const CardHoverTooltipProps = {
+    classes: {tooltip: "card-hover-tooltip", arrow: "card-hover-tooltip-arrow"},
+    arrow: true,
+    interactive: true,
+    enterDelay: 100,
+};

@@ -78,6 +78,7 @@ export interface IG {
     hasSchoolExtensionMuki: boolean,
     hasSchoolExtensionMuki2: boolean,
     hasSchoolExtensionDawn: boolean,
+    hasSchoolExtensionTech: boolean,
     hasSchoolExtensionQM: boolean,
     hasExtensionChaosMedia: boolean,
     /** DIY 扩展：已启用的扩展 ID 列表 (src/extensions/) */
@@ -195,6 +196,7 @@ function pubPlayer(): IPubInfo {
         action: 1,
         handsize_startturn: 0,
         bought_extension: false,
+        techStuntHandSnapshot: -1,
         actionused: false,
         newHollyWoodUsed: false,
         discardInSettle: false,
@@ -330,6 +332,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         hasSchoolExtensionMuki: false,
         hasSchoolExtensionMuki2: false,
         hasSchoolExtensionDawn: false,
+        hasSchoolExtensionTech: false,
         hasSchoolExtensionQM: false,
         hasExtensionChaosMedia: false,
         enabledExtensions: [],
@@ -692,6 +695,38 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         // // @ts-ignore
         // G.pub[0].school = "S52684";
     }
+    // ===== 2026-9 技术流派测试（测试完毕，已注释）=====
+    // 使用方式：大厅勾选「启用【流派扩 2026 - 9】技术革新」后开局（4人局）。
+    // 四张技术牌由 setupGameMode 自动发放到月度流派区；四位玩家各测一张，手牌/资源已备足可直接购买。
+    // 技术牌购买后进入档案区，不替换流派。
+    // if (ctx.numPlayers === 4) {
+    //     // 案例1 定格电影 S52691：购买后，使用行动力抽牌 → +1牌、+2声望
+    //     G.pub[0].resource = 10;
+    //     G.pub[0].deposit = 5;
+    //     G.pub[0].action = 2;
+    //     // @ts-ignore
+    //     G.player[0].hand = ["B02", "B02", "B01"];
+    //
+    //     // 案例2 特技电影 S52692：购买效果免费突破1次；行动结算前后手牌数变化≠±1 → +1声望
+    //     G.pub[1].resource = 10;
+    //     G.pub[1].deposit = 5;
+    //     // @ts-ignore
+    //     G.player[1].hand = ["B01", "B01", "B01", "B07"];
+    //
+    //     // 案例3 有声电影 S52693：购买+5声望；此后每-1存款 → +1声望
+    //     G.pub[2].resource = 10;
+    //     G.pub[2].deposit = 10;
+    //     // @ts-ignore
+    //     G.player[2].hand = ["B02", "B02", "B02"];
+    //
+    //     // 案例4 特艺七彩 S52694：购买+2存款；首次到达40/80/120声望 → +1存款，首次到达150 → 选择工/美等级
+    //     G.pub[3].resource = 10;
+    //     G.pub[3].deposit = 5;
+    //     G.pub[3].vp = 39;    // 再+1声望即跨40
+    //     // G.pub[3].vp = 149; // 跨150测工业/美学选择
+    //     // @ts-ignore
+    //     G.player[3].hand = ["B02", "B01", "B01"];
+    // }
     // G.player[firstMovePlayer].hand = [FilmCardID.F2407, FilmCardID.F3112, BasicCardID.B02, PersonCardID.P2103];
     // G.pub[firstMovePlayer].resource = 30;
     // G.pub[firstMovePlayer].industry = 10;

@@ -410,6 +410,7 @@ export interface IPubInfo {
     }
     actionused: boolean,
     bought_extension: boolean,
+    techStuntHandSnapshot: number,
     action: number,
     handsize_startturn: number,
     deposit: number,
@@ -556,6 +557,12 @@ export enum SchoolCardID {
     'S52682' = 'S52682',
     'S52683' = 'S52683',
     'S52684' = 'S52684',
+
+    //2026-9扩
+    'S52691' = 'S52691',
+    'S52692' = 'S52692',
+    'S52693' = 'S52693',
+    'S52694' = 'S52694',
 
     //起名扩
     'S6001' = 'S6001',
@@ -811,6 +818,13 @@ export function schoolCard(arg: IArgFilmCard): ISchoolCard {
         category: arg.category,
         aesthetics: arg.aesthetics
     }
+}
+
+// 2026-9 技术流派牌：购买不替换流派，直接置入档案区
+const TechSchoolIDs = [SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694];
+
+export function isTechSchool(id: string): boolean {
+    return TechSchoolIDs.includes(id as SchoolCardID);
 }
 
 export function eventCard(arg: IArgEvent): IEventCard {
@@ -2555,7 +2569,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Floating Weeds",
         cardId: FilmCardID.F6242,
-        cost: cost(6, 2, 5),
+        cost: cost(4, 2, 5),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 0,
@@ -2599,7 +2613,7 @@ const NoneBasicCards = {
         region: Region.NA,
         name: "The Terminator",
         cardId: FilmCardID.F6314,
-        cost: cost(8, 11, 3),
+        cost: cost(9, 11, 4),
         vp: 14,
         category: CardCategory.LEGEND,
         industry: 2,
@@ -2855,10 +2869,56 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Sun Tribe Film",
         cardId: SchoolCardID.S52684,
-        cost: cost(6, 5, 0),
+        cost: cost(8, 5, 1),
         vp: 7,
         category: CardCategory.NORMAL,
         industry: 1,
+        aesthetics: 0,
+    }),
+
+    // 2026-9 Extension - 技术流派（不携带标志）
+    "S52691": schoolCard({
+        era: IEra.ONE,
+        region: Region.EE,
+        name: "Stop Motion",
+        cardId: SchoolCardID.S52691,
+        cost: cost(5, 2, 1),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52692": schoolCard({
+        era: IEra.ONE,
+        region: Region.WE,
+        name: "Stunt Film",
+        cardId: SchoolCardID.S52692,
+        cost: cost(5, 0, 3),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52693": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "Sound Film",
+        cardId: SchoolCardID.S52693,
+        cost: cost(5, 3, 0),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52694": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "Technicolor",
+        cardId: SchoolCardID.S52694,
+        cost: cost(5, 1, 2),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
         aesthetics: 0,
     }),
 
@@ -3523,7 +3583,7 @@ export function getCardById(id: string, G?: IG): INormalOrLegendCard {
 export function schoolCardsByEra(e: IEra) {
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].type === CardType.S)
-    return res.map(c => c[1]);
+    return res.map(c => c[1]).filter(c => !isTechSchool(c.cardId));
 }
 
 export function filmCardsByEra(e: IEra) {
@@ -3532,7 +3592,7 @@ export function filmCardsByEra(e: IEra) {
     return res.map(c => c[1]);
 }
 
-const BANNED_CHAOS_MEDIA_CARD_IDS = ['P6211', 'P6311', 'S6241'];
+export const BANNED_CHAOS_MEDIA_CARD_IDS = ['P6211', 'P6311', 'S6241'];
 
 export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
     const extensionCardIds = [
@@ -3541,6 +3601,7 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
         'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
         'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
         'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
+        'S52691', 'S52692', 'S52693', 'S52694', //2026-9扩
         'S6001', 'S6002', 'S6003', 'S6004' //QM扩
     ];
     let filterCardIds : string[] = [];
@@ -3563,6 +3624,7 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
             'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
             'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
             'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
+            'S52691', 'S52692', 'S52693', 'S52694', //2026-9扩
             'S6001', 'S6002', 'S6003', 'S6004' //QM扩
         ];
     }else{

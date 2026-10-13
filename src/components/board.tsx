@@ -269,7 +269,7 @@ export const FilmCentenaryBoard = ({
         if (r === Region.MONTHLY_SCHOOL) {
             if (ExtensionMode.FIXED === G.extensionMode) return false;
             if (G.extensionMode === ExtensionMode.FOUR) return false;
-            return G.hasSchoolExtensionDawn;
+            return G.hasSchoolExtensionDawn || G.hasSchoolExtensionTech;
         }
         // 主地区始终可见
         return true;

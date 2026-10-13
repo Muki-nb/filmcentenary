@@ -21,6 +21,7 @@ import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, songJinnName} from "../constant/multi-games";
 
 import {UpdateHistory} from "../update";
+import {CardNameText} from "./card";
 
 type PlayerMetadata = {
     id: number;
@@ -215,7 +216,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                         <Typography component="div" display="block" variant={"subtitle1"}>{update.date}</Typography>
                         <ul>
                             {update.info.map((info, idx) => <li key={idx}>
-                                <Typography component="div" display="block">{info}</Typography>
+                                <Typography component="div" display="block"><CardNameText text={info}/></Typography>
                             </li>)}
                         </ul>
                     </div>

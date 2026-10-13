@@ -206,6 +206,11 @@ const cards = {
     '52683': 'Mexican Film',
     '52684': 'Sun Tribe Film',
 
+    '52691': 'Tech: Stop Motion',
+    '52692': 'Tech: Stunt Film',
+    '52693': 'Tech: Sound Film',
+    '52694': 'Tech: Technicolor',
+
     '6001': 'New Drama',
     '6002': 'Czechoslovak Film',
     'enableSchoolExtensionDawn': 'Enable Daybreak Extension',
@@ -324,6 +329,7 @@ const setting: LocaleSettings = {
     changeSetting: "Change Game Setting",
     disableUndo: "Disable Undo",
     enableSchoolExtensionDawn: "Enable Daybreak Extension",
+    enableSchoolExtensionTech: "Enable Tech Innovation Extension",
 
     testModeCinema: "[Optional] Cinema: +1 resource, +1 prestige",
     testModeEnd180: "[Optional] Game End: 180 VP",
@@ -797,11 +803,20 @@ const en = {
         '52683_effect': "After breakthrough, [optional] choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
         '52684_buy': "[Buy][Update] once. +1 Asia share. +1 action point.",
         '52684_effect': "Before the recovery phase, if you have no action points, after the recovery phase, archive Sun Tribe Film. After losing Sun Tribe Film: +1 industry level, +7 prestige.",
+        '52691_buy': "Place into the archive to take effect. Buy a 【Commercial Film】 for free and place it on top of your deck.",
+        '52691_effect': "After drawing cards with an action point: +1 card, +2 prestige.",
+        '52692_buy': "Place into the archive to take effect. Breakthrough once for free.",
+        '52692_effect': "Whenever your hand size changes by anything other than ±1 around an action: +1 prestige.",
+        '52693_buy': "Place into the archive to take effect. +5 prestige.",
+        '52693_effect': "Each time you lose 1 deposit: +1 prestige.",
+        '52694_buy': "Place into the archive to take effect. +2 deposit.",
+        '52694_effect': "The first time you reach 40/80/120 prestige: +1 deposit. The first time you reach 150 prestige, choose one: ①+1 industry level; ②+1 aesthetics level.",
         addAction: ["+{{a}} action(s)", argValue],
 
         '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
         '6312_effect': "During this action phase, after your industry reward: +1 card.",
-        personCardOnBoardEffect: "Execute the 【play】 effect of a person card on the board.",
+        '6213_naShare2': "If you have at least 2 North America shares, +1 North America share.",
+        personCardOnBoardEffect: "Execute the 【play】 effect of a person card on the board according to this card's region.",
 
         '6342_effect': "After any company [Updates]: +1 card. Each time you lose 1 card, gain +1 resource for each industry icon on that card and +1 prestige for each aesthetics icon on that card. After being competed, you do not lose prestige.",
 

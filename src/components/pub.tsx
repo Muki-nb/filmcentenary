@@ -76,6 +76,11 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
     }, []);
     const inferHand = (): CardID[] => getPlayerInferredHand(G, idx.toString());
     const playerID = idx.toString()
+    // 2026-9 技术流派高光：定格电影(行动力/红)、特技电影(手牌/紫)、有声电影(存款/蓝)、特艺七彩(声望/蓝)
+    const ownsStopMotion = i.archive.includes("S52691" as any);
+    const ownsStunt = i.archive.includes("S52692" as any);
+    const ownsSound = i.archive.includes("S52693" as any);
+    const ownsColor = i.archive.includes("S52694" as any);
     const legendCount = (r: ValidRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
         getCardById(c).region === r &&
         getCardById(c).era === G.regions[r].era
@@ -155,7 +160,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
             </Grid>
             <Grid item>
                 <Typography aria-label={`${i18n.pub.handSize}${i.handSize}`} className={classes.iconAlign}>
-                    <PanToolIcon/>{i.handSize}
+                    <PanToolIcon style={ownsStunt ? {color: '#9c27b0'} : undefined}/>{i.handSize}
                 </Typography>
             </Grid>
             <Grid item>
@@ -165,7 +170,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
             </Grid>
             <Grid item>
                 <Typography aria-label={`${i18n.pub.deposit}${i.deposit}`} className={classes.iconAlign}>
-                    <DepositIcon/>{i.deposit}
+                    <DepositIcon style={ownsSound ? {color: '#2196f3'} : undefined}/>{i.deposit}
                 </Typography>
             </Grid>
             <Grid item>
@@ -201,11 +206,11 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
             </Grid>
             <Grid item>
                 <Typography aria-label={`${i18n.pub.action}${i.action}`} className={classes.iconAlign}>
-                    <ActionPointIcon/> {i.action}</Typography>
+                    <ActionPointIcon color={ownsStopMotion ? '#e53935' : undefined}/> {i.action}</Typography>
             </Grid>
             <Grid item>
                 <Typography aria-label={`${i18n.pub.vp}${i.vp}`} className={classes.iconAlign}>
-                    <EmojiEventsIcon/> {i.vp}
+                    <EmojiEventsIcon style={ownsColor ? {color: '#2196f3'} : undefined}/> {i.vp}
                 </Typography>
             </Grid>
         </Grid>

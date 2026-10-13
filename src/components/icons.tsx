@@ -75,7 +75,10 @@ export const ChampionIcon = ({champion}: IChampionProps) => {
     return <IC style={{color: getColor(champion.region)}}/>
 }
 
-export const ActionPointIcon = () => <SvgIcon style={verticalAlign}>
+export const ActionPointIcon = ({color}: {color?: string} = {}) => <SvgIcon style={{
+    ...verticalAlign,
+    ...(color ? {color} : {}),
+}}>
     <path d="
              M6 6
              A6,3 0 0,0 18,6
@@ -85,7 +88,7 @@ export const ActionPointIcon = () => <SvgIcon style={verticalAlign}>
              L18, 6
              "
           style={{
-              stroke: "#000000",
+              stroke: color ? "currentColor" : "#000000",
               fill: "#ffffff",
               strokeWidth: 2,
           }}/>

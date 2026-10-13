@@ -10,8 +10,9 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
+import Tooltip from "@material-ui/core/Tooltip";
 import {Link as RouterLink, useLocation} from "react-router-dom";
-import {getCardName} from "./card";
+import {getCardName, CardPanel, CardHoverTooltipProps} from "./card";
 import i18n from "../constant/i18n";
 import {BasicCardID, CardType, IEra, getCardById, Region} from "../types/core";
 import {getColor} from "./icons";
@@ -216,7 +217,7 @@ const NO_SCHOOL_CARD_ID = "__NO_SCHOOL__";
 // ── 全局筛选选项类型 ──
 type PlayerCountFilter = "3" | "4";
 type OptionFilterMode = "include" | "exclude" | "any";
-type CardExtensionFilter = "all" | "base" | "schoolExt" | "muki" | "muki2" | "qm" | "dawn" | "chaosmedia";
+type CardExtensionFilter = "all" | "base" | "schoolExt" | "muki" | "muki2" | "qm" | "dawn" | "tech" | "chaosmedia";
 
 interface IFilterOptionDef {
     key: string;
@@ -249,6 +250,7 @@ const CARD_EXTENSION_LABELS: Record<CardExtensionFilter, string> = {
     muki2: "Muki扩2",
     qm: "起名扩",
     dawn: "2026-8扩",
+    tech: "2026-9扩",
     chaosmedia: "乱世光影",
 };
 
@@ -259,6 +261,9 @@ const getCardExtension = (cardID: string): CardExtensionFilter => {
 
     // Dawn 2026-8流派扩: S52681-S52684
     if (/^S5268[1234]$/.test(n)) return "dawn";
+
+    // 2026-9流派扩(技术革新): S52691-S52694
+    if (/^S5269[1-4]$/.test(n)) return "tech";
 
     // Muki扩2: S5201-S5209
     if (/^S520[1-9]$/.test(n)) return "muki2";
@@ -1442,6 +1447,7 @@ const MatchStatsPage = () => {
     const [playerDetailInput, setPlayerDetailInput] = React.useState("");
     const [playerDetailSearchedID, setPlayerDetailSearchedID] = React.useState("");
     const [playerMatchName, setPlayerMatchName] = React.useState("");
+    const [playerMatchID, setPlayerMatchID] = React.useState("");
     const [playerMatchResults, setPlayerMatchResults] = React.useState<any[] | null>(null);
     const [playerMatchLoading, setPlayerMatchLoading] = React.useState(false);
 
@@ -1506,6 +1512,35 @@ const MatchStatsPage = () => {
             if (!resp.ok) throw new Error(`${resp.status}`);
             const data = await resp.json();
             setPlayerMatchResults(data);
+        } catch (err: any) {
+            setPlayerMatchResults([]);
+        } finally {
+            setPlayerMatchLoading(false);
+        }
+    }, []);
+
+    // 根据对局ID查询单局完整数据
+    const fetchPlayerMatchByID = React.useCallback(async (id: string) => {
+        const trimmed = id.trim();
+        if (!trimmed) return;
+        setPlayerMatchLoading(true);
+        try {
+            const resp = await fetch(`/api/match-data/${encodeURIComponent(trimmed)}`);
+            if (!resp.ok) throw new Error(`${resp.status}`);
+            const record = await resp.json();
+            const G = record.state?.G;
+            const ctx = record.state?.ctx;
+            const gameover = ctx?.gameover;
+            const pn: Record<string, string> = G?.playerNames || {};
+            const rawTurn = ctx?.turn ?? 0;
+            setPlayerMatchResults([{
+                matchID: record.matchID,
+                exportedAt: record.exportedAt,
+                winner: pn[gameover?.winner] || gameover?.winner,
+                rounds: rawTurn > 0 ? Math.max(0, (rawTurn - 1) / 4) : 0,
+                G,
+                ctx,
+            }]);
         } catch (err: any) {
             setPlayerMatchResults([]);
         } finally {
@@ -2289,9 +2324,11 @@ const MatchStatsPage = () => {
                         <TableBody>
                             {cardStats.map((row, idx) => <TableRow key={row.cardID} hover style={{backgroundColor: idx % 2 === 0 ? "#ffffff" : "#fafafa"}}>
                                 <TableCell>
-                                    <span style={{color: safeCardColor(row.cardID)}}>
-                                        {row.cardID} / {safeCardName(row.cardID)}
-                                    </span>
+                                    <Tooltip {...CardHoverTooltipProps} title={<CardPanel cardId={row.cardID as any} width={440}/>}>
+                                        <span style={{color: safeCardColor(row.cardID), cursor: "default"}}>
+                                            {row.cardID} / {safeCardName(row.cardID)}
+                                        </span>
+                                    </Tooltip>
                                 </TableCell>
                                 <TableCell>{formatRate(row.winRate)}</TableCell>
                                 <TableCell>{row.avgRank > 0 ? row.avgRank.toFixed(2) : "-"}</TableCell>
@@ -2529,57 +2566,75 @@ const MatchStatsPage = () => {
 
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买1时代影片</Typography>
-                            {playerDetail.topEra1Films.length > 0 ? playerDetail.topEra1Films.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra1Films.length > 0 ? playerDetail.topEra1Films.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买1时代流派</Typography>
-                            {playerDetail.topEra1Schools.length > 0 ? playerDetail.topEra1Schools.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra1Schools.length > 0 ? playerDetail.topEra1Schools.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买1时代人物</Typography>
-                            {playerDetail.topEra1Persons.length > 0 ? playerDetail.topEra1Persons.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra1Persons.length > 0 ? playerDetail.topEra1Persons.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买2时代影片</Typography>
-                            {playerDetail.topEra2Films.length > 0 ? playerDetail.topEra2Films.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra2Films.length > 0 ? playerDetail.topEra2Films.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买2时代流派</Typography>
-                            {playerDetail.topEra2Schools.length > 0 ? playerDetail.topEra2Schools.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra2Schools.length > 0 ? playerDetail.topEra2Schools.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买2时代人物</Typography>
-                            {playerDetail.topEra2Persons.length > 0 ? playerDetail.topEra2Persons.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra2Persons.length > 0 ? playerDetail.topEra2Persons.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买3时代影片</Typography>
-                            {playerDetail.topEra3Films.length > 0 ? playerDetail.topEra3Films.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra3Films.length > 0 ? playerDetail.topEra3Films.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买3时代流派</Typography>
-                            {playerDetail.topEra3Schools.length > 0 ? playerDetail.topEra3Schools.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra3Schools.length > 0 ? playerDetail.topEra3Schools.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={4}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常购买3时代人物</Typography>
-                            {playerDetail.topEra3Persons.length > 0 ? playerDetail.topEra3Persons.map(item => <Typography key={item.cardID} variant="body2" style={{color: safeCardColor(item.cardID)}}>
-                                {safeCardName(item.cardID)}（{formatRate(item.rate)}）
-                            </Typography>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
+                            {playerDetail.topEra3Persons.length > 0 ? playerDetail.topEra3Persons.map(item => <Tooltip key={item.cardID} {...CardHoverTooltipProps} title={<CardPanel cardId={item.cardID as any} width={440}/>}>
+                                <Typography variant="body2" style={{color: safeCardColor(item.cardID), cursor: "default"}}>
+                                    {safeCardName(item.cardID)}（{formatRate(item.rate)}）
+                                </Typography>
+                            </Tooltip>) : <Typography variant="body2" color="textSecondary">暂无数据</Typography>}
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <Typography variant="subtitle1" style={{marginTop: 8, fontWeight: "bold"}}>最常电影院位置</Typography>
@@ -2632,14 +2687,34 @@ const MatchStatsPage = () => {
                             {playerMatchLoading ? "搜索中..." : "搜索"}
                         </Button>
                     </Grid>
+                    <Grid item xs={12} sm={6}>
+                        <TextField
+                            fullWidth
+                            size="small"
+                            label="对局ID"
+                            value={playerMatchID}
+                            onChange={(e: any) => setPlayerMatchID(e.target.value)}
+                            inputProps={{ onKeyDown: (e: any) => { if (e.key === "Enter") { setPlayerMatchResults(null); fetchPlayerMatchByID(playerMatchID); } } }}
+                        />
+                    </Grid>
+                    <Grid item xs={12} sm={3}>
+                        <Button
+                            variant="outlined"
+                            color="primary"
+                            disabled={!playerMatchID.trim() || playerMatchLoading}
+                            onClick={() => { setPlayerMatchResults(null); fetchPlayerMatchByID(playerMatchID); }}
+                        >
+                            {playerMatchLoading ? "查询中..." : "按ID查询"}
+                        </Button>
+                    </Grid>
                     {playerMatchResults !== null && (
                         <Grid item xs={12}>
                             {playerMatchResults.length === 0 ? (
-                                <Typography color="textSecondary" style={{marginTop: 8}}>未找到 "{playerMatchName}" 参与的对局</Typography>
+                                <Typography color="textSecondary" style={{marginTop: 8}}>未找到相关对局</Typography>
                             ) : (
                                 <>
                                     <Typography variant="subtitle2" style={{marginBottom: 8}}>
-                                        共 {playerMatchResults.length} 局
+                                        共 {playerMatchResults.length} 局{playerMatchResults.length >= 10 ? "（仅显示最近10场）" : ""}
                                     </Typography>
                                     {playerMatchResults.map((m: any) => (
                                         <div key={m.matchID} style={{marginBottom: 8, padding: 10, border: "1px solid #e0e0e0", borderRadius: 4}}>

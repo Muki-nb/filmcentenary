@@ -30,6 +30,7 @@ interface ISavedOptions {
     enableSchoolExtensionMuki: boolean;
     enableSchoolExtensionMuki2: boolean;
     enableSchoolExtensionDawn: boolean;
+    enableSchoolExtensionTech: boolean;
     enableSchoolExtensionQM: boolean;
     enableExtensionChaosMedia: boolean;
     disableUndo: boolean;
@@ -62,6 +63,7 @@ function hasAnySavedExtensionEnabled(saved: ISavedOptions | null): boolean {
         saved.enableSchoolExtensionMuki ||
         saved.enableSchoolExtensionMuki2 ||
         saved.enableSchoolExtensionDawn ||
+        saved.enableSchoolExtensionTech ||
         saved.enableSchoolExtensionQM ||
         saved.enableExtensionChaosMedia ||
         (saved.enabledExtensions && saved.enabledExtensions.length > 0) ||
@@ -84,7 +86,11 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const [enableSchoolExtension, setEnableSchoolExtension] = React.useState(saved?.enableSchoolExtension ?? false);
     const [enableSchoolExtensionMuki, setEnableSchoolExtensionMuki] = React.useState(saved?.enableSchoolExtensionMuki ?? false);
     const [enableSchoolExtensionMuki2, setEnableSchoolExtensionMuki2] = React.useState(saved?.enableSchoolExtensionMuki2 ?? false);
-    const [enableSchoolExtensionDawn, setEnableSchoolExtensionDawn] = React.useState(saved?.enableSchoolExtensionDawn ?? false);
+    // 全部发放模式下 2026-8 与 2026-9 互斥：恢复的历史设置若同时开启，2026-9 优先
+    const savedMonthlyConflict = saved?.extensionMode === ExtensionMode.NONE
+        && (saved?.enableSchoolExtensionDawn ?? false) && (saved?.enableSchoolExtensionTech ?? false);
+    const [enableSchoolExtensionDawn, setEnableSchoolExtensionDawn] = React.useState(savedMonthlyConflict ? false : saved?.enableSchoolExtensionDawn ?? false);
+    const [enableSchoolExtensionTech, setEnableSchoolExtensionTech] = React.useState(saved?.enableSchoolExtensionTech ?? false);
     const [enableSchoolExtensionQM, setEnableSchoolExtensionQM] = React.useState(saved?.enableSchoolExtensionQM ?? false);
     const [enableExtensionChaosMedia, setEnableExtensionChaosMedia] = React.useState(saved?.enableExtensionChaosMedia ?? false);
     const [disableUndo, setDisableUndo] = React.useState(saved?.disableUndo ?? false);
@@ -102,6 +108,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
         enableSchoolExtensionMuki ||
         enableSchoolExtensionMuki2 ||
         enableSchoolExtensionDawn ||
+        enableSchoolExtensionTech ||
         enableSchoolExtensionQM ||
         enableExtensionChaosMedia ||
         enabledExtensions.length > 0 ||
@@ -139,6 +146,7 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
             mode, order, extensionMode,
             enableSchoolExtension, enableSchoolExtensionMuki,
             enableSchoolExtensionMuki2, enableSchoolExtensionDawn,
+            enableSchoolExtensionTech,
             enableSchoolExtensionQM,
             enableExtensionChaosMedia, disableUndo,
             testModeCinema, testModeEnd180,
@@ -148,13 +156,13 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
         moves.setupGameMode(current);
         saveOptions(current);
     }, [mode, order, extensionMode, enableSchoolExtension, enableSchoolExtensionMuki,
-        enableSchoolExtensionMuki2, enableSchoolExtensionDawn, enableSchoolExtensionQM, enableExtensionChaosMedia,
+        enableSchoolExtensionMuki2, enableSchoolExtensionDawn, enableSchoolExtensionTech, enableSchoolExtensionQM, enableExtensionChaosMedia,
         disableUndo, testModeCinema, testModeEnd180, enabledExtensions, moves]);
 
     // 组件挂载时，如果有保存的选项，应用一次
     React.useEffect(() => {
         if (saved) {
-            moves.setupGameMode(saved);
+            moves.setupGameMode(savedMonthlyConflict ? {...saved, enableSchoolExtensionDawn: false} : saved);
         }
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -173,7 +181,13 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     const handleExtensionModeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const newExtensionMode: ExtensionMode = event.target.value as ExtensionMode;
         setExtensionMode(newExtensionMode);
-        applyOptions({ extensionMode: newExtensionMode });
+        const overrides = { extensionMode: newExtensionMode } as Partial<ISavedOptions>;
+        // 切到全部发放时，若两个月度扩同时开启，2026-9 优先，自动关闭 2026-8
+        if (newExtensionMode === ExtensionMode.NONE && enableSchoolExtensionDawn && enableSchoolExtensionTech) {
+            setEnableSchoolExtensionDawn(false);
+            overrides.enableSchoolExtensionDawn = false;
+        }
+        applyOptions(overrides);
     };
 
     // --- 扩展 checkbox handlers ---
@@ -183,6 +197,23 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
     ) => (_event: React.ChangeEvent<{}>, checked: boolean) => {
         setter(checked);
         applyOptions({ [key]: checked } as Partial<ISavedOptions>);
+    };
+
+    // --- 月度扩互斥：全部发放模式下 2026-8 与 2026-9 不可同时开启 ---
+    const monthlyMutex = extensionMode === ExtensionMode.NONE;
+    const handleMonthlyToggle = (
+        setter: (v: boolean) => void,
+        key: keyof ISavedOptions,
+        otherSetter: (v: boolean) => void,
+        otherKey: keyof ISavedOptions
+    ) => (_event: React.ChangeEvent<{}>, checked: boolean) => {
+        setter(checked);
+        const overrides = { [key]: checked } as Partial<ISavedOptions>;
+        if (checked && monthlyMutex) {
+            otherSetter(false);
+            overrides[otherKey] = false as any;
+        }
+        applyOptions(overrides);
     };
 
     // --- DIY 扩展 checkbox handler ---
@@ -264,9 +295,14 @@ export default function SetupPanel({moves, ctx}: ISetupPanelProps) {
                                 control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionMuki2}/>
                             <FormControlLabel
                                 checked={enableSchoolExtensionDawn}
-                                onChange={makeExtHandler(setEnableSchoolExtensionDawn, 'enableSchoolExtensionDawn')}
+                                onChange={handleMonthlyToggle(setEnableSchoolExtensionDawn, 'enableSchoolExtensionDawn', setEnableSchoolExtensionTech, 'enableSchoolExtensionTech')}
                                 disabled={ctx.numPlayers < 3}
                                 control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionDawn}/>
+                            <FormControlLabel
+                                checked={enableSchoolExtensionTech}
+                                onChange={handleMonthlyToggle(setEnableSchoolExtensionTech, 'enableSchoolExtensionTech', setEnableSchoolExtensionDawn, 'enableSchoolExtensionDawn')}
+                                disabled={ctx.numPlayers < 3}
+                                control={<Checkbox/>} label={i18n.setting.enableSchoolExtensionTech}/>
                             <FormControlLabel
                                 checked={enableSchoolExtensionQM}
                                 onChange={makeExtHandler(setEnableSchoolExtensionQM, 'enableSchoolExtensionQM')}

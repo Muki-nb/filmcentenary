@@ -337,7 +337,7 @@ const isRegionVisible = (G:IG, region:IRegionInfo) => {
     }
     if(region == G.regions[Region.MONTHLY_SCHOOL]){
         if(G.extensionMode === ExtensionMode.FOUR) return false;
-        return G.hasSchoolExtensionDawn;
+        return G.hasSchoolExtensionDawn || G.hasSchoolExtensionTech;
     }
     return true;
 };

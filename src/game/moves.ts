@@ -55,6 +55,7 @@ import {
     competitionCleanUp,
     competitionResultSettle,
     curPub,
+    deductDeposit,
     die,
     doAestheticsBreakthrough,
     doBuy,
@@ -80,6 +81,8 @@ import {
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
+    techStuntActionSettle,
+    techStuntActionStart,
 } from "./util";
 import {changePlayerStage, changeStage, signalEndPhase, signalEndStage, stopTimingForGameEnd} from "./logFix";
 import {getPersonCardsOnBoard} from "./board-util";
@@ -97,6 +100,7 @@ export interface ISetupGameModeArgs {
     enableSchoolExtensionMuki: boolean,
     enableSchoolExtensionMuki2: boolean,
     enableSchoolExtensionDawn: boolean,
+    enableSchoolExtensionTech: boolean,
     enableSchoolExtensionQM: boolean,
     enableExtensionChaosMedia: boolean,
     extensionMode: ExtensionMode,
@@ -360,25 +364,39 @@ export const setupGameMode: LongFormMove = {
         for (let iCardSlot of G.regions[Region.MONTHLY_SCHOOL].normal) {
             iCardSlot.card = null;
         }
-        let cardsDawn = [];
-        if(args.enableSchoolExtensionDawn){
+        // 月度流派扩：全部发放模式下 2026-8 与 2026-9 互斥，2026-9 优先
+        const monthlyConflict = args.enableSchoolExtensionDawn && args.enableSchoolExtensionTech &&
+            args.extensionMode === ExtensionMode.NONE;
+        if (monthlyConflict) {
+            log.push(`|monthlyConflict|sepWins`);
+        }
+        let cardsMonthly = [];
+        if(args.enableSchoolExtensionTech){
+            let sepCards = shuffle(ctx, [
+                SchoolCardID.S52691,
+                SchoolCardID.S52692,
+                SchoolCardID.S52693,
+                SchoolCardID.S52694
+            ]);
+            cardsMonthly.push(...sepCards);
+        } else if(args.enableSchoolExtensionDawn){
             let dawnCards = shuffle(ctx, [
                 SchoolCardID.S52681,
                 SchoolCardID.S52682,
                 SchoolCardID.S52683,
                 SchoolCardID.S52684
             ]);
-            cardsDawn.push(...dawnCards);
+            cardsMonthly.push(...dawnCards);
         }
-        if(cardsDawn.length > 0){
-            let schoolCardPopped = cardsDawn.pop();
+        if(cardsMonthly.length > 0){
+            let schoolCardPopped = cardsMonthly.pop();
             if (schoolCardPopped === undefined) {
                 throw new Error(schoolCardPopped);
             } else {
                 G.regions[Region.MONTHLY_SCHOOL].legend.card = schoolCardPopped;
             }
             for (let iCardSlot of G.regions[Region.MONTHLY_SCHOOL].normal) {
-                schoolCardPopped = cardsDawn.pop();
+                schoolCardPopped = cardsMonthly.pop();
                 if (schoolCardPopped === undefined) {
                     break;
                 } else {
@@ -393,6 +411,7 @@ export const setupGameMode: LongFormMove = {
             //pick 4 school from all extensions, 2 for era2 and 2 for era3
             let cards_era1 = [];
             if(args.enableSchoolExtensionMuki) cards_era1.push(SchoolCardID.S5001, SchoolCardID.S5002, SchoolCardID.S5003, SchoolCardID.S5004);
+            if(args.enableSchoolExtensionTech) cards_era1.push(SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694);
             let cards_era2 = [];
             if(args.enableSchoolExtension) cards_era2.push(SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004);
             if(args.enableSchoolExtensionMuki2) cards_era2.push(
@@ -433,7 +452,8 @@ export const setupGameMode: LongFormMove = {
         G.hasSchoolExtension = args.enableSchoolExtension;
         G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;
         G.hasSchoolExtensionMuki2 = args.enableSchoolExtensionMuki2;
-        G.hasSchoolExtensionDawn = args.enableSchoolExtensionDawn;
+        G.hasSchoolExtensionDawn = args.enableSchoolExtensionDawn && !monthlyConflict;
+        G.hasSchoolExtensionTech = args.enableSchoolExtensionTech;
         G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
         G.hasExtensionChaosMedia = args.enableExtensionChaosMedia;
         G.extensionMode = args.extensionMode;
@@ -466,7 +486,7 @@ export const payAdditionalCost: LongFormMove = {
         logger.info(`${G.matchID}|p${ctx.playerID}.moves.payAdditionalCost(${JSON.stringify(arg)})`);
         const log = [`payAdditionalCost|${JSON.stringify(arg)}`];
 
-        console.log("payAdditionalCost: " , G.secretInfo);
+        // console.log("payAdditionalCost: " , G.secretInfo);
 
         undoCheck(G, log);
         let pub = G.pub[parseInt(ctx.playerID)]
@@ -479,7 +499,7 @@ export const payAdditionalCost: LongFormMove = {
         } else {
             G.e.extraCostToPay = 0;
             pub.resource -= arg.res;
-            pub.deposit -= arg.deposit;
+            deductDeposit(G, ctx, ctx.playerID as PlayerID, arg.deposit);
             log.push(`|${pub.resource}|${pub.deposit}`);
         }
         switch ((eff.e)) {
@@ -549,9 +569,23 @@ export const drawCard: LongFormMove = {
     move: (G: IG, ctx: Ctx, p: PlayerID) => {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.drawCard(${p})`);
-        curPub(G, ctx).action--;
-        curPub(G, ctx).actionused = true;
+        const pub = curPub(G, ctx);
+        // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
+        techStuntActionStart(G, ctx, p);
+        pub.action--;
+        pub.actionused = true;
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
+        // 2026-9 技术：定格电影 - 使用行动力抽牌后，+1牌，+2声望
+        if (pub.archive.includes("S52691" as any)) {
+            drawCardForPlayer(G, ctx, ctx.currentPlayer);
+            addVp(G, ctx, ctx.currentPlayer, 2);
+        }
+        // 2026-9 技术：特技电影 - 行动结算完毕，对比手牌变化
+        techStuntActionSettle(G, ctx);
+        // 特艺七彩150选择等效果压入栈时，立即结算
+        if (G.e.stack.length > 0) {
+            checkNextEffect(G, ctx);
+        }
     },
 }
 
@@ -563,12 +597,14 @@ export const buyCard: LongFormMove = {
         undoCheck(G, log);
         logger.debug(`${G.matchID}|${log.join('')}`);
         if (canBuyCard(G, ctx, arg)) {
+            // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
+            techStuntActionStart(G, ctx, arg.buyer);
             let targetCard = getCardById(arg.target)
             let pub = curPub(G, ctx);
             pub.action--;
             pub.actionused = true;
             pub.resource -= arg.resource;
-            pub.deposit -= arg.deposit;
+            deductDeposit(G, ctx, arg.buyer, arg.deposit);
             arg.helper.forEach(c => {
                 let pHand = G.player[parseInt(arg.buyer)].hand;
                 let idx = pHand.indexOf(c)
@@ -585,6 +621,12 @@ export const buyCard: LongFormMove = {
                 checkNextEffect(G, ctx);
             } else {
                 logger.debug(`${G.matchID}|${log.join('')}`);
+                if (G.e.stack.length > 0) {
+                    checkNextEffect(G, ctx);
+                } else {
+                    // 2026-9 技术：特技电影 - 行动结算完毕，对比手牌变化
+                    techStuntActionSettle(G, ctx);
+                }
             }
             return;
         } else {
@@ -770,7 +812,7 @@ export const chooseHand: LongFormMove = {
                                     card.era < G.regions[card.region].era;
                                 if (isObsoleteFilm) {
                                     if (pub.deposit >= 1) {
-                                        pub.deposit -= 1;
+                                        deductDeposit(G, ctx, p, 1);
                                         let era;
                                         for (era = 0; era < 3; era++) {
                                             if (eff.a[era].e !== 'none') break;
@@ -1807,6 +1849,8 @@ export const playCard: LongFormMove = {
         const pub = G.pub[parseInt(arg.playerID)];
         const hand = G.player[parseInt(arg.playerID)].hand;
         const handCountBeforePlay = hand.length;
+        // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
+        techStuntActionStart(G, ctx, arg.playerID);
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
             switch (pub.school) {
@@ -1998,10 +2042,12 @@ export const breakthrough: LongFormMove = {
         const log = [`breakthrough`];
         undoCheck(G, log);
         const pub = G.pub[parseInt(arg.playerID)];
+        // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
+        techStuntActionStart(G, ctx, arg.playerID);
         pub.action -= 1;
         pub.actionused = true;
         pub.resource -= arg.res;
-        pub.deposit -= (2 - arg.res);
+        deductDeposit(G, ctx, arg.playerID, 2 - arg.res);
         const c = getCardById(arg.card);
         G.e.card = c.cardId;
         G.player[parseInt(arg.playerID)].hand.splice(arg.idx, 1);

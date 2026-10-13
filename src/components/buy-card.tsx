@@ -113,6 +113,8 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
     const canMakeBuyMove = () => {
         return ctx.currentPlayer === playerID && canBuy && pub.resource >= res && pub.deposit >= deposit && pub.action > 0
     }
+    // 基础牌售罄后按钮不可用
+    const basicDepleted = card in BasicCardID ? G.basicCards[card as BasicCardID] === 0 : false;
     const getValueText = (n: number) => n.toString();
 
     // @ts-ignore
@@ -120,6 +122,7 @@ export const BuyCard = ({card, helpers, G, ctx, moves, playerID}: IBuyDialogProp
         <Button
             fullWidth
             onClick={handleOpen}
+            disabled={basicDepleted}
             //variant={affordable ? "contained" : "outlined"}
             style={{
                 textTransform: 'none',

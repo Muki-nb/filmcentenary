@@ -8,7 +8,7 @@ import BuyCard from "../buy-card";
 import Grid from "@material-ui/core/Grid"
 import ChoiceDialog from "../modals";
 import Typography from "@material-ui/core/Typography";
-import {BasicCardID, CardID, ClassicFilmAutoMoveMode, FilmCardID, PersonCardID} from "../../types/core";
+import {BasicCardID, CardID, ClassicFilmAutoMoveMode, FilmCardID, PersonCardID, valid_regions} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -21,7 +21,7 @@ import {effName, getCardName} from "../card";
 import UndoIcon from '@material-ui/icons/Undo';
 import RedoIcon from '@material-ui/icons/Redo';
 import IconButton from "@material-ui/core/IconButton";
-import {ActionPointIcon} from "../icons";
+import {ActionPointIcon, DrawnShareIcon} from "../icons";
 import HandIcon from "@material-ui/icons/PanTool";
 import ConcedeIcon from '@material-ui/icons/DirectionsRun';
 import CardList from "./list-card";
@@ -84,8 +84,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
                     disabled={iPrivateInfo.classicFilmAutoMove === autoMove}
                     variant="contained" color="primary"
                     onClick={() => {
-                        console.log(JSON.stringify(iPrivateInfo));
-                        console.log(iPrivateInfo.classicFilmAutoMove);
+                        // console.log(JSON.stringify(iPrivateInfo));
+                        // console.log(iPrivateInfo.classicFilmAutoMove);
                         moves.changePlayerSetting({
                             classicFilmAutoMoveMode: autoMove
                         });
@@ -253,8 +253,18 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             callback={chooseTarget}
             choices={
                 G.c.players.map((pid, idx) => {
+                    const targetPub = G.pub[parseInt(pid)];
                     return {
-                        label: getName(pid.toString()),
+                        label: <span style={{display: "inline-flex", alignItems: "center"}}>
+                            {getName(pid.toString())}
+                            <span style={{color: "#6a7385"}}>({targetPub.competitionPower} /&nbsp;</span>
+                            {valid_regions.map((r, ri) => <span key={r} style={{display: "inline-flex", alignItems: "center"}}>
+                                <DrawnShareIcon r={r}/>
+                                {targetPub.shares[r]}
+                                {ri < valid_regions.length - 1 ? <span style={{marginRight: 6}}/> : null}
+                            </span>)}
+                            <span style={{color: "#6a7385"}}>)</span>
+                        </span>,
                         value: idx.toString(),
                         hidden: false, disabled: false
                     }
@@ -379,6 +389,8 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             moves.drawCard(playerID);
         }
     };
+    // 2026-9 技术：定格电影 - 【使用行动力抽牌】按钮：手图标红色高光，并在右侧多一个手图标
+    const ownsStopMotion = G.pub[parseInt(playerID)].archive.includes("S52691" as any);
     const drawCardDialog = canMoveCurrent ?
         <ChoiceDialog
             initial={false}
@@ -398,8 +410,9 @@ export const OperationPanel = ({G, getName, ctx, playerID, moves, undo, redo, ev
             }
             title={i18n.action.draw}
             toggleText={<Typography>
-                <ActionPointIcon/>
-                <HandIcon/>
+                <ActionPointIcon color={ownsStopMotion ? '#e53935' : undefined}/>
+                <HandIcon style={ownsStopMotion ? {color: '#e53935'} : undefined}/>
+                {ownsStopMotion ? <HandIcon style={{color: '#e53935'}}/> : ""}
             </Typography>}
         />
         : <></>

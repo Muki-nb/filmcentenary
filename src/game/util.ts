@@ -26,6 +26,7 @@ import {
     IEra,
     INormalOrLegendCard,
     IPubInfo,
+    isTechSchool,
     ItrEffects,
     LegendCardCountInUse,
     LES_CHAIERS_DU_CINEMA_COMPANY_SCALE,
@@ -231,7 +232,7 @@ export function payCost(G: IG, _ctx: Ctx, p: PlayerID, cost: number): void {
         const depCost = cost - pub.resource;
         pub.resource = 0
         log.push(`|deposit:${depCost}`);
-        pub.deposit -= depCost
+        deductDeposit(G, _ctx, p, depCost)
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -340,7 +341,11 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
 
         case "deposit":
             log.push(`|${pub.deposit}`);
-            pub.deposit += eff.a;
+            if (eff.a < 0) {
+                deductDeposit(G, ctx, p, -eff.a);
+            } else {
+                pub.deposit += eff.a;
+            }
             log.push(`|${pub.deposit}`);
             break;
         case SimpleEffectNames.addCompetitionPower:
@@ -433,6 +438,22 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 logger.debug(`${G.matchID}|${log.join('')}`);
             }
             return;
+        case "52691_buy":
+            // 2026-9 技术：定格电影 - 免费购买一张《商业片》置入牌库顶
+            doBuyToDeckTop(G, ctx, getCardById(BasicCardID.B02), p);
+            return;
+        case "52692_buy":
+            // 2026-9 技术：特技电影 - 免费突破1次
+            G.e.stack.push({e: "breakthroughResDeduct", a: 1, target: p});
+            return;
+        case "52693_buy":
+            // 2026-9 技术：有声电影 - +5声望
+            addVp(G, ctx, p, 5);
+            return;
+        case "52694_buy":
+            // 2026-9 技术：特艺七彩 - +2存款
+            pub.deposit += 2;
+            return;
         case SimpleEffectNames.competitionLoserBuy:
             card = getCardById(eff.a);
             doBuy(G, ctx, card, G.competitionInfo.def);
@@ -478,6 +499,13 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             log.push(`|addAction|before|${pub.action}`);
             pub.action += eff.a;
             log.push(`|after|${pub.action}`);
+            break;
+        case "6213_naShare2":
+            // 威廉·惠勒: 如果你至少有2个北美份额，+1北美份额
+            log.push(`|naShares|${pub.shares[Region.NA]}`);
+            if (pub.shares[Region.NA] >= 2) {
+                getShare(G, Region.NA, pub, 1);
+            }
             break;
         default:
             // logger.error("Invalid effect" + JSON.stringify(eff));
@@ -719,6 +747,12 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 		}
         if (card.type === CardType.S) {
             log.push(`|buySchool`);
+            if (isTechSchool(card.cardId)) {
+                // 2026-9技术流派牌：购买不替换流派，直接置入档案区
+                log.push(`|techSchool|toArchive`);
+                pub.archive.push(card.cardId);
+                pub.bought_extension = true;
+            } else {
             let school = pub.school;
             // switch (card.cardId){
             //     case (SchoolCardID.S4001):
@@ -784,7 +818,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
             // }
             pub.school = card.cardId as SchoolCardID;
             if (pub.school === SchoolCardID.S4006) {
-                pub.deposit = 0;
+                deductDeposit(G, ctx, p, pub.deposit);
                 pub.action++;
             }
             // 黑浪潮
@@ -846,6 +880,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 case "S52683" as any:
                 case "S52684" as any:
                     pub.bought_extension = true;
+            }
             }
         } else {
             log.push(`|pushToDiscard`);
@@ -1634,7 +1669,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     cardObj.era < G.regions[cardObj.region].era;
                 if (isObsoleteFilm) {
                     if (pub.deposit >= 1) {
-                        pub.deposit -= 1;
+                        deductDeposit(G, ctx, p, 1);
                         let era;
                         for (era = 0; era < 3; era++) {
                             if (eff.a[era].e !== 'none') break;
@@ -1994,7 +2029,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             G.c.players = players;
             log.push(`|${JSON.stringify(G.c.players)}`);
-            console.log(`|${JSON.stringify(G.c.players)}|${JSON.stringify(G.e)}`);
+            // console.log(`|${JSON.stringify(G.c.players)}|${JSON.stringify(G.e)}`);
             G.e.stack.push(eff.a);
             logger.debug(`|${JSON.stringify(G.e.stack)}|${G.matchID}|${log.join('')}`);
             changePlayerStage(G, ctx, "chooseTarget", p);
@@ -2161,10 +2196,16 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     //     G.e.stack.push(subEffect);
                     //     break;
                     // }
-                    if (pub.resource < eff.a.cost.a) {
+                    if (pub.resource + pub.deposit < eff.a.cost.a) {
+                        break;
+                    } else if (pub.resource >= eff.a.cost.a) {
+                        pub.resource -= eff.a.cost.a;
+                        G.e.stack.push(subEffect);
                         break;
                     } else {
-                        pub.resource -= eff.a.cost.a
+                        const depCost = eff.a.cost.a - pub.resource;
+                        pub.resource = 0;
+                        deductDeposit(G, ctx, p, depCost);
                         G.e.stack.push(subEffect);
                         break;
                     }
@@ -2516,6 +2557,10 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S52682:
         case SchoolCardID.S52683:
         case SchoolCardID.S52684:
+        case SchoolCardID.S52691:
+        case SchoolCardID.S52692:
+        case SchoolCardID.S52693:
+        case SchoolCardID.S52694:
             if(G.extensionMode === ExtensionMode.FOUR) r = G.regions[Region.EXTENSION];
             else r = G.regions[Region.MONTHLY_SCHOOL];
             break;
@@ -2830,6 +2875,13 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             if (G.regions[Region.ASIA].era === IEra.ONE) resRequired = 1000;
             if (pub.bought_extension) resRequired = 1000;
             break;
+        // 2026-9扩 技术流派：随时可买，限1
+        case "S52691" as any:
+        case "S52692" as any:
+        case "S52693" as any:
+        case "S52694" as any:
+            if (pub.bought_extension) resRequired = 1000;
+            break;
         default:
             break;
     }
@@ -2852,6 +2904,13 @@ export function canBuyCard(G: IG, ctx: Ctx, arg: IBuyInfo): boolean {
     let pub = G.pub[parseInt(arg.buyer)];
     let resRequired = resCost(G, ctx, arg);
     let resGiven: number = arg.resource + arg.deposit;
+    // 基础牌售罄后不可购买
+    if (arg.target in BasicCardID) {
+        const basicCount = G.basicCards[arg.target as BasicCardID] ?? 0;
+        if (basicCount <= 0) {
+            return false;
+        }
+    }
     return resRequired === resGiven && pub.resource >= arg.resource && pub.deposit >= arg.deposit;
 }
 
@@ -3909,10 +3968,47 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     }
 }
 
+/** 2026-9 技术：有声电影 - 每-1存款，+1声望 */
+export const deductDeposit = (G: IG, ctx: Ctx, p: PlayerID, amount: number): void => {
+    const pub = G.pub[parseInt(p)];
+    if (amount <= 0 || pub.deposit <= 0) return;
+    const actual = pub.deposit >= amount ? amount : pub.deposit;
+    pub.deposit -= actual;
+    if (pub.archive.includes("S52693" as any)) {
+        addVp(G, ctx, p, actual);
+    }
+};
+
+/** 2026-9 技术：特技电影 - 四个行动（购买/出牌/突破/行动力抽牌）开始时记录 Hand_0 */
+export const techStuntActionStart = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    const pub = G.pub[parseInt(p)];
+    if (pub.archive.includes("S52692" as any)) {
+        pub.techStuntHandSnapshot = G.player[parseInt(p)].hand.length;
+    } else {
+        pub.techStuntHandSnapshot = -1;
+    }
+};
+
+/** 2026-9 技术：特技电影 - 整个行动结算结束后，对比手牌变化，Δ≠±1 时 +1声望 */
+export const techStuntActionSettle = (G: IG, ctx: Ctx): void => {
+    const p = ctx.currentPlayer;
+    const pub = G.pub[parseInt(p)];
+    const handBefore = pub.techStuntHandSnapshot;
+    pub.techStuntHandSnapshot = -1;
+    if (handBefore < 0) return;
+    if (!pub.archive.includes("S52692" as any)) return;
+    const delta = G.player[parseInt(p)].hand.length - handBefore;
+    if (delta !== 1 && delta !== -1) {
+        addVp(G, ctx, p, 1);
+    }
+};
+
 export function checkNextEffect(G: IG, ctx: Ctx) {
     const log = ["checkNextEffect"];
     if (G.e.stack.length === 0) {
         log.push(("|stackEmpty"));
+        // 2026-9 技术：特技电影 - 行动完全结算后对比手牌变化
+        techStuntActionSettle(G, ctx);
         if (G.currentScoreRegion === Region.NONE) {
             log.push(("|No scoring region"));
             {
@@ -3953,7 +4049,7 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
         log.push(`|target|${targetPlayer}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         
-        console.log("CheckNextEffect: " , G.secretInfo);
+        // console.log("CheckNextEffect: " , G.secretInfo);
 
         playerEffExec(G, ctx, targetPlayer);
     }
@@ -4005,6 +4101,27 @@ export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
     log.push(`|prev|${pub.vp}`);
     pub.vp += vp;
     log.push(`|after|${pub.vp}`);
+    // 2026-9 技术：特艺七彩 - 首次到达40/80/120声望时+1存款；首次到达150声望时选择工业/美学升级
+    // 使用 vpAward 标志(v60=40/v90=80/v120=120/v150=150)判定，声望下降后不会重复触发
+    if (pub.archive.includes("S52694" as any)) {
+        if (pub.vp >= 40 && !pub.vpAward.v60) {
+            pub.deposit += 1;
+            log.push(`|techColor|40|+1deposit`);
+        }
+        if (pub.vp >= 80 && !pub.vpAward.v90) {
+            pub.deposit += 1;
+            log.push(`|techColor|80|+1deposit`);
+        }
+        if (pub.vp >= 120 && !pub.vpAward.v120) {
+            pub.deposit += 1;
+            log.push(`|techColor|120|+1deposit`);
+        }
+        if (pub.vp >= 150 && !pub.vpAward.v150) {
+            // 用 unshift 插入栈底，避免越过其他玩家已挂起的交互式效果（如 chooseRegion）
+            G.e.stack.unshift({e: "industryOrAestheticsLevelUp", a: 1, target: p});
+            log.push(`|techColor|150|choice`);
+        }
+    }
     //明星制
     if(pub.school === SchoolCardID.S5206 && _ctx.currentPlayer === p){
         let cnt = 0;
@@ -4050,8 +4167,10 @@ export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
     }
     if (count > 0) {
         log.push(`|stack|${JSON.stringify(G.e.stack)}`);
-        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target: p})
-        log.push(`|push|industryOrAestheticsLevelUp|stack|${JSON.stringify(G.e.stack)}`);
+        // 用 unshift 插入栈底：声望奖励属于结算副作用，
+        // 不能越过栈顶其他玩家已挂起的交互式效果（否则 chooseRegion 等 move 会弹出错误的效果）
+        G.e.stack.unshift({e: "industryOrAestheticsLevelUp", a: count, target: p})
+        log.push(`|unshift|industryOrAestheticsLevelUp|stack|${JSON.stringify(G.e.stack)}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         // playerEffExec(G, ctx, p);
     } else {
@@ -4063,15 +4182,7 @@ export const loseDeposit = (G: IG, _ctx: Ctx, p: PlayerID, deposit: number) => {
     const log = [`p${p}|loseDeposit|${deposit}`];
     let pub = G.pub[parseInt(p)];
     log.push(`|before|${pub.deposit}`);
-    // if (G.competitionInfo.pending) {
-    //     log.push(`|inCompetition|exit`);
-    //     logger.debug(`${G.matchID}|${log.join('')}`);
-    // }
-    if (deposit >= pub.deposit) {
-        pub.deposit = 0;
-    } else {
-        pub.deposit -= deposit;
-    }
+    deductDeposit(G, _ctx, p, deposit);
     log.push(`|after|${pub.deposit}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -4725,6 +4836,7 @@ export const rank = (G: IG, ctx: Ctx, p1: number, p2: number, showLog: boolean =
         }
     }
 }
+
 export const finalScoring = (G: IG, ctx: Ctx) => {
     let pid: number[] = [];
     for (let i = 0; i < G.order.length; i++) {

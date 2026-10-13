@@ -21,7 +21,7 @@ export interface Choice {
     hidden: boolean,
     disabled: boolean,
     value: string,
-    label: string,
+    label: string | JSX.Element,
 }
 
 export interface IChoiceProps {

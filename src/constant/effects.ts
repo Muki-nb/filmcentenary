@@ -3208,9 +3208,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: SimpleEffectNames.shareNA, a: 1},
-                {e: "vp", a: 2},
-                {e: "noStudio", a: {e: "loseDeposit", a: 2}},
+                {e: SimpleEffectNames.vp, a: 2},
+                {e: "6213_naShare2"},
+                {e: "noStudio", a: {e: "step", a: [{e: "loseDeposit", a: 1}, {e: "loseVp", a: 1}]}},
                 {e: "studio", a: {e: SimpleEffectNames.addCompetitionPower, a: 1}},
             ]
         },
@@ -3441,11 +3441,10 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => true,
         play: {
             e: "step", a: [
-                {e: SimpleEffectNames.industryAward, a: 1},
                 {
                     e: "choice", a: [
                         {e: "step", a: [{e: SimpleEffectNames.addCompetitionPower, a: 1}, {e: "personCardOnBoardEffect", a: 1}]},
-                        {e: "optional", a: {e: "competition", a: {bonus: 0, onWin: {e: "addAction", a: 1}}}},
+                        {e: "step", a: [{e: SimpleEffectNames.industryAward, a: 1}, {e: "optional", a: {e: "competition", a: {bonus: 0, onWin: {e: "addAction", a: 1}}}}]},
                     ]
                 }
             ]
@@ -3815,6 +3814,60 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52684_effect"}},
+    },
+
+    //2026-9 Extension - Tech Schools
+    "52691": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52691_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52691_effect"}},
+    },
+    "52692": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52692_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52692_effect"}},
+    },
+    "52693": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52693_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52693_effect"}},
+    },
+    "52694": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52694_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52694_effect"}},
     },
 
     //QM Extension Schools
