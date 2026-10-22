@@ -37,6 +37,7 @@ import AnyPlayerIcon from '@material-ui/icons/People';
 import PlayCardIcon from '@material-ui/icons/PlayCircleFilledWhiteOutlined';
 import {getCardEffect} from "../constant/effects";
 import i18n from "../constant/i18n";
+import {RecentCardAdjustments} from "../constant/card-adjustments";
 import HandIcon from "@material-ui/icons/PanTool";
 import ResIcon from '@material-ui/icons/MonetizationOn';
 import UpgradeBadgeIcon from '@material-ui/icons/PublishRounded';
@@ -96,6 +97,52 @@ const cardIdByName = (name: string): string | null => {
         if (getCardName(id) === name) return id;
     }
     return null;
+};
+
+/** 卡牌「近期调整」角标：地区颜色的齿轮 + 黑边，悬停显示调整对照表 */
+export const CardAdjustBadge = ({cardId, size = 20, style}: {
+    cardId: string,
+    size?: number,
+    style?: React.CSSProperties,
+}) => {
+    const adjustment = RecentCardAdjustments[cardId];
+    if (!adjustment) return null;
+    const region = getCardById(cardId).region;
+    return <Tooltip
+        {...CardHoverTooltipProps}
+        placement="top"
+        title={<div className="card-adjust-content">
+            <Typography variant="subtitle2" className="card-adjust-title">{adjustment.title ?? "近期调整"}</Typography>
+            <Typography component="div" className="card-adjust-summary">
+                {adjustment.date}　{adjustment.summary}
+            </Typography>
+            <table className="card-adjust-table">
+                <thead>
+                <tr>
+                    <th>项目</th>
+                    <th>调整前</th>
+                    <th>调整后</th>
+                </tr>
+                </thead>
+                <tbody>
+                {adjustment.changes.map((change, idx) => <tr key={idx}>
+                    <td>{change.label}</td>
+                    <td>{change.before}</td>
+                    <td>{change.after}</td>
+                </tr>)}
+                </tbody>
+            </table>
+        </div>}
+    >
+        <span
+            className="card-adjust-badge"
+            style={{width: size, height: size, ...style}}
+            onMouseOver={e => e.stopPropagation()}
+            onMouseEnter={e => e.stopPropagation()}
+        >
+            <IndustryIcon style={{fontSize: Math.round(size * 0.72), color: getColor(region)}}/>
+        </span>
+    </Tooltip>;
 };
 
 /** 公告文本渲染：将【卡牌名】替换为悬停显示卡牌的片段 */
@@ -742,8 +789,9 @@ export const CardPanel = ({cardId, width}: { cardId: CardID, width?: string | nu
 
     return <div
         className={`dybn-card card-view-item${card.category === CardCategory.LEGEND ? " card-view-item--legend" : ""}`}
-        style={width !== undefined ? {width} : undefined}
+        style={{position: "relative", ...(width !== undefined ? {width} : undefined)}}
     >
+        <CardAdjustBadge cardId={cardId}/>
         <div className="card-view-meta">
             <Typography className="card-view-meta-text">#{cardLabel}</Typography>
         </div>

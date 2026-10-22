@@ -382,9 +382,20 @@ export enum MainAction {
     scoring,
 }
 
+export interface IVpStats {
+    // 按来源统计（实时分数变动）
+    source: { [source: string]: number },
+    // 按牌统计：卡牌 -> 来源 -> 分数
+    card: { [cardId: string]: { [source: string]: number } },
+}
+
 export interface IPubInfo {
     LES_CHAIERS_DU_CINEMA: boolean,
     competitionPower: number,
+    // 2026-10 分数来源统计（实时）
+    vpStats: IVpStats,
+    // 2026-10 分数来源统计（终局计分）
+    vpStatsFinal: IVpStats,
     finalScoring: {
         card: number,
         building: number,
@@ -563,6 +574,10 @@ export enum SchoolCardID {
     'S52692' = 'S52692',
     'S52693' = 'S52693',
     'S52694' = 'S52694',
+
+    //2026-10扩（视觉奇观）
+    'S52701' = 'S52701',
+    'S52702' = 'S52702',
 
     //起名扩
     'S6001' = 'S6001',
@@ -820,8 +835,11 @@ export function schoolCard(arg: IArgFilmCard): ISchoolCard {
     }
 }
 
-// 2026-9 技术流派牌：购买不替换流派，直接置入档案区
-const TechSchoolIDs = [SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694];
+// 2026-9 / 2026-10 技术流派牌：购买不替换流派，直接置入档案区
+const TechSchoolIDs = [
+    SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694,
+    SchoolCardID.S52701, SchoolCardID.S52702,
+];
 
 export function isTechSchool(id: string): boolean {
     return TechSchoolIDs.includes(id as SchoolCardID);
@@ -2922,6 +2940,30 @@ const NoneBasicCards = {
         aesthetics: 0,
     }),
 
+    // 2026-10 Extension - 视觉奇观（技术流派）
+    "S52701": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Zoom Lens",
+        cardId: SchoolCardID.S52701,
+        cost: cost(5, 2, 4),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52702": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "3D Film",
+        cardId: SchoolCardID.S52702,
+        cost: cost(5, 4, 2),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+
     // QM Extension
     "S6001": schoolCard({
         era: IEra.TWO,
@@ -3602,6 +3644,7 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
         'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
         'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
         'S52691', 'S52692', 'S52693', 'S52694', //2026-9扩
+        'S52701', 'S52702', //2026-10扩
         'S6001', 'S6002', 'S6003', 'S6004' //QM扩
     ];
     let filterCardIds : string[] = [];
@@ -3625,6 +3668,7 @@ export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false
             'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
             'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
             'S52691', 'S52692', 'S52693', 'S52694', //2026-9扩
+            'S52701', 'S52702', //2026-10扩
             'S6001', 'S6002', 'S6003', 'S6004' //QM扩
         ];
     }else{

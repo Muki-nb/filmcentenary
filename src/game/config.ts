@@ -25,12 +25,14 @@ import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
     addCompetitionPower,
     addRes,
-    addVp,
+    addSchoolVp,
     aesAward,
     curPub,
     drawCardForPlayer,
     industryAward,
-    loseVp
+    loseSchoolVp,
+    onAestheticsLevelUp,
+    sync3DFilmCompetitionPower
 } from "./util";
 import {ItrEffects, SchoolCardID, SimpleEffectNames} from "../types/core";
 import {logger} from "./logger";
@@ -133,7 +135,7 @@ export const NormalTurn: TurnConfig = {
             pub.handsize_startturn = G.player[parseInt(p)].hand.length;
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
-                addVp(G, ctx, p, 1);
+                addSchoolVp(G, ctx, p, 1);
                 drawCardForPlayer(G, ctx, p);
                 G.e.stack.push({e:ItrEffects.discard,a:1})
                 changePlayerStage(G, ctx, "chooseHand", p);
@@ -205,7 +207,7 @@ export const NormalTurn: TurnConfig = {
             if (pub.school === SchoolCardID.S4007) {
                 const playerHandLength =  G.player[parseInt(p)].hand.length;
                 log.push(`|Kitchen Sink Film|playerHandLength${playerHandLength}`);
-                loseVp(G, ctx, p, playerHandLength);
+                loseSchoolVp(G, ctx, p, playerHandLength);
                 let drawCount = 0;
                 G.order.forEach((pid)=>{
                     const otherPlayerHandLength = G.player[parseInt(pid)].hand.length;
@@ -234,12 +236,12 @@ export const NormalTurn: TurnConfig = {
                         vpGain++;
                     }
                 }
-                if(vpGain > 0) addVp(G, ctx, p, vpGain);
+                if(vpGain > 0) addSchoolVp(G, ctx, p, vpGain);
             }
             // 奶油派
             if(pub.school === SchoolCardID.S5205) {
                 for(let Gpub of G.pub) {
-                    if(Gpub.vpAward.v60) addVp(G, ctx, p, 1);
+                    if(Gpub.vpAward.v60) addSchoolVp(G, ctx, p, 1);
                     if(Gpub.vpAward.v90) addRes(G, ctx, p, 1);
                     if(Gpub.vpAward.v120) drawCardForPlayer(G, ctx, p);
                 }
@@ -256,11 +258,14 @@ export const NormalTurn: TurnConfig = {
                     if (pub.industry < 10) {
                         log.push(`|aesthetics10AddIndustry`);
                         pub.industry++;
+                        sync3DFilmCompetitionPower(G, p);
                         log.push(`|i${pub.industry}`);
                     } else {
                         if (pub.aesthetics < 10) {
                             log.push(`|Industry10AddAesthetics`);
                             pub.aesthetics++;
+                            sync3DFilmCompetitionPower(G, p);
+                            onAestheticsLevelUp(G, ctx, p);
                             log.push(`|i${pub.aesthetics}`);
                         } else {
                             log.push("|bothLV10|skip");

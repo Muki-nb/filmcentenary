@@ -66,13 +66,22 @@ export const commentBasicCardDepleted = (G: IG): boolean => {
         && G.basicCards["B03"] === 0
 }
 
-export const wholeBoardDepleted = (G: IG): boolean => {
+export const hasUpdatableSlot = (G: IG): boolean => {
     if (G.playerCount > SimpleRuleNumPlayers) {
-        return valid_regions.every(r => noRegionCardOnBoard(G, r));
+        return valid_regions.some(r => {
+            const reg = G.regions[r];
+            if (reg === undefined || reg === null) return false;
+            if (reg.legend.card !== null) return true;
+            return reg.normal.some(s => s.card !== null);
+        });
     } else {
-        return G.twoPlayer.film.every(s => s.card === null)
-            && G.twoPlayer.school.every(s => s.card === null);
+        return G.twoPlayer.film.some(s => s.card !== null)
+            || G.twoPlayer.school.some(s => s.card !== null);
     }
+}
+
+export const wholeBoardDepleted = (G: IG): boolean => {
+    return !hasUpdatableSlot(G);
 }
 
 export function activePlayer(ctx: Ctx) {
@@ -361,7 +370,8 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
         case "vp":
         case "addVp":
         case "addExtraVp":
-            addVp(G, ctx, p, eff.a);
+            // 效果可自带来源/归属卡（如「电影院」联动得分），否则回落到当前 vpContext
+            addVp(G, ctx, p, eff.a, eff.source, eff.card);
             break;
         case "draw":
             for (let i = 0; i < eff.a; i++) {
@@ -372,6 +382,8 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             if (pub.aesthetics < 10) {
                 log.push(`|${pub.aesthetics}`);
                 pub.aesthetics++;
+                sync3DFilmCompetitionPower(G, p);
+                onAestheticsLevelUp(G, ctx, p);
                 log.push(`|${pub.aesthetics}`);
             } else {
                 log.push(`|LV10CannotUpgrade`);
@@ -381,6 +393,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             if (pub.industry < 10) {
                 log.push(`|${pub.industry}`);
                 pub.industry++;
+                sync3DFilmCompetitionPower(G, p);
                 log.push(`|${pub.industry}`);
             } else {
                 log.push(`|LV10CannotUpgrade`);
@@ -390,6 +403,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             if (pub.aesthetics > 0) {
                 log.push(`|${pub.aesthetics}`);
                 pub.aesthetics--;
+                sync3DFilmCompetitionPower(G, p);
                 log.push(`|${pub.aesthetics}`);
             } else {
                 log.push(`|LV0CannotDowngrade`);
@@ -400,6 +414,7 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
                 log.push(`|${pub.industry}`);
                 pub.industry--;
                 if(pub.competitionPower > pub.industry) pub.competitionPower = pub.industry;
+                sync3DFilmCompetitionPower(G, p);
                 log.push(`|${pub.industry}`);
             } else {
                 log.push(`|LV0CannotDowngrade`);
@@ -417,6 +432,11 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             break;
         case "buyCardToHand":
             card = getCardById(eff.a);
+            if (card.category !== CardCategory.BASIC && cardSlotOnBoard(G, ctx, card) === null) {
+                log.push(`|cardNotOnBoard|skip`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                break;
+            }
             doBuyToHand(G, ctx, card, p);
             const hasEffectHand = buyCardEffectPrepare(G, ctx, eff.a, p);
             if (hasEffectHand) {
@@ -429,6 +449,11 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             return;
         case "buyCardToDeckTop":
             card = getCardById(eff.a);
+            if (card.category !== CardCategory.BASIC && cardSlotOnBoard(G, ctx, card) === null) {
+                log.push(`|cardNotOnBoard|skip`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                break;
+            }
             doBuyToDeckTop(G, ctx, card, p);
             const hasEffectDeck = buyCardEffectPrepare(G, ctx, eff.a, p);
             if (hasEffectDeck) {
@@ -448,15 +473,27 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             G.e.stack.push({e: "breakthroughResDeduct", a: 1, target: p});
             return;
         case "52693_buy":
-            // 2026-9 技术：有声电影 - +5声望
-            addVp(G, ctx, p, 5);
+            // 2026-9 技术：有声电影 - +2声望（2026-10 由 +5 调整为 +2）
+            addVp(G, ctx, p, 2, "卡牌效果", "S52693");
             return;
         case "52694_buy":
             // 2026-9 技术：特艺七彩 - +2存款
             pub.deposit += 2;
             return;
+        case "52702_buy":
+            // 2026-10 技术：3D电影 - 选择一项：①+1工业等级；②+1美学等级
+            G.e.stack.push({e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "aestheticsLevelUp", a: 1},
+            ], target: p});
+            return;
         case SimpleEffectNames.competitionLoserBuy:
             card = getCardById(eff.a);
+            if (card.category !== CardCategory.BASIC && cardSlotOnBoard(G, ctx, card) === null) {
+                log.push(`|cardNotOnBoard|skip`);
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                return;
+            }
             doBuy(G, ctx, card, G.competitionInfo.def);
             hasEffect = buyCardEffectPrepare(G, ctx, eff.a, p);
             if (hasEffect) {
@@ -472,6 +509,16 @@ export function simpleEffectExec(G: IG, ctx: Ctx, p: PlayerID): void {
             return;
         case "buy":
             card = getCardById(eff.a);
+            if (card.category !== CardCategory.BASIC) {
+                const onBoard = ctx.numPlayers === SimpleRuleNumPlayers
+                    ? cardSlotOnBoard2p(G, ctx, card) !== null
+                    : cardSlotOnBoard(G, ctx, card) !== null;
+                if (!onBoard) {
+                    log.push(`|cardNotOnBoard|skip`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    break;
+                }
+            }
             doBuy(G, ctx, card, p);
             hasEffect = buyCardEffectPrepare(G, ctx, eff.a, p);
             if (hasEffect) {
@@ -536,7 +583,7 @@ export const doBuyToHand = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicC
         }
         //流派扩：波兰学派
         if (pub.school == SchoolCardID.S4004) {
-            addVp(G, ctx, p, 2);
+            addSchoolVp(G, ctx, p, 2);
         }
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
@@ -578,7 +625,7 @@ export const doBuyToDeckTop = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBas
         }
         //流派扩：波兰学派
         if (pub.school == SchoolCardID.S4004) {
-            addVp(G, ctx, p, 2);
+            addSchoolVp(G, ctx, p, 2);
         }
     } else {
         let slot = cardSlotOnBoard(G, ctx, card);
@@ -611,7 +658,7 @@ export const checkSocialismRealism = (G: IG, ctx: Ctx, card: INormalOrLegendCard
                 if (card.type === CardType.F) {
                     log.push(`|isEastEurope|1CP|1VP`);
                     addCompetitionPower(G, ctx, p, 1);
-                    addVp(G, ctx, p, 1);
+                    addSchoolVp(G, ctx, p, 1);
                 } else {
                     log.push(`|isEastEurope|notFilm|noEff`);
                 }
@@ -628,7 +675,7 @@ export const checkS5205 = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCa
     const pub = G.pub[parseInt(p)];
     if(G.pending.lastRoundOfGame && pub.school == SchoolCardID.S5205){
         if(card.category === CardCategory.BASIC){
-            addVp(G, ctx, p, 6);
+            addSchoolVp(G, ctx, p, 6);
         }
         if(card.category === CardCategory.NORMAL){
             addRes(G, ctx, p, 4);
@@ -640,7 +687,7 @@ export const checkS5205 = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCa
             drawCardForPlayer(G, ctx, p);
         }
         if(card.type === CardType.P){
-            addVp(G, ctx, p, card.cost.industry + card.cost.aesthetics);
+            addSchoolVp(G, ctx, p, card.cost.industry + card.cost.aesthetics);
         }
     }
 }
@@ -660,12 +707,12 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
         }
         //流派扩：波兰学派
         if (pub.school == SchoolCardID.S4004) {
-            addVp(G, ctx, p, 2);
+            addSchoolVp(G, ctx, p, 2);
         }
 		if (pub.school == SchoolCardID.S5004) {
 			if(card.cost.industry > pub.industry || card.cost.aesthetics > pub.aesthetics){
 				pub.deposit += 1;
-				addVp(G, ctx, p, 1);
+				addSchoolVp(G, ctx, p, 1);
 			}
 		}
     } else {
@@ -735,7 +782,7 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 			if (pub.school == SchoolCardID.S5004) {
 				if(card.cost.industry > pub.industry || card.cost.aesthetics > pub.aesthetics){
 					pub.deposit += 1;
-					addVp(G, ctx, p, 1);
+					addSchoolVp(G, ctx, p, 1);
 				}
 			}
 		}
@@ -743,16 +790,17 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
 			if (pub.school == SchoolCardID.S6004) {
                 pub.action += 1;
                 pub.deposit += 1;
-                addVp(G, ctx, p, 1);
+                addSchoolVp(G, ctx, p, 1);
 			}
 		}
         if (card.type === CardType.S) {
             log.push(`|buySchool`);
             if (isTechSchool(card.cardId)) {
-                // 2026-9技术流派牌：购买不替换流派，直接置入档案区
+                // 2026-9 / 2026-10 技术流派牌：购买不替换流派，直接置入档案区
                 log.push(`|techSchool|toArchive`);
                 pub.archive.push(card.cardId);
                 pub.bought_extension = true;
+                sync3DFilmCompetitionPower(G, p);
             } else {
             let school = pub.school;
             // switch (card.cardId){
@@ -788,6 +836,8 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                     if (pub.aesthetics < 10) {
                         log.push(`|Expressionism`);
                         pub.aesthetics++;
+                        sync3DFilmCompetitionPower(G, p);
+                        onAestheticsLevelUp(G, ctx, p);
                     }
                 }
 
@@ -800,14 +850,16 @@ export const doBuy = (G: IG, ctx: Ctx, card: INormalOrLegendCard | IBasicCard, p
                 if (school == SchoolCardID.S5004) {
                     if(pub.industry < 10) pub.industry++;
                     pub.deposit += 1;
-                    addVp(G, ctx, p, 1);
+                    addSchoolVp(G, ctx, p, 1);
+                    sync3DFilmCompetitionPower(G, p);
                 }
 
                 // 破晓扩 - 太阳族电影: 失去时+1工业等级,+7声望
                 if ((school as any) === "S52684") {
                     log.push(`|SunTribe|archive`);
                     if(pub.industry < 10) pub.industry++;
-                    addVp(G, ctx, p, 7);
+                    addSchoolVp(G, ctx, p, 7);
+                    sync3DFilmCompetitionPower(G, p);
                 }
 
                 log.push(`|archive|${school}`);
@@ -1351,7 +1403,7 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
         log.push(`|neoRealism`);
         log.push(`|before|${JSON.stringify(G.e.stack)}`);
         G.e.stack.push({
-            e: "vp", a: 2, target: pid
+            e: "vp", a: 2, source: "卡牌效果", card: pub.school, target: pid
         });
         G.e.stack.push({
             e: "deposit", a: 1, target: pid
@@ -1380,15 +1432,13 @@ export const startBreakThrough = (G: IG, ctx: Ctx, pid: PlayerID, card: CardID):
     }
     
     if (pub.school === SchoolCardID.S52683 && c.cardId === BasicCardID.B07) {
+        // 2026-10 调整：由 [可选] 改为必选
         G.e.stack.push({
-            e: "optional",
-            a: {
-                e: "choice",
-                a: [
-                    {e: "buyCardToHand", a: BasicCardID.B02},
-                    {e: "buyCardToHand", a: BasicCardID.B01},
-                ]
-            },
+            e: "choice",
+            a: [
+                {e: "buyCardToHand", a: BasicCardID.B02},
+                {e: "buyCardToHand", a: BasicCardID.B01},
+            ],
             target: pid
         });
     }
@@ -1564,7 +1614,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             if (pub.school === SchoolCardID.S4003) {
                 for(let card of validCardsToDiscard) {
                     pub.deposit += 1;
-                    addVp(G, ctx, p, 1);
+                    addSchoolVp(G, ctx, p, 1);
                 }
             }
             /*
@@ -1627,6 +1677,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 if (pub.aesthetics < 10) {
                     log.push(`|upgrade`);
                     pub.aesthetics++;
+                    sync3DFilmCompetitionPower(G, p);
+                    onAestheticsLevelUp(G, ctx, p);
                 }
             }
             break
@@ -1645,6 +1697,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 if (pub.industry < 10) {
                     log.push(`|upgrade`);
                     pub.industry++;
+                    sync3DFilmCompetitionPower(G, p);
                 }
             }
             break;
@@ -1685,7 +1738,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                         break;
                     } else {
                         log.push(`|noDeposit|wuxia`);
-                        addVp(G, ctx, p, 1);
+                        addSchoolVp(G, ctx, p, 1);
                         subEffect = getEraEffectByRegion(G, ctx, eff, region);
                         G.e.stack.push(subEffect);
                         log.push(`|era|${JSON.stringify(G.e.stack)}`);
@@ -2035,6 +2088,25 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             logger.debug(`|${JSON.stringify(G.e.stack)}|${G.matchID}|${log.join('')}`);
             changePlayerStage(G, ctx, "chooseTarget", p);
             return;
+        case "52701_buy":
+            // 2026-10 技术：变焦镜头 - 选择一个地区
+            // 可选地区：未关闭（未完成3时代结算）且已开放（亚洲需已进入2时代）的地区
+            log.push(`|chooseRegion|52701_buy`);
+            const visualRegions = valid_regions.filter(r => {
+                if (G.regions[r].completedLastScoring) return false;
+                if (r === Region.ASIA && G.regions[Region.ASIA].era === IEra.ONE) return false;
+                return true;
+            });
+            log.push(`|regions|${JSON.stringify(visualRegions)}`);
+            if (visualRegions.length === 0) {
+                log.push(`|noRegion|skip`);
+                break;
+            }
+            G.e.regions = visualRegions;
+            G.e.stack.push(eff);
+            logger.debug(`${G.matchID}|${log.join('')}`);
+            changePlayerStage(G, ctx, "chooseRegion", p);
+            return;
         case "step":
             log.push(("|step"));
             const effectCount = eff.a.length;
@@ -2114,47 +2186,21 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
             break;
         case "choice":
+            // 2026-10 修复：不再因为某个选项无法执行而自动选择。
+            // 保留全部选项供玩家选择；选中无法执行的选项时按「空置执行」处理（效果内部自行跳过）。
+            // 例：乡村牧师日记在手牌为空时，玩家仍可选择「免费突破一次」→ 空置执行。
             for (let choice of eff.a) {
-                switch (choice.e) {
-                    case "breakthroughResDeduct":
-                        if (handLength > 0) {
-                            if (eff.hasOwnProperty("target")) {
-                                const choiceEff = {...choice};
-                                choiceEff.target = eff.target;
-                                G.e.choices.push(choiceEff);
-                            } else {
-                                G.e.choices.push(choice);
-                            }
-                        }
-                        break;
-                    case "buy":
-                        if (idOnBoard(G, ctx, choice.a)) {
-                            if (eff.hasOwnProperty("target")) {
-                                const choiceEff = {...choice};
-                                choiceEff.target = eff.target;
-                                G.e.choices.push(choiceEff);
-                            } else {
-                                G.e.choices.push(choice);
-                            }
-                        }
-                        break;
-                    default:
-                        if (eff.hasOwnProperty("target")) {
-                            const choiceEff = {...choice};
-                            choiceEff.target = eff.target;
-                            G.e.choices.push(choiceEff);
-                        } else {
-                            G.e.choices.push(choice);
-                        }
-                }
+                const choiceEff = eff.hasOwnProperty("target") ? {...choice, target: eff.target} : {...choice};
+                G.e.choices.push(choiceEff);
             }
             if (G.e.choices.length === 0) {
-                log.push(`|noValidEffect`);
+                log.push(`|noChoiceDefined`);
                 break;
             } else {
                 if (G.e.choices.length === 1) {
+                    // 仅当数据上只定义了一个选项时才自动执行
                     G.e.stack.push(G.e.choices.pop());
-                    log.push(`|oneEffectValid|Exec`);
+                    log.push(`|oneChoiceDefined|Exec`);
                     logger.debug(`${G.matchID}|${log.join('')}`);
                     checkNextEffect(G, ctx);
                     return;
@@ -2165,7 +2211,8 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 }
             }
         case "update":
-            if (wholeBoardDepleted(G)) {
+            // 2026-10 修复：所有地区为空时直接跳过，避免进入无法点击的空阶段
+            if (!hasUpdatableSlot(G)) {
                 log.push(`|noSlotToUpdate`);
                 break;
             } else {
@@ -2175,7 +2222,7 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
             }
         case "comment":
             if (
-                wholeBoardDepleted(G) || commentBasicCardDepleted(G)
+                !hasUpdatableSlot(G) || commentBasicCardDepleted(G)
             ) {
                 log.push(`|noTargetOrCommentCard`);
                 break;
@@ -2267,11 +2314,14 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                 if (pub.industry < 10) {
                     log.push(`|aesthetics10AddIndustry`);
                     pub.industry++;
+                    sync3DFilmCompetitionPower(G, targetPlayer);
                     log.push(`|i${pub.industry}`);
                 } else {
                     if (pub.aesthetics < 10) {
                         log.push(`|Industry10AddAesthetics`);
                         pub.aesthetics++;
+                        sync3DFilmCompetitionPower(G, targetPlayer);
+                        onAestheticsLevelUp(G, ctx, targetPlayer);
                         log.push(`|i${pub.aesthetics}`);
                     } else {
                         log.push("|bothLV10|skip");
@@ -2308,11 +2358,13 @@ export const playerEffExec = (G: IG, ctx: Ctx, p: PlayerID): void => {
                     log.push(`|aesthetics10AddIndustry`);
                     pub.industry--;
                     if(pub.competitionPower > pub.industry) pub.competitionPower = pub.industry;
+                    sync3DFilmCompetitionPower(G, targetPlayer);
                     log.push(`|i${pub.industry}`);
                 } else {
                     if (pub.aesthetics > 0) {
                         log.push(`|Industry10AddAesthetics`);
                         pub.aesthetics--;
+                        sync3DFilmCompetitionPower(G, targetPlayer);
                         log.push(`|i${pub.aesthetics}`);
                     } else {
                         log.push("|bothLV10|skip");
@@ -2408,12 +2460,12 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
 		if (pub.school === SchoolCardID.S5003) {
             addRes(G, ctx, p, 1);
 		}else{
-			addVp(G, ctx, p, 1);
+			addVp(G, ctx, p, 1, "美学奖励", G.e?.vpContext?.card ?? null);
 		}
     }
     if (pub.aesthetics > 4) {
         log.push(`|>4`);
-        addVp(G, ctx, p, 2);
+        addVp(G, ctx, p, 2, "美学奖励", G.e?.vpContext?.card ?? null);
         if (pub.school === SchoolCardID.S4001) {
             log.push(`|FrenchImpressionism`)
             addRes(G, ctx, p, 1);
@@ -2424,7 +2476,7 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
         if(pub.school === SchoolCardID.S6002){
             //addRes(G, ctx, p, 1);
         }else{
-            addVp(G, ctx, p, 2);
+            addVp(G, ctx, p, 2, "美学奖励", G.e?.vpContext?.card ?? null);
         }
     }
 
@@ -2433,11 +2485,11 @@ export const aesAwardEndTurn = (G: IG, ctx: Ctx, p: PlayerID): void => {
     if (pub.school === SchoolCardID.S6002 && deltaLv <= 2) {
         if (pub.aesthetics > 1) {
             log.push(`|>1`);
-            addVp(G, ctx, p, 1);
+            addVp(G, ctx, p, 1, "美学奖励", SchoolCardID.S6002);
         }
         if (pub.aesthetics > 4) {
             log.push(`|>4`);
-            addVp(G, ctx, p, 2);
+            addVp(G, ctx, p, 2, "美学奖励", SchoolCardID.S6002);
         }
         if (pub.aesthetics > 7) {
             log.push(`|>7`);
@@ -2562,6 +2614,8 @@ export const cardSlotOnBoard = (G: IG, _ctx: Ctx, card: INormalOrLegendCard): IC
         case SchoolCardID.S52692:
         case SchoolCardID.S52693:
         case SchoolCardID.S52694:
+        case SchoolCardID.S52701:
+        case SchoolCardID.S52702:
             if(G.extensionMode === ExtensionMode.FOUR) r = G.regions[Region.EXTENSION];
             else r = G.regions[Region.MONTHLY_SCHOOL];
             break;
@@ -2876,11 +2930,20 @@ export function resCost(G: IG, _ctx: Ctx, arg: IBuyInfo, showLog: boolean = true
             if (G.regions[Region.ASIA].era === IEra.ONE) resRequired = 1000;
             if (pub.bought_extension) resRequired = 1000;
             break;
-        // 2026-9扩 技术流派：随时可买，限1
+        // 2026-9扩 技术流派（Ⅰ时代）：随时可买，限1
         case "S52691" as any:
         case "S52692" as any:
         case "S52693" as any:
         case "S52694" as any:
+            if (pub.bought_extension) resRequired = 1000;
+            break;
+        // 2026-10扩 技术流派（Ⅱ时代）：对应地区达到2时代后才能购买，限1
+        case "S52701" as any: // 技术：变焦镜头 - 西欧Ⅱ
+            if (G.regions[Region.WE].era === IEra.ONE) resRequired = 1000;
+            if (pub.bought_extension) resRequired = 1000;
+            break;
+        case "S52702" as any: // 技术：3D电影 - 北美Ⅱ
+            if (G.regions[Region.NA].era === IEra.ONE) resRequired = 1000;
             if (pub.bought_extension) resRequired = 1000;
             break;
         default:
@@ -3043,7 +3106,7 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
         //S5204
         if(pub.school === SchoolCardID.S5204){
             if(pub.discard.length !== 0){
-                addVp(G, ctx, id, 1);
+                addSchoolVp(G, ctx, id, 1);
                 addRes(G, ctx, id, 2);
             }
         }
@@ -3059,7 +3122,7 @@ export const drawPeekCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
         log.push(`|${card}`);
         p.cardsToPeek.push(card);
         //S5202
-        if(pub.school === SchoolCardID.S5202) addVp(G, ctx, id, 1);
+        if(pub.school === SchoolCardID.S5202) addSchoolVp(G, ctx, id, 1);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -3085,7 +3148,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
         //S5204
         if(pub.school === SchoolCardID.S5204){
             if(pub.discard.length !== 0){
-                addVp(G, ctx, id, 1);
+                addSchoolVp(G, ctx, id, 1);
                 addRes(G, ctx, id, 2);
             }
         }
@@ -3102,7 +3165,7 @@ export const drawCardForPlayer = (G: IG, ctx: Ctx, id: PlayerID): void => {
         p.hand.push(card);
 
         //S5202
-        if(pub.school === SchoolCardID.S5202) addVp(G, ctx, id, 1);
+        if(pub.school === SchoolCardID.S5202) addSchoolVp(G, ctx, id, 1);
     }
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -3206,6 +3269,62 @@ export const getPossibleHelper = (G: IG, ctx: Ctx, p: PlayerID, card: CardID): C
 //         }
 //     }
 // }
+
+/**
+ * 2026-10 技术：变焦镜头 - 从指定地区当前时代的剩余卡牌中随机抽取，
+ * 普通牌放到普通牌购买堆底部、传奇牌放到传奇牌购买堆底部（不会立刻出现在购买区）。
+ */
+export const addRegionPoolCards = (G: IG, ctx: Ctx, r: ValidRegion, normalCount: number, legendCount: number): CardID[] => {
+    const log = [`addRegionPoolCards|${r}|n${normalCount}|l${legendCount}`];
+    const added: CardID[] = [];
+    const used = new Set<string>();
+    const mark = (cards: Array<CardID | null | undefined>) => {
+        cards.forEach(c => {
+            if (c) used.add(c);
+        });
+    };
+    // 标记场上所有已存在的卡牌：地区牌位 / 购买堆 / 玩家各区域
+    valid_regions.forEach(rr => {
+        const reg = G.regions[rr];
+        mark([reg.legend.card, ...reg.normal.map(s => s.card)]);
+        mark(G.secretInfo.regions[rr].legendDeck);
+        mark(G.secretInfo.regions[rr].normalDeck);
+    });
+    G.pub.forEach(pub => {
+        mark(pub.allCards);
+        mark(pub.discard);
+        mark(pub.archive);
+        mark(pub.playedCardInTurn);
+        mark(pub.activeCardInTurn);
+        mark(pub.revealedHand);
+    });
+    G.player.forEach(p => mark(p.hand));
+    G.secretInfo.playerDecks.forEach(deck => mark(deck));
+
+    const era = G.regions[r].era;
+    // 只从当前时代的剩余卡牌中抽取（卡池保证够用，不从其他时代补充）
+    const pickCards = (isLegend: boolean, count: number): CardID[] => {
+        const pool: CardID[] = cardsByCond(G, r, era, isLegend)
+            .map(c => c.cardId as CardID)
+            .filter(id => !used.has(id));
+        return shuffle(ctx, pool).slice(0, count);
+    };
+    // 传奇牌 → 传奇牌购买堆底部（drawForRegion/fillEmptySlots 从数组尾部 pop，故底部用 unshift）
+    pickCards(true, legendCount).forEach(c => {
+        used.add(c);
+        G.secretInfo.regions[r].legendDeck.unshift(c as any);
+        added.push(c);
+    });
+    // 普通牌 → 普通牌购买堆底部
+    pickCards(false, normalCount).forEach(c => {
+        used.add(c);
+        G.secretInfo.regions[r].normalDeck.unshift(c as any);
+        added.push(c);
+    });
+    log.push(`|added|${added}`);
+    logger.debug(`${G.matchID}|${log.join('')}`);
+    return added;
+};
 
 export const fillEmptySlots = (G: IG, ctx: Ctx, reason: CardRevealReason): CardID[] => {
     const log = ["fillEmptySlots"];
@@ -3561,11 +3680,29 @@ export const getPlayerRegionRank = (G: IG, ctx: Ctx, pid: PlayerID, r: ValidRegi
     }
 }
 
+/** 地区结算的分数来源名：带上具体地区，便于分数统计区分 */
+const regionSettlementSource = (r: ValidRegion): string => {
+    switch (r) {
+        case Region.NA:
+            return "地区结算（北美）";
+        case Region.WE:
+            return "地区结算（西欧）";
+        case Region.EE:
+            return "地区结算（东欧）";
+        case Region.ASIA:
+            return "地区结算（亚洲）";
+        default:
+            return "地区结算";
+    }
+};
+
 export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
     if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) return;
     // @ts-ignore
     let era = G.regions[r].era;
     const eraShareReturnVp = era + 1;
+    // 分数来源统计：地区结算带上具体地区
+    const regionSource = regionSettlementSource(r as ValidRegion);
     // @ts-ignore
     const log = [`regionRank|region${r}|era${era}`];
     G.order.forEach((i, idx) => {
@@ -3577,14 +3714,14 @@ export const regionRank = (G: IG, ctx: Ctx, r: Region): void => {
             log.push("|badFilm");
             doBuy(G, ctx, B04, i);
         } else {
-            addVp(G, ctx, i, playerShareCount * eraShareReturnVp);
+            addVp(G, ctx, i, playerShareCount * eraShareReturnVp, regionSource);
             //流派扩：法国印象派
             if (G.pub[playerIdx].school === SchoolCardID.S4001)
                 if (playerShareCount * eraShareReturnVp >= 3)
                     addRes(G, ctx, i, 1);
             // 巨片: 地区结算时，每个份额多获得1声望
             if (G.pub[playerIdx].school === SchoolCardID.S5203)
-                addVp(G, ctx, i, playerShareCount);
+                addVp(G, ctx, i, playerShareCount, regionSource, SchoolCardID.S5203);
             log.push(`|rank`);
         }
     });
@@ -3869,7 +4006,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     const berlinShouldTrigger = pub.school === SchoolCardID.S52682 && G.player[parseInt(arg)].hand.length > 0;
     let p = ctx.currentPlayer;
     if (pub.school === SchoolCardID.S4007) {
-        addVp(G, ctx, p, pub.playedCardInTurn.length);
+        addSchoolVp(G, ctx, p, pub.playedCardInTurn.length);
     }
     if (pub.school === SchoolCardID.S6001) {
         G.e.stack.push({e: "industryOrAestheticsLevelDown", a: 1, target: p})
@@ -3878,7 +4015,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     if (pub.school === SchoolCardID.S5207) {
         if(pub.playedCardInTurn.length >= pub.industry){
             pub.deposit++;
-            addVp(G, ctx, p, 1);
+            addSchoolVp(G, ctx, p, 1);
         }
     }
     pub.playedCardInTurn.forEach(c => pub.discard.push(c));
@@ -3905,15 +4042,15 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
     if (pub.school === SchoolCardID.S6003 && deltaLv <= 2) {
         if (pub.aesthetics > 1) {
             log.push(`|>1`);
-            addVp(G, ctx, p, 1);
+            addSchoolVp(G, ctx, p, 1, "美学奖励");
         }
         if (pub.aesthetics > 4) {
             log.push(`|>4`);
-            addVp(G, ctx, p, 2);
+            addSchoolVp(G, ctx, p, 2, "美学奖励");
         }
         if (pub.aesthetics > 7) {
             log.push(`|>7`);
-            addVp(G, ctx, p, 2);
+            addSchoolVp(G, ctx, p, 2, "美学奖励");
         }
     }
 
@@ -3963,7 +4100,7 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
         for(let otherP of G.order) {
             if(otherP !== p && pub.vp > G.pub[parseInt(otherP)].vp) {
                 if(pub.vp >= 1) {
-                    loseVp(G, ctx, p, 1);
+                    loseSchoolVp(G, ctx, p, 1);
                     pub.resource++;
                 }
             }
@@ -3979,12 +4116,13 @@ export const endTurnEffect = (G: IG, ctx: Ctx, arg: PlayerID) => {
         pub.archive.push("S52684" as any);
         pub.school = null;
         if(pub.industry < 10) pub.industry++;
-        addVp(G, ctx, p, 7);
+        addVp(G, ctx, p, 7, "卡牌效果", SchoolCardID.S52684);
+        sync3DFilmCompetitionPower(G, p);
     }
     if (berlinShouldTrigger) {
         log.push(`|BerlinSchool|drawAndVp`);
         drawCardForPlayer(G, ctx, p);
-        addVp(G, ctx, p, 1);
+        addSchoolVp(G, ctx, p, 1);
     }
 }
 
@@ -3995,11 +4133,11 @@ export const deductDeposit = (G: IG, ctx: Ctx, p: PlayerID, amount: number): voi
     const actual = pub.deposit >= amount ? amount : pub.deposit;
     pub.deposit -= actual;
     if (pub.archive.includes("S52693" as any)) {
-        addVp(G, ctx, p, actual);
+        addVp(G, ctx, p, actual, "卡牌效果", "S52693");
     }
 };
 
-/** 2026-9 技术：特技电影 - 四个行动（购买/出牌/突破/行动力抽牌）开始时记录 Hand_0 */
+/** 2026-9 技术：特技电影 - 出牌开始时记录 Hand_0（2026-10：仅出牌触发） */
 export const techStuntActionStart = (G: IG, ctx: Ctx, p: PlayerID): void => {
     const pub = G.pub[parseInt(p)];
     if (pub.archive.includes("S52692" as any)) {
@@ -4019,7 +4157,28 @@ export const techStuntActionSettle = (G: IG, ctx: Ctx): void => {
     if (!pub.archive.includes("S52692" as any)) return;
     const delta = G.player[parseInt(p)].hand.length - handBefore;
     if (delta !== 1 && delta !== -1) {
-        addVp(G, ctx, p, 1);
+        addVp(G, ctx, p, 1, "卡牌效果", "S52692");
+    }
+};
+
+/** 2026-10 技术：变焦镜头 - 每次提升美学等级后，-2声望，按照美学等级获得声望 */
+export const onAestheticsLevelUp = (G: IG, ctx: Ctx, p: PlayerID): void => {
+    const pub = G.pub[parseInt(p)];
+    if (!pub.archive.includes("S52701" as any)) return;
+    loseVp(G, ctx, p, 2, "卡牌效果", "S52701");
+    addVp(G, ctx, p, pub.aesthetics, "卡牌效果", "S52701");
+};
+
+/** 2026-10 技术：3D电影 - 竞争力不会低于美学等级（且不高于工业等级） */
+export const sync3DFilmCompetitionPower = (G: IG, p: PlayerID): void => {
+    const pub = G.pub[parseInt(p)];
+    if (!pub.archive.includes("S52702" as any)) return;
+    const floor = Math.min(pub.aesthetics, pub.industry);
+    if (pub.competitionPower < floor) {
+        pub.competitionPower = floor;
+    }
+    if (pub.competitionPower > pub.industry) {
+        pub.competitionPower = pub.industry;
     }
 };
 
@@ -4027,6 +4186,8 @@ export function checkNextEffect(G: IG, ctx: Ctx) {
     const log = ["checkNextEffect"];
     if (G.e.stack.length === 0) {
         log.push(("|stackEmpty"));
+        // 2026-10 分数来源统计：结算链结束后清除归属上下文
+        G.e.vpContext = null;
         // 2026-9 技术：特技电影 - 行动完全结算后对比手牌变化
         techStuntActionSettle(G, ctx);
         if (G.currentScoreRegion === Region.NONE) {
@@ -4087,6 +4248,7 @@ export const addCompetitionPower = (G: IG, _ctx: Ctx, p: PlayerID, num: number) 
         pub.competitionPower += num;
     }
     log.push(`|after|${pub.competitionPower}`);
+    sync3DFilmCompetitionPower(G, p);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
@@ -4100,6 +4262,7 @@ export const loseCompetitionPower = (G: IG, _ctx: Ctx, p: PlayerID, num: number)
     } else {
         pub.competitionPower -= num;
     }
+    sync3DFilmCompetitionPower(G, p);
     log.push(`|after|${pub.competitionPower}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
@@ -4115,12 +4278,28 @@ export const addRes = (G: IG, _ctx: Ctx, p: PlayerID, res: number) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
+export const recordVpStat = (G: IG, p: PlayerID, amount: number, source: string, cardId?: string | null): void => {
+    if (amount === 0) return;
+    const pub = G.pub[parseInt(p)];
+    if (pub === undefined) return;
+    if (!pub.vpStats) pub.vpStats = {source: {}, card: {}};
+    const src = source || "其他效果";
+    pub.vpStats.source[src] = (pub.vpStats.source[src] || 0) + amount;
+    if (cardId) {
+        const entry = pub.vpStats.card[cardId] ?? {};
+        entry[src] = (entry[src] || 0) + amount;
+        pub.vpStats.card[cardId] = entry;
+    }
+};
+
+export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number, source?: string, cardId?: string | null) => {
     const log = [`addVp|p${p}|${vp}vp`];
     const pub = G.pub[parseInt(p)];
     log.push(`|prev|${pub.vp}`);
     pub.vp += vp;
     log.push(`|after|${pub.vp}`);
+    const vpContext = G.e?.vpContext ?? null;
+    recordVpStat(G, p, vp, source ?? vpContext?.source ?? "其他效果", cardId ?? vpContext?.card ?? null);
     // 2026-9 技术：特艺七彩 - 首次到达40/80/120声望时+1存款；首次到达150声望时选择工业/美学升级
     // 使用 vpAward 标志(v60=40/v90=80/v120=120/v150=150)判定，声望下降后不会重复触发
     if (pub.archive.includes("S52694" as any)) {
@@ -4137,8 +4316,8 @@ export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
             log.push(`|techColor|120|+1deposit`);
         }
         if (pub.vp >= 150 && !pub.vpAward.v150) {
-            // 用 unshift 插入栈底，避免越过其他玩家已挂起的交互式效果（如 chooseRegion）
-            G.e.stack.unshift({e: "industryOrAestheticsLevelUp", a: 1, target: p});
+            // 2026-10 调整：改回 push，升级选择立即处理
+            G.e.stack.push({e: "industryOrAestheticsLevelUp", a: 1, target: p});
             log.push(`|techColor|150|choice`);
         }
     }
@@ -4187,10 +4366,11 @@ export const addVp = (G: IG, _ctx: Ctx, p: PlayerID, vp: number) => {
     }
     if (count > 0) {
         log.push(`|stack|${JSON.stringify(G.e.stack)}`);
-        // 用 unshift 插入栈底：声望奖励属于结算副作用，
-        // 不能越过栈顶其他玩家已挂起的交互式效果（否则 chooseRegion 等 move 会弹出错误的效果）
-        G.e.stack.unshift({e: "industryOrAestheticsLevelUp", a: count, target: p})
-        log.push(`|unshift|industryOrAestheticsLevelUp|stack|${JSON.stringify(G.e.stack)}`);
+        // 2026-10 调整：改回 push —— 40/80/120 的升级选择立即弹出，不再延后到整条结算链末尾。
+        // 注意：交互式效果挂起期间（等待 chooseRegion / chooseHand 等）不能再往栈顶压效果，
+        // 否则对应 move 盲 pop 栈顶会拿到错误效果；相关位置必须先结算完被动再挂起交互。
+        G.e.stack.push({e: "industryOrAestheticsLevelUp", a: count, target: p})
+        log.push(`|push|industryOrAestheticsLevelUp|stack|${JSON.stringify(G.e.stack)}`);
         logger.debug(`${G.matchID}|${log.join('')}`);
         // playerEffExec(G, ctx, p);
     } else {
@@ -4207,11 +4387,13 @@ export const loseDeposit = (G: IG, _ctx: Ctx, p: PlayerID, deposit: number) => {
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
 
-export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
+export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number, source?: string, cardId?: string | null) => {
     const log = [`p${p}|lose${vp}vp`];
     const pub = G.pub[parseInt(p)];
     log.push(`|beforeVP|${pub.vp}`);
     const realVpLose: number = vp >= pub.vp ? pub.vp : vp;
+    const vpContext = G.e?.vpContext ?? null;
+    recordVpStat(G, p, -realVpLose, source ?? vpContext?.source ?? "其他效果", cardId ?? vpContext?.card ?? null);
     // if (G.competitionInfo.pending) {
     //     log.push(`|inCompetition|noVpDeduct`);
     // } else {
@@ -4225,6 +4407,16 @@ export const loseVp = (G: IG, ctx: Ctx, p: PlayerID, vp: number) => {
     log.push(`|afterVP|${pub.vp}`);
     logger.debug(`${G.matchID}|${log.join('')}`);
 }
+
+/** 流派被动/触发效果产生的分数：来源记为「卡牌效果」，并归属到该流派卡 */
+export const addSchoolVp = (G: IG, ctx: Ctx, p: PlayerID, amount: number, source: string = "卡牌效果"): void => {
+    addVp(G, ctx, p, amount, source, G.pub[parseInt(p)]?.school ?? null);
+};
+
+/** 流派被动/触发效果消耗的分数：归属到该流派卡 */
+export const loseSchoolVp = (G: IG, ctx: Ctx, p: PlayerID, amount: number, source: string = "卡牌效果"): void => {
+    loseVp(G, ctx, p, amount, source, G.pub[parseInt(p)]?.school ?? null);
+};
 
 export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, building: BuildingType): void => {
     const log = [`buildBuildingFor|p${p}|${r}`];
@@ -4256,7 +4448,7 @@ export const buildBuildingFor = (G: IG, ctx: Ctx, r: ValidRegion, p: PlayerID, b
             built = true;
         }
     })
-    addVp(G, ctx, p, 3);
+    addVp(G, ctx, p, 3, building === BuildingType.cinema ? "电影院" : "制片厂", G.e?.vpContext?.card ?? null);
     //流派扩：法国印象派
     if (pub.school === SchoolCardID.S4001) {
         pub.resource += 1;
@@ -4339,7 +4531,7 @@ export function competitionResultSettle(G: IG, ctx: Ctx) {
         switch (defSchoolID) {
             case SchoolCardID.S4006:
                 drawCardForPlayer(G, ctx, i.def);
-                loseVp(G, ctx, i.atk, 5);
+                loseVp(G, ctx, i.atk, 5, "卡牌效果", defSchoolID);
                 break;
             case SchoolCardID.S4005:
                 aesAward(G, ctx, i.def);
@@ -4394,6 +4586,7 @@ export function atkCardSettle(G: IG, ctx: Ctx) {
             log.push(`|noPlayEffect`);
         }
         G.e.card = cardId;
+        G.e.vpContext = {source: "卡牌效果", card: cardId};
         logger.debug(`${G.matchID}|${log.join('')}`);
         playerEffExec(G, ctx, i.atk);
     } else {
@@ -4438,6 +4631,7 @@ export const defCardSettle = (G: IG, ctx: Ctx) => {
             log.push(`|after|${i.progress}`);
         }
         G.e.card = cardId;
+        G.e.vpContext = {source: "卡牌效果", card: cardId};
         logger.debug(`${G.matchID}|${log.join('')}`);
         checkNextEffect(G, ctx);
     } else {
@@ -4562,9 +4756,9 @@ export const startCompetition = (G: IG, ctx: Ctx, atk: PlayerID, def: PlayerID) 
         log.push(`|${defSchoolID}|doNotLoseVP`);
     } else {
         log.push(`|p${i.def}|lose${CompetitionPowerDelta}vp`);
-        loseVp(G, ctx, def, CompetitionPowerDelta);
+        loseVp(G, ctx, def, CompetitionPowerDelta, "争夺");
     }
-    addVp(G, ctx, atk, CompetitionPowerDelta);
+    addVp(G, ctx, atk, CompetitionPowerDelta, "争夺");
     loseCompetitionPower(G, ctx, atk, 3);
     addCompetitionPower(G, ctx, def, 1);
     log.push(`|showCompetitionResult`);
@@ -4614,6 +4808,7 @@ const cleanUpScore = (G: IG, _ctx: Ctx, pid: PlayerID) => {
     f.archive = 0
     f.events = 0
     f.total = 0
+    p.vpStatsFinal = {source: {}, card: {}};
 }
 
 export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: boolean = false): void => {
@@ -4793,6 +4988,65 @@ export const getExtraScoreForFinal = (G: IG, ctx: Ctx, pid: PlayerID, showLog: b
 
     f.total = p.vp + f.card + f.building + f.industryAward + f.aestheticsAward + f.archive + f.events;
     log.push(`|total:${f.total}`);
+
+    // 2026-10 分数来源统计：终局计分归属
+    const finalStats = {
+        source: {} as { [source: string]: number },
+        card: {} as { [cardId: string]: { [source: string]: number } },
+    };
+    // 来源合计（不带卡牌归属）
+    const addFinal = (source: string, amount: number) => {
+        if (amount === 0) return;
+        finalStats.source[source] = (finalStats.source[source] || 0) + amount;
+    };
+    // 仅记录「该卡在该来源的贡献」，不再重复累加来源合计（否则来源会被算两遍）
+    const addFinalCard = (source: string, amount: number, cardId?: string | null) => {
+        if (amount === 0 || !cardId) return;
+        const entry = finalStats.card[cardId] ?? {};
+        entry[source] = (entry[source] || 0) + amount;
+        finalStats.card[cardId] = entry;
+    };
+    addFinal("牌分", f.card);
+    addFinal("工业大奖", f.industryAward);
+    // 美学大奖按当前声望折算（每 5 声望 +1），不对应单张牌，只记录来源合计
+    addFinal("美学大奖", f.aestheticsAward);
+    addFinal("第一名标志物", f.archive);
+    addFinal("卡牌效果", f.events);
+    addFinal("其他效果", f.building);
+    // 按牌归属：牌分
+    validCards.forEach(c => addFinalCard("牌分", c.vp, c.cardId));
+    // 按牌归属：第一名标志物（档案卡 × 对应地区第一名标志物修正）
+    valid_regions.forEach(r => {
+        let championModifier = 0;
+        p.champions.filter(c => c.region === r).forEach(ch => {
+            championModifier += ch.era + 1;
+        });
+        if (championModifier === 0) return;
+        p.archive.filter(card => getCardById(card).region === r).forEach(card => {
+            addFinalCard("第一名标志物", championModifier, card);
+        });
+    });
+    // 按牌归属：人物/流派终局效果
+    industryEffIDS.forEach(id => {
+        if (validID.includes(id)) addFinalCard("卡牌效果", p.industry, id);
+    });
+    aesEffIDS.forEach(id => {
+        if (validID.includes(id)) addFinalCard("卡牌效果", p.aesthetics, id);
+    });
+    if (validID.includes(PersonCardID.P6331)) {
+        addFinalCard("卡牌效果", Math.max(p.industry, p.aesthetics), PersonCardID.P6331);
+    }
+    if (p.school === SchoolCardID.S6002 || p.school === SchoolCardID.S6003) {
+        addFinalCard("卡牌效果", 4 * Math.min(p.industry, p.aesthetics), p.school);
+    }
+    // 按牌归属：工业大奖
+    if (p.industry === 10) {
+        validCards.forEach(c => {
+            const award = c.era === IEra.ONE ? 1 : (c.era === IEra.TWO ? 2 : (c.era === IEra.THREE ? 3 : 0));
+            addFinalCard("工业大奖", award, c.cardId);
+        });
+    }
+    p.vpStatsFinal = finalStats;
     if (showLog) {
         logger.debug(`${G.matchID}|${log.join('')}`);
     }

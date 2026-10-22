@@ -79,6 +79,7 @@ export interface IG {
     hasSchoolExtensionMuki2: boolean,
     hasSchoolExtensionDawn: boolean,
     hasSchoolExtensionTech: boolean,
+    hasSchoolExtensionVisual: boolean,
     hasSchoolExtensionQM: boolean,
     hasExtensionChaosMedia: boolean,
     /** DIY 扩展：已启用的扩展 ID 列表 (src/extensions/) */
@@ -135,6 +136,8 @@ export interface IG {
         regions: Region[],
         currentEffect: any,
         extraCostToPay: number,
+        // 2026-10 分数来源统计：当前结算上下文
+        vpContext: { source: string, card?: CardID | null } | null,
     },
     player: IPrivateInfo[],
     competitionInfo: CompetitionInfo,
@@ -197,6 +200,8 @@ function pubPlayer(): IPubInfo {
         handsize_startturn: 0,
         bought_extension: false,
         techStuntHandSnapshot: -1,
+        vpStats: {source: {}, card: {}},
+        vpStatsFinal: {source: {}, card: {}},
         actionused: false,
         newHollyWoodUsed: false,
         discardInSettle: false,
@@ -333,6 +338,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
         hasSchoolExtensionMuki2: false,
         hasSchoolExtensionDawn: false,
         hasSchoolExtensionTech: false,
+        hasSchoolExtensionVisual: false,
         hasSchoolExtensionQM: false,
         hasExtensionChaosMedia: false,
         enabledExtensions: [],
@@ -391,6 +397,7 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
             choices: [], stack: [], card: null, regions: [],
             currentEffect: {e: "none", a: 1},
             extraCostToPay: 0,
+            vpContext: null,
         },
         competitionInfo: {
             region: Region.NONE,
@@ -707,13 +714,13 @@ export const setup = (ctx: Ctx, setupData: any): IG => {
     //     // @ts-ignore
     //     G.player[0].hand = ["B02", "B02", "B01"];
     //
-    //     // 案例2 特技电影 S52692：购买效果免费突破1次；行动结算前后手牌数变化≠±1 → +1声望
+    //     // 案例2 特技电影 S52692：购买效果免费突破1次；出牌结算前后手牌数变化≠±1 → +1声望
     //     G.pub[1].resource = 10;
     //     G.pub[1].deposit = 5;
     //     // @ts-ignore
     //     G.player[1].hand = ["B01", "B01", "B01", "B07"];
     //
-    //     // 案例3 有声电影 S52693：购买+5声望；此后每-1存款 → +1声望
+    //     // 案例3 有声电影 S52693：购买+2声望；此后每-1存款 → +1声望
     //     G.pub[2].resource = 10;
     //     G.pub[2].deposit = 10;
     //     // @ts-ignore

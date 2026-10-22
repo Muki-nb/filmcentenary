@@ -2,7 +2,7 @@ import React from "react";
 import {LogEntry} from "boardgame.io";
 import {CardCategory, CardID, getCardById, MoveNames} from "../../types/core";
 import i18n from "../../constant/i18n";
-import CardInfo, {effName, getCardName} from "../card";
+import CardInfo, {CardAdjustBadge, effName, getCardName} from "../card";
 import {useI18n} from "@i18n-chain/react";
 import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
@@ -116,6 +116,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
                         const cardObj = getCardById(c);
                         return <Paper variant="outlined" key={title + c} className="dybn-card"
                                 style={{
+                                    position: 'relative',
                                     backgroundImage: `url("/img/${c}.png")`,
                                     backgroundRepeat: 'no-repeat',
                                     backgroundPosition: 'right center',
@@ -126,6 +127,7 @@ export const CardList = ({cards, title, label}: ICardListProps) => {
                                     } : {})
                                 }}
                             >
+                            <CardAdjustBadge cardId={c}/>
                             <CardInfo cid={c}/>
                             <Typography
                                 style={{

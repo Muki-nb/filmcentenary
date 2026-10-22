@@ -29,13 +29,16 @@ import {
     SimpleEffectNames,
     SimpleRuleNumPlayers,
     valid_regions,
+    ValidRegion,
     VictoryType
 } from "../types/core";
 import { runExtensionSetups } from "../extensions/registry";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
     activePlayer,
+    addRegionPoolCards,
     addRes,
+    addSchoolVp,
     addVp,
     aesAward,
     atkCardSettle,
@@ -71,9 +74,11 @@ import {
     getEraEffectByRegion,
     loseCompetitionPower,
     loseVp,
+    onAestheticsLevelUp,
     payCost,
     playerEffExec,
     playerLoseShare,
+    recordVpStat,
     regionScoringCheck,
     schoolPlayer,
     seqFromPos,
@@ -81,6 +86,7 @@ import {
     startBreakThrough,
     startCompetition,
     studioSlotsAvailable,
+    sync3DFilmCompetitionPower,
     techStuntActionSettle,
     techStuntActionStart,
 } from "./util";
@@ -102,6 +108,7 @@ export interface ISetupGameModeArgs {
     enableSchoolExtensionMuki2: boolean,
     enableSchoolExtensionDawn: boolean,
     enableSchoolExtensionTech: boolean,
+    enableSchoolExtensionVisual: boolean,
     enableSchoolExtensionQM: boolean,
     enableExtensionChaosMedia: boolean,
     extensionMode: ExtensionMode,
@@ -111,6 +118,40 @@ export interface ISetupGameModeArgs {
     /** DIY 扩展：已启用的扩展 ID 列表 */
     enabledExtensions?: string[],
 }
+
+/** 判断效果是否会增加份额（用于「每时代2个」流派扩的地区不重复约束） */
+const effectGainsShare = (eff: any): boolean => {
+    if (eff === null || eff === undefined || typeof eff !== "object") return false;
+    if (["shareNA", "shareWE", "shareEE", "shareASIA"].includes(eff.e)) return true;
+    if (eff.e === "step" || eff.e === "choice" || eff.e === "era") {
+        return Array.isArray(eff.a) && eff.a.some((sub: any) => effectGainsShare(sub));
+    }
+    if (eff.e === "optional" || eff.e === "everyOtherCompany" || eff.e === "everyPlayer") {
+        return effectGainsShare(eff.a);
+    }
+    return false;
+};
+
+const schoolAddsShare = (id: CardID): boolean => {
+    const cardEff = getCardEffect(id);
+    return effectGainsShare(cardEff.buy) || effectGainsShare(cardEff.play) || effectGainsShare(cardEff.archive);
+};
+
+/**
+ * 流派分类（用于「每时代2个」的工美约束）：
+ * 依次判定——先比购买需求的 ⚙/📖 等级要求，再比携带的 ⚙/📖 标志；
+ * 均相同则视为「双修」，可同时充当工业 / 美学流派，对同时代的另一流派不具约束。
+ */
+type SchoolKind = "industry" | "aesthetics" | "dual";
+
+const schoolCardType = (id: CardID): SchoolKind => {
+    const card = getCardById(id);
+    if (card.cost.industry > card.cost.aesthetics) return "industry";
+    if (card.cost.aesthetics > card.cost.industry) return "aesthetics";
+    if (card.industry > card.aesthetics) return "industry";
+    if (card.aesthetics > card.industry) return "aesthetics";
+    return "dual";
+};
 
 // Reserved for future curated company names.
 const Companies: string[] = [
@@ -137,6 +178,9 @@ const Companies: string[] = [
 const assignVpByOrder = (G: IG, order: PlayerID[], numPlayers: number) => {
     for (let i = 0; i < G.pub.length; i++) {
         G.pub[i].vp = 0;
+        // 重新设置对局选项时重置分数来源统计
+        G.pub[i].vpStats = {source: {}, card: {}};
+        G.pub[i].vpStatsFinal = {source: {}, card: {}};
     }
     G.pub[parseInt(order[0])].vp = 0;
     G.pub[parseInt(order[1])].vp = 1;
@@ -146,6 +190,11 @@ const assignVpByOrder = (G: IG, order: PlayerID[], numPlayers: number) => {
     if (numPlayers >= 4) {
         G.pub[parseInt(order[3])].vp = 5;
     }
+    G.pub.forEach((pub, idx) => {
+        if (pub.vp > 0) {
+            recordVpStat(G, idx.toString() as PlayerID, pub.vp, "初始设置");
+        }
+    });
 }
 
 const assignAnonymousCompanyNames = (ctx: Ctx, order: PlayerID[], numPlayers: number): string[] => {
@@ -365,14 +414,31 @@ export const setupGameMode: LongFormMove = {
         for (let iCardSlot of G.regions[Region.MONTHLY_SCHOOL].normal) {
             iCardSlot.card = null;
         }
-        // 月度流派扩：全部发放模式下 2026-8 与 2026-9 互斥，2026-9 优先
-        const monthlyConflict = args.enableSchoolExtensionDawn && args.enableSchoolExtensionTech &&
-            args.extensionMode === ExtensionMode.NONE;
-        if (monthlyConflict) {
-            log.push(`|monthlyConflict|sepWins`);
+        // 月度流派扩：全部发放模式下 2026-8 / 2026-9 / 2026-10 互斥，优先级 2026-10 > 2026-9 > 2026-8
+        let monthlyChoice: "visual" | "tech" | "dawn" | null = null;
+        if (args.extensionMode === ExtensionMode.NONE) {
+            if (args.enableSchoolExtensionVisual) {
+                monthlyChoice = "visual";
+            } else if (args.enableSchoolExtensionTech) {
+                monthlyChoice = "tech";
+            } else if (args.enableSchoolExtensionDawn) {
+                monthlyChoice = "dawn";
+            }
         }
-        let cardsMonthly = [];
-        if(args.enableSchoolExtensionTech){
+        const monthlyConflict = args.extensionMode === ExtensionMode.NONE &&
+            ((args.enableSchoolExtensionDawn && args.enableSchoolExtensionTech) ||
+                (args.enableSchoolExtensionDawn && args.enableSchoolExtensionVisual) ||
+                (args.enableSchoolExtensionTech && args.enableSchoolExtensionVisual));
+        if (monthlyConflict) {
+            log.push(`|monthlyConflict|${monthlyChoice}Wins`);
+        }
+        let cardsMonthly: SchoolCardID[] = [];
+        if (monthlyChoice === "visual") {
+            cardsMonthly.push(...shuffle(ctx, [
+                SchoolCardID.S52701,
+                SchoolCardID.S52702
+            ]));
+        } else if (monthlyChoice === "tech") {
             let sepCards = shuffle(ctx, [
                 SchoolCardID.S52691,
                 SchoolCardID.S52692,
@@ -380,7 +446,7 @@ export const setupGameMode: LongFormMove = {
                 SchoolCardID.S52694
             ]);
             cardsMonthly.push(...sepCards);
-        } else if(args.enableSchoolExtensionDawn){
+        } else if (monthlyChoice === "dawn") {
             let dawnCards = shuffle(ctx, [
                 SchoolCardID.S52681,
                 SchoolCardID.S52682,
@@ -409,25 +475,90 @@ export const setupGameMode: LongFormMove = {
         if(args.extensionMode === ExtensionMode.NONE){
             //as default, do nothing
         }else if(args.extensionMode === ExtensionMode.FOUR){
-            //pick 4 school from all extensions, 2 for era2 and 2 for era3
-            let cards_era1 = [];
-            if(args.enableSchoolExtensionMuki) cards_era1.push(SchoolCardID.S5001, SchoolCardID.S5002, SchoolCardID.S5003, SchoolCardID.S5004);
-            if(args.enableSchoolExtensionTech) cards_era1.push(SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694);
-            let cards_era2 = [];
-            if(args.enableSchoolExtension) cards_era2.push(SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004);
-            if(args.enableSchoolExtensionMuki2) cards_era2.push(
-                SchoolCardID.S5206,
-                SchoolCardID.S5207,
-                SchoolCardID.S5208,
-                SchoolCardID.S5209
+            // 每个时代按「抽扩 → 抽牌」循环，凑满 2 张即停；工美按流派分类判定；
+            // 1/2 时代中会增加份额的流派不重复地区。
+            // 特殊：Muki 扩（Muki扩 + Muki扩2）与 QM 扩视为同一个流派扩（合并为同一卡池）。
+            const packs: { id: string, cards: CardID[] }[] = [];
+            if(args.enableSchoolExtension) packs.push({id: "yang", cards: [
+                SchoolCardID.S4001, SchoolCardID.S4002, SchoolCardID.S4003, SchoolCardID.S4004,
+                SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008,
+            ]});
+            // Muki 扩（Muki扩 + Muki扩2）与 QM 扩视为同一个流派扩：合并为同一个卡池参与抽取。
+            // 该卡池覆盖Ⅰ/Ⅱ/Ⅲ 三个时代：Muki扩=Ⅰ，Muki扩2=Ⅱ/Ⅲ，QM=Ⅱ。
+            const mukiQmCards: CardID[] = [];
+            if(args.enableSchoolExtensionMuki) mukiQmCards.push(
+                SchoolCardID.S5001, SchoolCardID.S5002, SchoolCardID.S5003, SchoolCardID.S5004,
             );
-            if(args.enableSchoolExtensionQM) cards_era2.push(SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003, /*SchoolCardID.S6004*/);
-            if(args.enableSchoolExtensionDawn) cards_era2.push(SchoolCardID.S52681, SchoolCardID.S52682, SchoolCardID.S52683, SchoolCardID.S52684);
-            let cards_era3 = [];
-            if(args.enableSchoolExtension) cards_era3.push(SchoolCardID.S4005, SchoolCardID.S4006, SchoolCardID.S4007, SchoolCardID.S4008);
-            if(args.enableSchoolExtensionMuki2) cards_era3.push(SchoolCardID.S5201, SchoolCardID.S5202, SchoolCardID.S5203, SchoolCardID.S5204, SchoolCardID.S5205);
+            if(args.enableSchoolExtensionMuki2) mukiQmCards.push(
+                SchoolCardID.S5201, SchoolCardID.S5202, SchoolCardID.S5203, SchoolCardID.S5204, SchoolCardID.S5205,
+                SchoolCardID.S5206, SchoolCardID.S5207, SchoolCardID.S5208, SchoolCardID.S5209,
+            );
+            if(args.enableSchoolExtensionQM) mukiQmCards.push(
+                SchoolCardID.S6001, SchoolCardID.S6002, SchoolCardID.S6003,
+            );
+            if(mukiQmCards.length > 0) packs.push({id: "muki_qm", cards: mukiQmCards});
+            if(args.enableSchoolExtensionDawn) packs.push({id: "dawn", cards: [
+                SchoolCardID.S52681, SchoolCardID.S52682, SchoolCardID.S52683, SchoolCardID.S52684,
+            ]});
+            if(args.enableSchoolExtensionTech) packs.push({id: "tech", cards: [
+                SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694,
+            ]});
+            if(args.enableSchoolExtensionVisual) packs.push({id: "visual", cards: [
+                SchoolCardID.S52701, SchoolCardID.S52702,
+            ]});
 
-            let drawn_cards = [...shuffle(ctx, cards_era1).slice(0, 2), ...shuffle(ctx, cards_era2).slice(0, 2), ...shuffle(ctx, cards_era3).slice(0, 2)];
+            // 单张牌能否与已抽出的牌组成合法组合
+            // 工美：双修不具约束；两张同为工业流派或同为美学流派则不合法
+            // 份额地区：仅 Ⅰ/Ⅱ 时代，两张都加份额且地区相同则不合法
+            const schoolPairIsLegal = (era: IEra, first: SchoolCardID, second: SchoolCardID): boolean => {
+                if (first === second) return false;
+                const t1 = schoolCardType(first);
+                const t2 = schoolCardType(second);
+                if (t1 === "industry" && t2 === "industry") return false;
+                if (t1 === "aesthetics" && t2 === "aesthetics") return false;
+                const c1 = getCardById(first);
+                const c2 = getCardById(second);
+                if (era <= IEra.TWO && schoolAddsShare(first) && schoolAddsShare(second) && c1.region === c2.region) return false;
+                return true;
+            };
+            const drawTwoForEra = (era: IEra): SchoolCardID[] => {
+                const eraPacks = packs
+                    .map(p => ({id: p.id, cards: p.cards.filter(id => getCardById(id).era === era) as SchoolCardID[]}))
+                    .filter(p => p.cards.length > 0);
+                if (eraPacks.length === 0) return [];
+
+                const drawn: SchoolCardID[] = [];
+                // 抽取一个【流派扩】，直到所有扩都被抽取过（顺序随机）
+                for (const pack of shuffle(ctx, eraPacks)) {
+                    // 在该扩内继续抽取【流派】：满足份额地区与工美约束才加入，否则继续抽该扩下一张
+                    for (const card of shuffle(ctx, pack.cards)) {
+                        if (drawn.length >= 2) break;
+                        if (drawn.every((d: SchoolCardID) => schoolPairIsLegal(era, d, card))) {
+                            drawn.push(card);
+                        }
+                    }
+                    // 该时代流派已凑满 2 个，立即退出
+                    if (drawn.length >= 2) break;
+                }
+                // 所有扩都抽完仍不足 2 个：从该时代剩余流派中降级补齐（不再校验约束）
+                if (drawn.length < 2) {
+                    const rest: SchoolCardID[] = [];
+                    eraPacks.forEach(p => p.cards.forEach((id: SchoolCardID) => {
+                        if (!drawn.includes(id)) rest.push(id);
+                    }));
+                    for (const card of shuffle(ctx, rest)) {
+                        if (drawn.length >= 2) break;
+                        drawn.push(card);
+                    }
+                }
+                return drawn;
+            };
+
+            const drawn_cards: SchoolCardID[] = [
+                ...drawTwoForEra(IEra.ONE),
+                ...drawTwoForEra(IEra.TWO),
+                ...drawTwoForEra(IEra.THREE),
+            ];
             
             G.regions[Region.EXTENSION].legend.card = null;
             for (let iCardSlot of G.regions[Region.EXTENSION].normal) {
@@ -453,8 +584,12 @@ export const setupGameMode: LongFormMove = {
         G.hasSchoolExtension = args.enableSchoolExtension;
         G.hasSchoolExtensionMuki = args.enableSchoolExtensionMuki;
         G.hasSchoolExtensionMuki2 = args.enableSchoolExtensionMuki2;
-        G.hasSchoolExtensionDawn = args.enableSchoolExtensionDawn && !monthlyConflict;
-        G.hasSchoolExtensionTech = args.enableSchoolExtensionTech;
+        G.hasSchoolExtensionDawn = args.enableSchoolExtensionDawn &&
+            (args.extensionMode !== ExtensionMode.NONE || monthlyChoice === "dawn");
+        G.hasSchoolExtensionTech = args.enableSchoolExtensionTech &&
+            (args.extensionMode !== ExtensionMode.NONE || monthlyChoice === "tech");
+        G.hasSchoolExtensionVisual = args.enableSchoolExtensionVisual &&
+            (args.extensionMode !== ExtensionMode.NONE || monthlyChoice === "visual");
         G.hasSchoolExtensionQM = args.enableSchoolExtensionQM;
         G.hasExtensionChaosMedia = args.enableExtensionChaosMedia;
         G.extensionMode = args.extensionMode;
@@ -530,6 +665,7 @@ export const payAdditionalCost: LongFormMove = {
                 log.push(`|industry|${pub.industry}`);
                 if (pub.industry < 10) {
                     pub.industry++
+                    sync3DFilmCompetitionPower(G, ctx.playerID as PlayerID);
                 } else {
                     log.push(`|cannotUpgrade`);
                 }
@@ -538,6 +674,8 @@ export const payAdditionalCost: LongFormMove = {
                 log.push(`|aes:|${pub.aesthetics}`);
                 if (pub.aesthetics < 10) {
                     pub.aesthetics++
+                    sync3DFilmCompetitionPower(G, ctx.playerID as PlayerID);
+                    onAestheticsLevelUp(G, ctx, ctx.playerID as PlayerID);
                 } else {
                     log.push(`|cannotUpgrade`);
                 }
@@ -571,17 +709,16 @@ export const drawCard: LongFormMove = {
         if (activePlayer(ctx) !== p) return INVALID_MOVE;
         logger.info(`${G.matchID}|p${p}.moves.drawCard(${p})`);
         const pub = curPub(G, ctx);
-        // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
-        techStuntActionStart(G, ctx, p);
+        G.e.vpContext = null;
         pub.action--;
         pub.actionused = true;
         drawCardForPlayer(G, ctx, ctx.currentPlayer);
-        // 2026-9 技术：定格电影 - 使用行动力抽牌后，+1牌，+2声望
+        // 2026-9 技术：定格电影 - 使用行动力抽牌后，+1牌，+3声望（2026-10 由 +2 调整为 +3）
         if (pub.archive.includes("S52691" as any)) {
             drawCardForPlayer(G, ctx, ctx.currentPlayer);
-            addVp(G, ctx, ctx.currentPlayer, 2);
+            addVp(G, ctx, ctx.currentPlayer, 3, "卡牌效果", "S52691");
         }
-        // 2026-9 技术：特技电影 - 行动结算完毕，对比手牌变化
+        // 2026-9 技术：特技电影 - 行动结算完毕，对比手牌变化（2026-10：不再由行动力抽牌触发）
         techStuntActionSettle(G, ctx);
         // 特艺七彩150选择等效果压入栈时，立即结算
         if (G.e.stack.length > 0) {
@@ -598,10 +735,9 @@ export const buyCard: LongFormMove = {
         undoCheck(G, log);
         logger.debug(`${G.matchID}|${log.join('')}`);
         if (canBuyCard(G, ctx, arg)) {
-            // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
-            techStuntActionStart(G, ctx, arg.buyer);
             let targetCard = getCardById(arg.target)
             let pub = curPub(G, ctx);
+            G.e.vpContext = {source: "卡牌效果", card: arg.target};
             pub.action--;
             pub.actionused = true;
             pub.resource -= arg.resource;
@@ -627,6 +763,7 @@ export const buyCard: LongFormMove = {
                 } else {
                     // 2026-9 技术：特技电影 - 行动结算完毕，对比手牌变化
                     techStuntActionSettle(G, ctx);
+                    G.e.vpContext = null;
                 }
             }
             return;
@@ -828,7 +965,7 @@ export const chooseHand: LongFormMove = {
                                         eff.target = arg.p;
                                         G.e.stack.push(eff);
                                         log.push(`|noDeposit|wuxia`);
-                                        addVp(G, ctx, p, 1);
+                                        addSchoolVp(G, ctx, p, 1);
                                         break;
                                     }
                                 } else {
@@ -910,7 +1047,7 @@ export const chooseHand: LongFormMove = {
                     drawCardForPlayer(G, ctx, p);
                 }
                 if (pub.school !== SchoolCardID.S4004 && G.pub[parseInt(G.c.players[0])].school === SchoolCardID.S4004 && arg.hand in BasicCardID) {
-                    addVp(G, ctx, G.c.players[0], 2);
+                    addSchoolVp(G, ctx, G.c.players[0], 2);
                 }
                 if (eff.a > 1) {
                     log.push(`|prev:${eff.a}`);
@@ -1004,7 +1141,7 @@ export const chooseHand: LongFormMove = {
                 }
                 if (pub.school === SchoolCardID.S4003) {
                     pub.deposit += 1;
-                    addVp(G, ctx, p, 1);
+                    addSchoolVp(G, ctx, p, 1);
                 }
                 /*
                 if (pub.school === SchoolCardID.S6342) {
@@ -1066,7 +1203,7 @@ export const chooseDiscard: LongFormMove = {
                     drawCardForPlayer(G, ctx, p);
                 }
                 if (pub.school !== SchoolCardID.S4004 && G.pub[parseInt(G.c.players[0])].school === SchoolCardID.S4004 && arg.discard in BasicCardID) {
-                    addVp(G, ctx, G.c.players[0], 2);
+                    addSchoolVp(G, ctx, G.c.players[0], 2);
                 }
                 if (eff.a > 1) {
                     log.push(`|prev:${eff.a}`);
@@ -1102,6 +1239,9 @@ export const chooseEffect: LongFormMove = {
         log.push(JSON.stringify(arg));
         log.push(`|`);
         let eff = G.e.choices[arg.idx];
+        if (eff === undefined) {
+            return INVALID_MOVE;
+        }
         log.push(JSON.stringify(eff));
 
         let p = ctx.playerID === undefined ? ctx.currentPlayer : ctx.playerID
@@ -1130,15 +1270,29 @@ export const chooseEffect: LongFormMove = {
                 return;
             case "buildStudio":
                 G.e.choices = [];
-                G.e.stack.push(eff);
                 regions = studioSlotsAvailable(G, ctx, p);
+                if (regions.length === 0) {
+                    // 无法执行：空置执行
+                    log.push(`|noStudioSlot|skip`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    checkNextEffect(G, ctx);
+                    return;
+                }
+                G.e.stack.push(eff);
                 regions.forEach(r => G.e.regions.push(r));
                 changeStage(G, ctx, "chooseRegion");
                 return;
             case "buildCinema":
                 G.e.choices = [];
-                G.e.stack.push(eff);
                 regions = cinemaSlotsAvailable(G, ctx, p);
+                if (regions.length === 0) {
+                    // 无法执行：空置执行
+                    log.push(`|noCinemaSlot|skip`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    checkNextEffect(G, ctx);
+                    return;
+                }
+                G.e.stack.push(eff);
                 regions.forEach(r => G.e.regions.push(r));
                 changeStage(G, ctx, "chooseRegion");
                 return;
@@ -1167,12 +1321,15 @@ export const updateSlot: LongFormMove = {
         const cardId = arg.cardId;
         const slot = ctx.numPlayers > SimpleRuleNumPlayers ? cardSlotOnBoard(G, ctx, getCardById(cardId)) : cardSlotOnBoard2p(G, ctx, getCardById(cardId));
         if (slot === null) {
-            return INVALID_MOVE;
+            // 2026-10 修复：目标卡位已失效（如所有地区为空）时不再卡住，直接继续结算
+            logger.debug(`${G.matchID}|updateSlot|slotNull|skip`);
+            checkNextEffect(G, ctx);
+            return;
         }
         const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3201);
         if (newWavePlayer === ctx.playerID) {
             drawCardForPlayer(G, ctx, newWavePlayer);
-            addVp(G, ctx, newWavePlayer, 2);
+            addSchoolVp(G, ctx, newWavePlayer, 2);
         }
         doReturnSlotCard(G, ctx, slot);
         const updateResult = ctx.numPlayers > SimpleRuleNumPlayers ?
@@ -1209,6 +1366,15 @@ export const chooseRegion: LongFormMove = {
         log.push(JSON.stringify(arg));
         if (!([Region.NA, Region.WE, Region.EE, Region.ASIA].includes(r))) {
             logger.debug(`${G.matchID}|${log.join('')}|NONE|return`);
+            return;
+        }
+        // 2026-10：必须从 G.e.regions 提供的候选里选。
+        // chooseRegion 是盲 pop 栈顶，若不校验，传入候选外的地区会导致份额被扣成负数
+        // （如 anyRegionShareCompetition 对败者 shares[r]--）。
+        const candidateRegions: Region[] = Array.isArray(G.e.regions) ? G.e.regions : [];
+        if (candidateRegions.length > 0 && !candidateRegions.includes(r)) {
+            log.push(`|regionNotInCandidates|${r}|${JSON.stringify(candidateRegions)}`);
+            logger.debug(`${G.matchID}|${log.join('')}|invalidRegion|return`);
             return;
         }
         const eff = G.e.stack.pop();
@@ -1277,6 +1443,14 @@ export const chooseRegion: LongFormMove = {
                         G.e.stack.push(eff);
                     }
                     break;
+                case "52701_buy": {
+                    // 2026-10 技术：变焦镜头 - 该地区 +3 份额，+2 普通牌，+1 传奇牌
+                    log.push(`|52701|${r}|share+3|cards+3`);
+                    const validR = r as ValidRegion;
+                    G.regions[validR].share += 3;
+                    addRegionPoolCards(G, ctx, validR, 2, 1);
+                    break;
+                }
                 default:
                     throw new Error("Unknown effect cannot execute chooseRegion");
             }
@@ -1329,7 +1503,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
-                            addVp(G, ctx, p, 1);
+                            addSchoolVp(G, ctx, p, 1);
                         }
                         /*
                         if (pub.school === SchoolCardID.S6342) {
@@ -1357,7 +1531,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
-                            addVp(G, ctx, p, 1);
+                            addSchoolVp(G, ctx, p, 1);
                         }
                         /*
                         if (pub.school === SchoolCardID.S6342) {
@@ -1384,7 +1558,7 @@ export const peek: LongFormMove = {
                         log.push(`|${JSON.stringify(pub.discard)}`);
                         if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
-                            addVp(G, ctx, p, 1);
+                            addSchoolVp(G, ctx, p, 1);
                         }
                         /*
                         if (pub.school === SchoolCardID.S6342) {
@@ -1458,7 +1632,7 @@ export const peek: LongFormMove = {
                         pub.discard.push(card);
                         if (pub.school === SchoolCardID.S4003) {
                             pub.deposit += 1;
-                            addVp(G, ctx, p, 1);
+                            addSchoolVp(G, ctx, p, 1);
                         }
                         /*
                         if (pub.school === SchoolCardID.S6342) {
@@ -1513,6 +1687,8 @@ export const chooseEvent: LongFormMove = {
         log.push(`|${JSON.stringify(G.events)}|${arg.event}|p${arg.p}|idx${arg.idx}`);
         G.events.splice(arg.idx, 1);
         G.e.card = eid;
+        // 2026-10 分数来源统计：事件效果产生的分数归入「事件」
+        G.e.vpContext = {source: "事件"};
         if (eid === EventCardID.E03) {
             log.push("|Avant-grade");
             G.activeEvents.push(EventCardID.E03);
@@ -1853,21 +2029,23 @@ export const playCard: LongFormMove = {
         const handCountBeforePlay = hand.length;
         // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
         techStuntActionStart(G, ctx, arg.playerID);
+        // 2026-10 分数来源统计：本次出牌效果产生的分数归属到该卡
+        G.e.vpContext = {source: "卡牌效果", card: arg.card};
         if (cinemaInRegion(G, ctx, playCard.region, arg.playerID) && playCard.type === CardType.F) {
             log.push(`|cinemaInRegion|${playCard.region}`);
             switch (pub.school) {
                 //流派扩：玛萨拉电影
                 case SchoolCardID.S4002:
                     drawCardForPlayer(G, ctx, arg.playerID);
-                    G.e.stack.push({e: "addVp", a: 1});
+                    G.e.stack.push({e: "addVp", a: 1, source: "电影院", card: pub.school});
                     log.push(`|masala|${JSON.stringify(G.e.stack)}`)
                     break;
                 default:
                     if (G.testModeCinema) {
-                        G.e.stack.push({e: "addVp", a: 1});
+                        G.e.stack.push({e: "addVp", a: 1, source: "电影院", card: arg.card});
                         G.e.stack.push({e: "res", a: 1});
                     } else {
-                        G.e.stack.push({e: "addVp", a: 2});
+                        G.e.stack.push({e: "addVp", a: 2, source: "电影院", card: arg.card});
                         G.e.stack.push({e: "res", a: 1});
                     }
                     log.push(`|${JSON.stringify(G.e.stack)}`)
@@ -1876,7 +2054,7 @@ export const playCard: LongFormMove = {
         }
         if (pub.school === SchoolCardID.S4008 && playCard.industry > 0) {
             //流派扩：高概
-            G.e.stack.push({e: "addVp", a: playCard.industry});
+            G.e.stack.push({e: "addVp", a: playCard.industry, source: "卡牌效果", card: pub.school});
             G.e.stack.push({e: "res", a: playCard.industry});
             log.push(`${JSON.stringify(G.e.stack)}`)
         }
@@ -1885,16 +2063,16 @@ export const playCard: LongFormMove = {
             switch (playCard.aesthetics) {
                 case 1:
                     addRes(G, ctx, arg.playerID, 1);
-                    addVp(G, ctx, arg.playerID, 2);
+                    addSchoolVp(G, ctx, arg.playerID, 2);
                     break;
                 case 2:
                     addRes(G, ctx, arg.playerID, 1);
-                    addVp(G, ctx, arg.playerID, 2);
+                    addSchoolVp(G, ctx, arg.playerID, 2);
                     drawCardForPlayer(G, ctx, arg.playerID);
                     break;
                 case 3:
                     addRes(G, ctx, arg.playerID, 1);
-                    addVp(G, ctx, arg.playerID, 4);
+                    addSchoolVp(G, ctx, arg.playerID, 4);
                     drawCardForPlayer(G, ctx, arg.playerID);
                     drawCardForPlayer(G, ctx, arg.playerID);
                     break;
@@ -1949,7 +2127,7 @@ export const playCard: LongFormMove = {
                     {e: "step", a:
                         [
                             {e: "deposit", a: 1},
-                            {e: "addVp", a: 2},
+                            {e: "addVp", a: 2, source: "卡牌效果", card: pub.school},
                         ]
                     }
                 ];
@@ -2044,8 +2222,7 @@ export const breakthrough: LongFormMove = {
         const log = [`breakthrough`];
         undoCheck(G, log);
         const pub = G.pub[parseInt(arg.playerID)];
-        // 2026-9 技术：特技电影 - 记录行动前手牌数 Hand_0
-        techStuntActionStart(G, ctx, arg.playerID);
+        G.e.vpContext = {source: "卡牌效果", card: arg.card};
         pub.action -= 1;
         pub.actionused = true;
         pub.resource -= arg.res;
@@ -2116,12 +2293,12 @@ export const comment: LongFormMove = {
         const newWavePlayer = schoolPlayer(G, ctx, SchoolCardID.S3201);
         if (newWavePlayer === arg.p) {
             drawCardForPlayer(G, ctx, newWavePlayer);
-            addVp(G, ctx, newWavePlayer, 2);
+            addSchoolVp(G, ctx, newWavePlayer, 2);
         }
         const pub = G.pub[parseInt(arg.p)];
         if (pub.school === SchoolCardID.S2204) {
             addRes(G, ctx, arg.p, 1);
-            addVp(G, ctx, arg.p, 1);
+            addSchoolVp(G, ctx, arg.p, 1);
         }
         checkNextEffect(G, ctx);
     }

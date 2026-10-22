@@ -6,6 +6,7 @@ import {
     getCardById,
     IEra,
     IPubInfo,
+    Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
     valid_regions,
@@ -81,10 +82,22 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
     const ownsStunt = i.archive.includes("S52692" as any);
     const ownsSound = i.archive.includes("S52693" as any);
     const ownsColor = i.archive.includes("S52694" as any);
+    // 2026-10 技术流派高光：变焦镜头(美学/西欧紫)、3D电影(竞争力/北美蓝)
+    const ownsZoomLens = i.archive.includes("S52701" as any);
+    const owns3DFilm = i.archive.includes("S52702" as any);
+    const zoomLensColor = getColor(Region.WE);
+    const film3DColor = getColor(Region.NA);
+    // 「竞争力：」拆成名字与冒号，水印只居中在名字后面
+    const competitionLabel = i18n.pub.competitionPower;
+    const competitionName = competitionLabel.replace(/[：:]\s*$/, "");
+    const competitionColon = competitionLabel.slice(competitionName.length);
     const legendCount = (r: ValidRegion) => i.allCards.filter(c => getCardById(c).category === CardCategory.LEGEND &&
         getCardById(c).region === r &&
         getCardById(c).era === G.regions[r].era
     ).length
+
+    // 2026-10：分数右侧显示下一个 40/80/120 等级奖励提示
+    const nextVpThreshold = !i.vpAward.v60 ? 40 : (!i.vpAward.v90 ? 80 : (!i.vpAward.v120 ? 120 : null));
 
     const possibleHand = inferHand();
 
@@ -174,9 +187,27 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
                 </Typography>
             </Grid>
             <Grid item>
-                <Typography aria-label={`${i18n.pub.competitionPower}${i.resource}`} className={classes.iconAlign}>
-                     {i18n.pub.competitionPower}
-                     {i.competitionPower}
+                <Typography aria-label={`${i18n.pub.competitionPower}${i.competitionPower}`} className={classes.iconAlign}>
+                    {competitionName}
+                    {competitionColon}
+                    <span style={owns3DFilm ? {position: 'relative', display: 'inline-block'} : undefined}>
+                        {owns3DFilm ? <AestheticsIcon style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            fontSize: 24,
+                            opacity: 0.32,
+                            color: film3DColor,
+                            pointerEvents: 'none'
+                        }}/> : null}
+                        <span style={owns3DFilm ? {
+                            position: 'relative',
+                            fontWeight: 700,
+                            textShadow: '1px 0 0 #fff, -1px 0 0 #fff, 0 1px 0 #fff, 0 -1px 0 #fff, ' +
+                                '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff'
+                        } : undefined}>{i.competitionPower}</span>
+                    </span>
                 </Typography>
             </Grid>
             <Grid item>
@@ -200,7 +231,29 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
             </Grid>
             <Grid item>
                 <Typography aria-label={`${i18n.pub.aesthetics}${i.aesthetics}`} className={classes.iconAlign}>
-                    <AestheticsIcon/> {i.aesthetics}
+                    <span style={ownsZoomLens ? {
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: 24,
+                        height: 24,
+                        lineHeight: 0,
+                        verticalAlign: 'middle'
+                    } : undefined}>
+                        <AestheticsIcon style={ownsZoomLens ? {color: zoomLensColor, display: 'block'} : undefined}/>
+                        {ownsZoomLens ? <>
+                            {/* 奖杯作为淡底纹水印，位于美学图标左侧，中线对齐图标左边线 */}
+                            <EmojiEventsIcon style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 'calc(50% - 2px)',
+                                transform: 'translate(-50%, -50%)',
+                                fontSize: 21,
+                                color: zoomLensColor,
+                                opacity: 0.25,
+                                pointerEvents: 'none'
+                            }}/>
+                        </> : null}
+                    </span> <span style={ownsZoomLens ? {color: zoomLensColor} : undefined}>{i.aesthetics}</span>
                     {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
                 </Typography>
             </Grid>
@@ -211,6 +264,9 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, hideLog = false}: IPubPa
             <Grid item>
                 <Typography aria-label={`${i18n.pub.vp}${i.vp}`} className={classes.iconAlign}>
                     <EmojiEventsIcon style={ownsColor ? {color: '#2196f3'} : undefined}/> {i.vp}
+                    {nextVpThreshold !== null ?
+                        <span style={{color: '#b0b7c3', fontSize: 12, marginLeft: 2}}> / {nextVpThreshold}</span>
+                        : null}
                 </Typography>
             </Grid>
         </Grid>

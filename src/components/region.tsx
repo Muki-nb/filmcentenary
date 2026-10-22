@@ -33,7 +33,7 @@ import StudioIcon from '@material-ui/icons/Business';
 import TheatersIcon from '@material-ui/icons/Theaters';
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import DeckIcon from '@material-ui/icons/Layers';
-import CardInfo, {getCardName} from "./card";
+import CardInfo, {CardAdjustBadge, getCardName} from "./card";
 import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import {nanoid} from "nanoid";
 import PrestigeIcon from "@material-ui/icons/EmojiEvents";
@@ -75,6 +75,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
             <Grid container>
                 <Grid item xs={12} className="dybn-card"
                     style={{
+                        position: "relative",
                         backgroundImage: `url("/img/${slot.card}.png")`,
                         backgroundRepeat: 'no-repeat',
                         backgroundPosition: 'right center',
@@ -84,6 +85,7 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment}: ICardSlo
                         } : {})
                     }}
                 >
+                    {slot.card === null ? <></> : <CardAdjustBadge cardId={slot.card}/>}
                     {slot.card === null ? <></> :
                         <>
                             <CardInfo cid={slot.card}/>
@@ -337,7 +339,7 @@ const isRegionVisible = (G:IG, region:IRegionInfo) => {
     }
     if(region == G.regions[Region.MONTHLY_SCHOOL]){
         if(G.extensionMode === ExtensionMode.FOUR) return false;
-        return G.hasSchoolExtensionDawn || G.hasSchoolExtensionTech;
+        return G.hasSchoolExtensionDawn || G.hasSchoolExtensionTech || G.hasSchoolExtensionVisual;
     }
     return true;
 };

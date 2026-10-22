@@ -52,6 +52,8 @@ interface IMatchStatsRecord {
         hasSchoolExtensionMuki?: boolean,
         hasSchoolExtensionMuki2?: boolean,
         hasSchoolExtensionDawn?: boolean,
+        hasSchoolExtensionTech?: boolean,
+        hasSchoolExtensionVisual?: boolean,
         hasSchoolExtensionQM?: boolean,
         hasExtensionChaosMedia?: boolean,
         disableUndo?: boolean,
@@ -217,7 +219,7 @@ const NO_SCHOOL_CARD_ID = "__NO_SCHOOL__";
 // ── 全局筛选选项类型 ──
 type PlayerCountFilter = "3" | "4";
 type OptionFilterMode = "include" | "exclude" | "any";
-type CardExtensionFilter = "all" | "base" | "schoolExt" | "muki" | "muki2" | "qm" | "dawn" | "tech" | "chaosmedia";
+type CardExtensionFilter = "all" | "base" | "schoolExt" | "muki" | "muki2" | "qm" | "dawn" | "tech" | "visual" | "chaosmedia";
 
 interface IFilterOptionDef {
     key: string;
@@ -231,6 +233,8 @@ const GLOBAL_FILTER_OPTIONS: IFilterOptionDef[] = [
     {key: "hasSchoolExtensionQM", label: "起名扩", settingsKey: "hasSchoolExtensionQM"},
     {key: "hasSchoolExtensionMuki2", label: "Muki扩2", settingsKey: "hasSchoolExtensionMuki2"},
     {key: "hasSchoolExtensionDawn", label: "2026-8扩", settingsKey: "hasSchoolExtensionDawn"},
+    {key: "hasSchoolExtensionTech", label: "2026-9扩", settingsKey: "hasSchoolExtensionTech"},
+    {key: "hasSchoolExtensionVisual", label: "2026-10扩", settingsKey: "hasSchoolExtensionVisual"},
     {key: "hasExtensionChaosMedia", label: "乱世光影", settingsKey: "hasExtensionChaosMedia"},
     {key: "testModeCinema", label: "影院测试", settingsKey: "testModeCinema"},
     {key: "testModeEnd180", label: "180分结束", settingsKey: "testModeEnd180"},
@@ -251,6 +255,7 @@ const CARD_EXTENSION_LABELS: Record<CardExtensionFilter, string> = {
     qm: "起名扩",
     dawn: "2026-8扩",
     tech: "2026-9扩",
+    visual: "2026-10扩",
     chaosmedia: "乱世光影",
 };
 
@@ -264,6 +269,9 @@ const getCardExtension = (cardID: string): CardExtensionFilter => {
 
     // 2026-9流派扩(技术革新): S52691-S52694
     if (/^S5269[1-4]$/.test(n)) return "tech";
+
+    // 2026-10流派扩(视觉奇观): S52701-S52702
+    if (/^S5270[12]$/.test(n)) return "visual";
 
     // Muki扩2: S5201-S5209
     if (/^S520[1-9]$/.test(n)) return "muki2";
@@ -282,6 +290,15 @@ const getCardExtension = (cardID: string): CardExtensionFilter => {
 
     // 基础: 1xxx, 2xxx, 3xxx (S/F/P)
     return "base";
+};
+
+/** 默认起始日期：最近一个月（本地时区，YYYY-MM-DD） */
+const defaultDateStart = (): string => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}-${dd}`;
 };
 
 /** 全局筛选：按人数、日期、自定义选项过滤对局记录 */
@@ -1454,7 +1471,8 @@ const MatchStatsPage = () => {
     // ── 全局筛选状态 ──
     const [playerCountFilter, setPlayerCountFilter] = React.useState<PlayerCountFilter>("4");
     const [optionFilters, setOptionFilters] = React.useState<Record<string, OptionFilterMode>>(DEFAULT_OPTION_FILTERS());
-    const [dateStart, setDateStart] = React.useState("");
+    // 2026-10：对局数据默认只统计最近一个月，可通过「起始日期」调整
+    const [dateStart, setDateStart] = React.useState<string>(() => defaultDateStart());
     const [dateEnd, setDateEnd] = React.useState("");
     const [showFilterPanel, setShowFilterPanel] = React.useState(false);
     // ── 卡牌扩展筛选 ──
@@ -1836,7 +1854,7 @@ const MatchStatsPage = () => {
                             <Button size="small" color="secondary" variant="outlined" onClick={() => {
                                 setPlayerCountFilter("4");
                                 setOptionFilters(DEFAULT_OPTION_FILTERS());
-                                setDateStart("");
+                                setDateStart(defaultDateStart());
                                 setDateEnd("");
                             }}>
                                 重置筛选
@@ -1877,7 +1895,7 @@ const MatchStatsPage = () => {
                         </Grid>
                         {/* 日期筛选 */}
                         <Grid item xs={12} sm={6}>
-                            <Typography variant="body2" color="textSecondary" style={{marginBottom: 4}}>起始日期：</Typography>
+                            <Typography variant="body2" color="textSecondary" style={{marginBottom: 4}}>起始日期（默认最近一个月）：</Typography>
                             <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)}
                                 style={{padding: "4px 8px", border: "1px solid #ccc", borderRadius: 4, fontSize: 14}} />
                         </Grid>
@@ -2714,9 +2732,11 @@ const MatchStatsPage = () => {
                             ) : (
                                 <>
                                     <Typography variant="subtitle2" style={{marginBottom: 8}}>
-                                        共 {playerMatchResults.length} 局{playerMatchResults.length >= 10 ? "（仅显示最近10场）" : ""}
+                                        {playerMatchResults.length >= 10
+                                            ? `仅显示最近 10 场（更早的对局请用对局ID查询）`
+                                            : `共 ${playerMatchResults.length} 局`}
                                     </Typography>
-                                    {playerMatchResults.map((m: any) => (
+                                    {playerMatchResults.slice(0, 10).map((m: any) => (
                                         <div key={m.matchID} style={{marginBottom: 8, padding: 10, border: "1px solid #e0e0e0", borderRadius: 4}}>
                                             <Grid container spacing={1} alignItems="center">
                                                 <Grid item xs={12}>

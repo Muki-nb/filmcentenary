@@ -10,7 +10,7 @@ import Typography from "@material-ui/core/Typography";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import Button from "@material-ui/core/Button";
 import {nanoid} from "nanoid";
-import {CardInfo} from "./card";
+import {CardAdjustBadge, CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
 import {CardCategory, getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
@@ -108,6 +108,7 @@ export const PlayerHand = ({
                         >
                         <AccordionSummary key={idx} className="dybn-card"
                             style={{
+                                position: 'relative',
                                 backgroundImage: `url("/img/${c}.png")`,
                                 backgroundRepeat: 'no-repeat',
                                 backgroundPosition: 'right center',
@@ -117,6 +118,7 @@ export const PlayerHand = ({
                                 } : {})
                             }}
                         >
+                            <CardAdjustBadge cardId={c}/>
                             <CardInfo cid={c}/>
                             {era !== null ?
                                 <Typography aria-label={i18n.era[era]}>

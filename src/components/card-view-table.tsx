@@ -35,6 +35,7 @@ const DAWN_EXTENSION_IDS = new Set<string>([
 
 const TECH_EXTENSION_IDS = new Set<string>([
     "S52691", "S52692", "S52693", "S52694",
+    "S52701", "S52702",
 ]);
 
 const QM_EXTENSION_IDS = new Set<string>([

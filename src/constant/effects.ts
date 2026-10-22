@@ -3870,6 +3870,34 @@ export const effects = {
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52694_effect"}},
     },
 
+    //2026-10 Extension - Tech Schools (Visual Spectacle)
+    "52701": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52701_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52701_effect"}},
+    },
+    "52702": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52702_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52702_effect"}},
+    },
+
     //QM Extension Schools
     "6001": {
         "school": {

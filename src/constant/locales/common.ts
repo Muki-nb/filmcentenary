@@ -43,6 +43,7 @@ export interface LocaleSettings {
     enableSchoolExtensionMuki2: string,
     enableSchoolExtensionDawn: string,
     enableSchoolExtensionTech: string,
+    enableSchoolExtensionVisual: string,
     enableSchoolExtensionQM: string,
     enableExtensionChaosMedia: string,
     randomFirst: string,
@@ -57,6 +58,11 @@ export interface LocaleSettings {
     testModeEnd180: string,
 
     customOptions: string,
+
+    recommendedSettings: string,
+    presetClassic: string,
+    presetWild: string,
+    presetLatest: string,
 
     extensionMode: string,
     extensionMode_none: string,
@@ -125,6 +131,10 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
             if (arg.enableSchoolExtensionTech){
                 t += ", "
                 t += setting.enableSchoolExtensionTech
+            }
+            if ((arg as any).enableSchoolExtensionVisual){
+                t += ", "
+                t += setting.enableSchoolExtensionVisual
             }
             if (arg.enableSchoolExtensionQM){
                 t += ", "

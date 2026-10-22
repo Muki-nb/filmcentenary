@@ -110,8 +110,8 @@ const DrawerAppBar = () => {
             >
                 <MenuIcon/>
             </IconButton>
-            <Typography component="div">
-                <Grid component="label" container alignItems="center" spacing={1}>
+            <Typography component="div" variant="body2" style={{ flexShrink: 0, whiteSpace: 'nowrap', paddingRight: 8 }}>
+                <Grid component="label" container alignItems="center" spacing={0} wrap="nowrap" style={{ gap: 4 }}>
                     <Grid item>中文</Grid>
                     <Grid item>
                         <AntSwitch checked={checked} onChange={handleChange} name="locale-switch" />
@@ -137,7 +137,7 @@ const DrawerAppBar = () => {
                     ),
                     style: { color: '#fff' },
                 }}
-                style={{ marginLeft: 'auto', marginRight: 4, maxWidth: 200 }}
+                style={{ marginLeft: 'auto', marginRight: 4, maxWidth: 200, minWidth: 0 }}
             />
         </Toolbar>
     </AppBar>

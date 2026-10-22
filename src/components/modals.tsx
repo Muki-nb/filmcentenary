@@ -37,6 +37,15 @@ export interface IChoiceProps {
     buttonColor?: boolean,
 }
 
+/** 可选项：未被隐藏且未被禁用 */
+const isSelectableChoice = (c: Choice): boolean => !c.hidden && !c.disabled;
+
+/** 取第一个可选项（未被隐藏且未被禁用）的 value，没有则回退到 defaultChoice */
+const getFirstSelectableChoice = (choices: Choice[], fallback: string): string => {
+    const first = choices.find(isSelectableChoice);
+    return first ? first.value : fallback;
+}
+
 export const useDebounce = (callback: () => any, delay: number) => {
     const latestCallback = useRef(() => {
     });
@@ -76,16 +85,21 @@ export const ChoiceDialog = ({
 
     useI18n(i18n);
     const [open, setOpen] = React.useState(initial);
-    const [choice, setChoice] = React.useState(defaultChoice);
+    // 每次弹出都回到第一个可选项，不保留上一次的选择
+    const [choice, setChoice] = React.useState(() => getFirstSelectableChoice(choices, defaultChoice));
     const prevShow = usePrevious(show);
 
     React.useEffect(() => {
-        if (show && prevShow === false && popAfterShow !== false) {
-            setOpen(true);
+        if (show && prevShow === false) {
+            setChoice(getFirstSelectableChoice(choices, defaultChoice));
+            if (popAfterShow !== false) {
+                setOpen(true);
+            }
         }
     }, [prevShow, show, popAfterShow])
 
     const handleClickOpen = () => {
+        setChoice(getFirstSelectableChoice(choices, defaultChoice));
         setOpen(true);
     };
 
@@ -94,11 +108,12 @@ export const ChoiceDialog = ({
     };
 
     const handleConfirm = () => {
-        if(choices.map(c => c.value).includes(choice)){
-            callback(choice);
+        const selected = choices.find(c => c.value === choice && isSelectableChoice(c));
+        if(selected){
+            callback(selected.value);
             handleClose();
         }else{
-            setChoice(defaultChoice);
+            setChoice(getFirstSelectableChoice(choices, defaultChoice));
         }
     };
 
@@ -151,7 +166,8 @@ export const ChoiceDialog = ({
                 </FormControl>
             </DialogContent>
             <DialogActions key={nanoid()}>
-                <Button key={nanoid()} onClick={handleConfirm} color="primary">
+                <Button key={nanoid()} onClick={handleConfirm} color="primary"
+                        disabled={!choices.some(isSelectableChoice)}>
                     {i18n.confirm}
                 </Button>
             </DialogActions>

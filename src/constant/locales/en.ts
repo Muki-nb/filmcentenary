@@ -211,6 +211,9 @@ const cards = {
     '52693': 'Tech: Sound Film',
     '52694': 'Tech: Technicolor',
 
+    '52701': 'Tech: Zoom Lens',
+    '52702': 'Tech: 3D Film',
+
     '6001': 'New Drama',
     '6002': 'Czechoslovak Film',
     'enableSchoolExtensionDawn': 'Enable Daybreak Extension',
@@ -330,11 +333,17 @@ const setting: LocaleSettings = {
     disableUndo: "Disable Undo",
     enableSchoolExtensionDawn: "Enable Daybreak Extension",
     enableSchoolExtensionTech: "Enable Tech Innovation Extension",
+    enableSchoolExtensionVisual: "Enable Visual Spectacle Extension",
 
     testModeCinema: "[Optional] Cinema: +1 resource, +1 prestige",
     testModeEnd180: "[Optional] Game End: 180 VP",
 
     customOptions: "Custom Options",
+
+    recommendedSettings: "Recommended",
+    presetClassic: "Classic Base",
+    presetWild: "Wild All-In",
+    presetLatest: "Latest Releases",
 
     extensionMode: "Extension Mode",
     extensionMode_none: "normal Extension mode",
@@ -800,17 +809,22 @@ const en = {
         '52682_effect': "Before the recovery phase, if your hand is not empty, after the recovery phase, +1 card and +1 prestige.",
         Dawn_Berlin_buy: "If industry + aesthetics ≤ 4, choose industry or aesthetics +1",
         '52683_buy': "Other companies -1 card, -1 prestige, +1 deposit. +1 North America share.",
-        '52683_effect': "After breakthrough, [optional] choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
+        '52683_effect': "After breakthrough, choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
         '52684_buy': "[Buy][Update] once. +1 Asia share. +1 action point.",
         '52684_effect': "Before the recovery phase, if you have no action points, after the recovery phase, archive Sun Tribe Film. After losing Sun Tribe Film: +1 industry level, +7 prestige.",
         '52691_buy': "Place into the archive to take effect. Buy a 【Commercial Film】 for free and place it on top of your deck.",
-        '52691_effect': "After drawing cards with an action point: +1 card, +2 prestige.",
+        '52691_effect': "After drawing cards with an action point: +1 card, +3 prestige.",
         '52692_buy': "Place into the archive to take effect. Breakthrough once for free.",
-        '52692_effect': "Whenever your hand size changes by anything other than ±1 around an action: +1 prestige.",
-        '52693_buy': "Place into the archive to take effect. +5 prestige.",
+        '52692_effect': "Whenever your hand size changes by anything other than ±1 around playing a card: +1 prestige.",
+        '52693_buy': "Place into the archive to take effect. +2 prestige.",
         '52693_effect': "Each time you lose 1 deposit: +1 prestige.",
         '52694_buy': "Place into the archive to take effect. +2 deposit.",
         '52694_effect': "The first time you reach 40/80/120 prestige: +1 deposit. The first time you reach 150 prestige, choose one: ①+1 industry level; ②+1 aesthetics level.",
+
+        '52701_buy': "Place into the archive to take effect. Choose a region: +3 shares, +2 normal cards, +1 legend card in that region.",
+        '52701_effect': "Each time your aesthetics level increases: -2 prestige, then gain prestige equal to your aesthetics level.",
+        '52702_buy': "Place into the archive to take effect. Choose one: ①+1 industry level; ②+1 aesthetics level.",
+        '52702_effect': "Your competition power cannot be lower than your aesthetics level (but not higher than your industry level).",
         addAction: ["+{{a}} action(s)", argValue],
 
         '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
